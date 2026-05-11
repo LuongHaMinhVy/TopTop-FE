@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand: #ff3b5c;
+  --color-brand-dark: #e03550;
+  --color-cyan: #25F4EE;
+
+  /* Light Theme (Default) */
+  --color-background: #ffffff;
+  --color-surface: rgba(0, 0, 0, 0.04);
+  --color-elevated: rgba(0, 0, 0, 0.12);
+  --color-hover: rgba(0, 0, 0, 0.08);
+  --color-text-primary: rgba(0, 0, 0, 0.9);
+  --color-text-secondary: rgba(0, 0, 0, 0.75);
+  --color-text-muted: rgba(0, 0, 0, 0.5);
+
+  --font-sans: "IBM Plex Sans", TikTokFont, Arial, Tahoma, PingFangSC, sans-serif;
+}
+
+.dark {
+  /* Dark Theme */
+  --color-background: #121212;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-elevated: rgba(255, 255, 255, 0.12);
+  --color-hover: rgba(255, 255, 255, 0.08);
+  --color-text-primary: rgba(255, 255, 255, 0.9);
+  --color-text-secondary: rgba(255, 255, 255, 0.75);
+  --color-text-muted: rgba(255, 255, 255, 0.5);
+}
+
+@theme inline {
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-cyan: var(--color-cyan);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-elevated: var(--color-elevated);
+  --color-hover: var(--color-hover);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --font-sans: var(--font-sans);
+}
+
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+  background: var(--color-brand);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0 24px;
+  height: 36px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(0deg, rgba(0,0,0,0.06), rgba(0,0,0,0.06)), var(--color-brand);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: linear-gradient(0deg, rgba(0,0,0,0.12), rgba(0,0,0,0.12)), var(--color-brand);
+}
+
+.btn-primary:disabled {
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-brand);
+  border: 1px solid var(--color-brand);
+  border-radius: 4px;
+  padding: 0 24px;
+  height: 36px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(254, 44, 85, 0.06);
+}
+
+.input-field {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-elevated);
+  height: 44px;
+  border-radius: 8px;
+  padding: 0 16px;
+  transition: border-color 0.2s ease-in-out;
+  width: 100%;
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-cyan);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-in.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-in.zoom-in {
+  animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-in.slide-in-from-bottom-4 {
+  animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-in.slide-in-from-right-4 {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 3s linear infinite;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}

@@ -1,0 +1,46 @@
+{
+  "Main": {
+    "search": "Search",
+    "searchPlaceholder": "Accounts and videos",
+    "login": "Log in",
+    "logout": "Log out",
+    "sidebar": {
+        "forYou": "For You",
+        "explore": "Explore",
+        "following": "Following",
+        "live": "LIVE",
+        "messages": "Messages",
+        "activity": "Activity",
+        "upload": "Upload",
+        "profile": "Profile",
+        "friends": "Friends",
+        "more": "More",
+        "followingAccounts": "Following accounts",
+        "seeAll": "See all",
+        "loginPrompt": "Log in to follow creators, like videos, and view comments."
+    },
+    "footer": {
+        "company": "Company",
+        "programs": "Programs",
+        "terms": "Terms",
+        "privacy": "Privacy"
+    },
+    "searchPanel": {
+        "title": "Search",
+        "recent": "Recent",
+        "clearAll": "Clear all",
+        "suggestions": "Suggestions for you"
+    },
+    "bottomNav": {
+        "friends": "Friends"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "common": "Common",
+    "language": "Language",
+    "darkMode": "Dark mode",
+    "logout": "Log out",
+    "profile": "Profile"
+  }
+}

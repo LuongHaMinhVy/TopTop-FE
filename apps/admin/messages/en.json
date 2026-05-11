@@ -1,0 +1,76 @@
+{
+  "Admin": {
+     "login": {
+      "title": "TopTop Admin Center",
+      "subtitle": "Manage creators, content and platform safety",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "admin@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Sign in to Admin Center",
+      "submitting": "Authenticating...",
+      "error": "Login failed",
+      "accessDenied": "Access denied. Administrator role required.",
+      "unknownError": "An error occurred"
+    },
+    "dashboard": {
+      "title": "Dashboard Overview",
+      "welcome": "Welcome back! Here's what's happening on TopTop today.",
+      "downloadReport": "Download Report",
+      "liveMonitor": "Live Monitor",
+      "users": "Users",
+      "videos": "Videos",
+      "reports": "Reports",
+      "settings": "Settings",
+      "logout": "Log out",
+      "nav": {
+        "overview": "Overview",
+        "creators": "Creators",
+        "content": "Content Management",
+        "analytics": "Analytics",
+        "safety": "Safety & Reports",
+        "settings": "Settings",
+        "system": "System"
+      },
+      "stats": {
+        "totalCreators": "Total Creators",
+        "totalVideos": "Total Videos",
+        "activityReports": "Activity Reports",
+        "dailyUsers": "Daily Active Users"
+      },
+      "recentReports": {
+        "title": "Recent Important Reports",
+        "viewAll": "View all",
+        "colUser": "User",
+        "colType": "Type",
+        "colStatus": "Status",
+        "colAction": "Action"
+      },
+      "reportTypes": {
+        "inappropriate": "Inappropriate Content",
+        "copyright": "Copyright Claim",
+        "spam": "Spam Activity",
+        "harassment": "Harassment"
+      },
+      "status": {
+        "pending": "Pending",
+        "inReview": "In Review",
+        "resolved": "Resolved",
+        "highPriority": "High Priority"
+      },
+      "platformHealth": {
+        "title": "Platform Health",
+        "cdn": "CDN Performance",
+        "api": "API Response Time",
+        "moderation": "Moderation Queue",
+        "storage": "Storage Capacity",
+        "systemNote": "System is currently operating normally. Last backup: 14 minutes ago."
+      },
+      "header": {
+        "searchPlaceholder": "Search creators, videos or reports...",
+        "adminTeam": "Admin Team",
+        "adminRole": "Senior Administrator"
+      }
+    }
+  }
+}

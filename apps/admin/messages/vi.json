@@ -1,0 +1,76 @@
+{
+  "Admin": {
+     "login": {
+      "title": "Trung tâm Quản trị TopTop",
+      "subtitle": "Quản lý nhà sáng tạo, nội dung và an toàn nền tảng",
+      "emailLabel": "Địa chỉ email",
+      "emailPlaceholder": "admin@example.com",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Đăng nhập vào Trung tâm Quản trị",
+      "submitting": "Đang xác thực...",
+      "error": "Lỗi đăng nhập",
+      "accessDenied": "Truy cập bị từ chối. Cần quyền Quản trị viên.",
+      "unknownError": "Đã xảy ra lỗi"
+    },
+    "dashboard": {
+      "title": "Tổng quan Dashboard",
+      "welcome": "Chào mừng quay trở lại! Đây là những gì đang diễn ra trên TopTop hôm nay.",
+      "downloadReport": "Tải báo cáo",
+      "liveMonitor": "Giám sát trực tiếp",
+      "users": "Người dùng",
+      "videos": "Video",
+      "reports": "Báo cáo",
+      "settings": "Cài đặt",
+      "logout": "Đăng xuất",
+      "nav": {
+        "overview": "Tổng quan",
+        "creators": "Nhà sáng tạo",
+        "content": "Quản lý nội dung",
+        "analytics": "Phân tích",
+        "safety": "An toàn & Báo cáo",
+        "settings": "Cài đặt",
+        "system": "Hệ thống"
+      },
+      "stats": {
+        "totalCreators": "Tổng nhà sáng tạo",
+        "totalVideos": "Tổng video",
+        "activityReports": "Báo cáo hoạt động",
+        "dailyUsers": "Người dùng hàng ngày"
+      },
+      "recentReports": {
+        "title": "Báo cáo quan trọng gần đây",
+        "viewAll": "Xem tất cả",
+        "colUser": "Người dùng",
+        "colType": "Loại",
+        "colStatus": "Trạng thái",
+        "colAction": "Hành động"
+      },
+      "reportTypes": {
+        "inappropriate": "Nội dung không phù hợp",
+        "copyright": "Khiếu nại bản quyền",
+        "spam": "Hoạt động Spam",
+        "harassment": "Quấy rối"
+      },
+      "status": {
+        "pending": "Đang chờ",
+        "inReview": "Đang xem xét",
+        "resolved": "Đã giải quyết",
+        "highPriority": "Ưu tiên cao"
+      },
+      "platformHealth": {
+        "title": "Sức khỏe nền tảng",
+        "cdn": "Hiệu suất CDN",
+        "api": "Thời gian phản hồi API",
+        "moderation": "Hàng đợi kiểm duyệt",
+        "storage": "Dung lượng lưu trữ",
+        "systemNote": "Hệ thống hiện đang hoạt động bình thường. Bản sao lưu cuối cùng: 14 phút trước."
+      },
+      "header": {
+        "searchPlaceholder": "Tìm kiếm nhà sáng tạo, video hoặc báo cáo...",
+        "adminTeam": "Đội ngũ Quản trị",
+        "adminRole": "Quản trị viên cấp cao"
+      }
+    }
+  }
+}

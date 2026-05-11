@@ -1,0 +1,46 @@
+{
+  "Main": {
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tài khoản và video",
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "sidebar": {
+        "forYou": "Đề xuất",
+        "explore": "Khám phá",
+        "following": "Đã follow",
+        "live": "LIVE",
+        "messages": "Tin nhắn",
+        "activity": "Hoạt động",
+        "upload": "Tải lên",
+        "profile": "Hồ sơ",
+        "friends": "Bạn bè",
+        "more": "Thêm",
+        "followingAccounts": "Các tài khoản Đã follow",
+        "seeAll": "Xem tất cả",
+        "loginPrompt": "Đăng nhập để follow các tác giả, thích video và xem bình luận."
+    },
+    "footer": {
+        "company": "Công ty",
+        "programs": "Chương trình",
+        "terms": "Điều khoản",
+        "privacy": "Quyền riêng tư"
+    },
+    "searchPanel": {
+        "title": "Tìm kiếm",
+        "recent": "Gần đây",
+        "clearAll": "Xóa hết",
+        "suggestions": "Gợi ý cho bạn"
+    },
+    "bottomNav": {
+        "friends": "Bạn bè"
+    }
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "common": "Chung",
+    "language": "Ngôn ngữ",
+    "darkMode": "Chế độ tối",
+    "logout": "Đăng xuất",
+    "profile": "Hồ sơ"
+  }
+}
