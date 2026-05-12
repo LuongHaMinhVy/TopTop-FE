@@ -26,7 +26,7 @@ export default function VideoCard({
   caption = "80% SINH VIÊN KHÔNG BIẾT NHỮNG MẸO NGẦM TÂM LÝ KHI BẢO VỆ KLTN...",
   sound = "Original sound - baprang4k",
   aspectRatio = "9/16",
-  avatarUrl = "https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/7313627042858860549~c5_100x100.jpeg",
+  avatarUrl = "https://i.pinimg.com/736x/7d/46/e8/7d46e8ca8d23441a71ddcb1df89b7ba5.jpg",
   likes = "4549",
   comments = "8",
   saves = "2292",
@@ -201,7 +201,7 @@ export default function VideoCard({
             relative group flex-shrink-0 shadow-2xl bg-black
             w-full h-full rounded-none
             sm:w-auto sm:h-auto sm:rounded-xl
-            ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[88vh]"}
+            ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(650px,70vh)]"}
           `}
         >
           {videoUrl ? (
@@ -215,7 +215,7 @@ export default function VideoCard({
                 className={`
                   block w-full h-full object-cover
                   sm:w-auto sm:h-auto sm:object-contain
-                  ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[88vh]"}
+                  ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(650px,70vh)]"}
                   sm:max-w-full
                 `}
                 loop

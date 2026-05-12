@@ -42,5 +42,20 @@
     "darkMode": "Chế độ tối",
     "logout": "Đăng xuất",
     "profile": "Hồ sơ"
+  },
+  "profile": {
+    "editProfile": "Sửa hồ sơ",
+    "follow": "Follow",
+    "following": "Đã follow",
+    "followers": "Follower",
+    "likes": "Lượt thích",
+    "tabs": {
+      "video": "Video",
+      "reposts": "Bài đăng lại",
+      "favorites": "Yêu thích",
+      "liked": "Đã thích"
+    },
+    "empty": "Chưa có video nào",
+    "private": "Tài khoản này là riêng tư"
   }
 }

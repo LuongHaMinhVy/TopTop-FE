@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "@/i18n/routing";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
 
 interface SettingsMenuProps {
   onClose: () => void;
@@ -28,6 +31,8 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
   const locale = useLocale();
   const { theme, setTheme } = useTheme();
   const [view, setView] = useState<"main" | "language">("main");
+  const router = useRouter();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const languages = [
     { code: "vi", name: "Tiếng Việt" },
@@ -44,8 +49,14 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
       {view === "main" ? (
         <div className="flex flex-col py-1">
           <div className="flex flex-col">
-            {isLoggedIn && (
-              <button className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors text-start">
+            {isLoggedIn && user && (
+              <button 
+                onClick={() => {
+                  router.push(`/@${user.username}`);
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors text-start"
+              >
                 <User size={20} />
                 <span className="flex-1 font-semibold text-[15px]">{t('settings.profile')}</span>
               </button>

@@ -68,9 +68,12 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
   );
 }
 
-export function BottomNav({ icon, label, active }: { icon: React.ReactNode; label: string; active?: boolean }) {
+export function BottomNav({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
   return (
-    <button className={`flex flex-col items-center gap-0.5 transition-colors ${active ? "text-brand" : "text-text-muted hover:text-text-primary"}`}>
+    <button 
+      onClick={onClick}
+      className={`flex flex-col items-center gap-0.5 transition-colors ${active ? "text-brand" : "text-text-muted hover:text-text-primary"}`}
+    >
       {icon}
       <span className="text-[10px] font-medium">{label}</span>
     </button>

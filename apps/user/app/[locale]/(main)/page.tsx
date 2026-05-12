@@ -17,7 +17,7 @@ export default function FeedPage() {
         {[
           { 
             index: 0, 
-            videoUrl: "/sech.mp4",
+            videoUrl: "/1.mp4",
             username: "juxtweb",
             caption: "EVIL AURAA COME OUT! #webtoon #manhwa #webtoonrecomendation #manhwarecomendation",
             likes: "8676",
@@ -27,7 +27,7 @@ export default function FeedPage() {
           },
           { 
             index: 1, 
-            videoUrl: "/snaptik.vn_jok61.mp4",
+            videoUrl: "/2.mp4",
             username: "baprang4k", 
             caption: "This is a vertical video test. 📱 #vertical #toptop",
             likes: "12.5K",
@@ -37,8 +37,18 @@ export default function FeedPage() {
           },
           { 
             index: 2, 
-            videoUrl: "/nha_co_nam_to_bun.mp4",
+            videoUrl: "/3.mp4",
             username: "baprang4k", 
+            caption: "This is a vertical video test. 📱 #vertical #toptop",
+            likes: "12.5K",
+            comments: "431",
+            saves: "5000",
+            shares: "120"
+          },
+          {
+            index: 3,
+            videoUrl: "/4.mp4",
+            username: "baprang4k",
             caption: "This is a vertical video test. 📱 #vertical #toptop",
             likes: "12.5K",
             comments: "431",

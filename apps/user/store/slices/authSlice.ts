@@ -17,21 +17,21 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<AuthResponse | UserInfo>) => {
+    setCredentials: (state: AuthState, action: PayloadAction<AuthResponse | UserInfo>) => {
       if ('user' in action.payload && action.payload.user) {
         state.user = action.payload.user;
       } else if ('id' in action.payload || 'username' in action.payload) {
         state.user = action.payload as UserInfo;
       }
     },
-    clearCredentials: (state) => {
+    clearCredentials: (state: AuthResponse) => {
       state.user = null;
     },
-    openAuthModal: (state, action: PayloadAction<"login" | "signup">) => {
+    openAuthModal: (state: AuthState, action: PayloadAction<"login" | "signup">) => {
       state.isAuthModalOpen = true;
       state.authModalType = action.payload;
     },
-    closeAuthModal: (state) => {
+    closeAuthModal: (state: AuthState) => {
       state.isAuthModalOpen = false;
     },
   },

@@ -42,5 +42,20 @@
     "darkMode": "Dark mode",
     "logout": "Log out",
     "profile": "Profile"
+  },
+  "profile": {
+    "editProfile": "Edit profile",
+    "follow": "Follow",
+    "following": "Following",
+    "followers": "Follower",
+    "likes": "Likes",
+    "tabs": {
+      "video": "Video",
+      "reposts": "Reposts",
+      "favorites": "Favorites",
+      "liked": "Liked"
+    },
+    "empty": "No videos yet",
+    "private": "This account is private"
   }
 }

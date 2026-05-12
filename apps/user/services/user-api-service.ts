@@ -13,3 +13,32 @@ export const getCurrentUser = async (): Promise<ApiResponse<UserInfo>> => {
     throw error;
   }
 };
+
+export const getUserProfile = async (username: string): Promise<ApiResponse<UserInfo>> => {
+  try {
+    const response = await api.get<ApiResponse<UserInfo>>(`/users/${username}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+export const followUser = async (username: string): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.post<ApiResponse<void>>(`/follow/${username}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const unfollowUser = async (username: string): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.delete<ApiResponse<void>>(`/follow/${username}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

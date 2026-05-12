@@ -5,34 +5,63 @@ interface MediaState {
   volume: number;
 }
 
-const initialState: MediaState = {
-  isMuted: true,
-  volume: 1,
+const loadMediaState = (): MediaState => {
+  if (typeof window === 'undefined') {
+    return {
+      isMuted: true,
+      volume: 1,
+    };
+  }
+
+  const saved = localStorage.getItem('media');
+
+  if (saved) {
+    return {...JSON.parse(saved), isMuted: true};
+  }
+
+  return {
+    isMuted: true,
+    volume: 1,
+  };
 };
+
+const saveMediaState = (state: MediaState) => {
+  localStorage.setItem('media', JSON.stringify(state));
+};
+
+const initialState: MediaState = loadMediaState();
 
 const mediaSlice = createSlice({
   name: 'media',
   initialState,
   reducers: {
-    setMuted: (state, action: PayloadAction<boolean>) => {
+    setMuted: (state : { isMuted: boolean, volume: number}, action: PayloadAction<boolean>) => {
       state.isMuted = action.payload;
+
+      saveMediaState(state);
     },
-    setVolume: (state, action: PayloadAction<number>) => {
+
+    setVolume: (state:  { isMuted: boolean, volume: number}, action: PayloadAction<number>) => {
       state.volume = action.payload;
-      if (action.payload > 0) {
-        state.isMuted = false;
-      } else {
-        state.isMuted = true;
-      }
+
+      state.isMuted = action.payload <= 0;
+
+      saveMediaState(state);
     },
-    toggleMuted: (state) => {
+
+    toggleMuted: (state: { isMuted: boolean, volume: number}) => {
       state.isMuted = !state.isMuted;
+
       if (!state.isMuted && state.volume === 0) {
         state.volume = 0.5;
       }
+
+      saveMediaState(state);
     },
   },
 });
 
-export const { setMuted, setVolume, toggleMuted } = mediaSlice.actions;
+export const { setMuted, setVolume, toggleMuted } =
+  mediaSlice.actions;
+
 export default mediaSlice.reducer;

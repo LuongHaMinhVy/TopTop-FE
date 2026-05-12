@@ -13,6 +13,7 @@ import type { AppDispatch, RootState } from "@/store/store";
 import { openAuthModal } from "@/store/slices/authSlice";
 import { useLogoutMutation } from "@/hooks/auth-hooks";
 import { useTranslations } from "next-intl";
+import { Link, useRouter, usePathname } from "@/i18n/routing";
 
 import { 
   SearchRow, 
@@ -41,6 +42,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const logoutMutation = useLogoutMutation();
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
   
   useEffect(() => {
     setMounted(true);
@@ -141,44 +144,70 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
           {/* Scrollable content */}
           <nav className="flex flex-col px-1">
-            <TikNavItem icon={<HomeIcon size={24} />} label={t('sidebar.forYou')} active collapsed={collapsed} />
-            <TikNavItem icon={<Compass size={24} />} label={t('sidebar.explore')} collapsed={collapsed} />
-            <TikNavItem icon={<UserCheck size={24} />} label={t('sidebar.following')} collapsed={collapsed} />
+            <Link href="/">
+              <TikNavItem icon={<HomeIcon size={24} />} label={t('sidebar.forYou')} active={pathname === "/"} collapsed={collapsed} />
+            </Link>
+            <Link href="/explore">
+              <TikNavItem icon={<Compass size={24} />} label={t('sidebar.explore')} active={pathname === "/explore"} collapsed={collapsed} />
+            </Link>
+            <Link href="/following">
+              <TikNavItem icon={<UserCheck size={24} />} label={t('sidebar.following')} active={pathname === "/following"} collapsed={collapsed} />
+            </Link>
             
             {isLoggedIn && (
-              <TikNavItem icon={<Users size={24} />} label={t('sidebar.friends')} collapsed={collapsed} />
+              <Link href="/friends">
+                <TikNavItem icon={<Users size={24} />} label={t('sidebar.friends')} active={pathname === "/friends"} collapsed={collapsed} />
+              </Link>
             )}
             
-            <TikNavItem icon={<Video size={24} />} label={t('sidebar.live')} collapsed={collapsed} />
+            <Link href="/live">
+              <TikNavItem icon={<Video size={24} />} label={t('sidebar.live')} active={pathname === "/live"} collapsed={collapsed} />
+            </Link>
             
             {isLoggedIn && (
               <>
-                <TikNavItem 
-                  icon={
-                    <div className="relative">
-                      <MessageSquare size={24} />
-                      <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">1</span>
-                    </div>
-                  } 
-                  label={t('sidebar.messages')} 
-                  collapsed={collapsed} 
-                />
-                <TikNavItem 
-                  icon={
-                    <div className="relative">
-                      <Bell size={24} />
-                      <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">2</span>
-                    </div>
-                  } 
-                  label={t('sidebar.activity')} 
-                  collapsed={collapsed} 
-                />
+                <Link href="/messages">
+                  <TikNavItem 
+                    icon={
+                      <div className="relative">
+                        <MessageSquare size={24} />
+                        <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">1</span>
+                      </div>
+                    } 
+                    label={t('sidebar.messages')} 
+                    active={pathname === "/messages"}
+                    collapsed={collapsed} 
+                  />
+                </Link>
+                <Link href="/activity">
+                  <TikNavItem 
+                    icon={
+                      <div className="relative">
+                        <Bell size={24} />
+                        <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">2</span>
+                      </div>
+                    } 
+                    label={t('sidebar.activity')} 
+                    active={pathname === "/activity"}
+                    collapsed={collapsed} 
+                  />
+                </Link>
               </>
             )}
             
-            <TikNavItem icon={<PlusSquare size={24} />} label={t('sidebar.upload')} collapsed={collapsed} />
+            <Link href="/upload">
+              <TikNavItem icon={<PlusSquare size={24} />} label={t('sidebar.upload')} active={pathname === "/upload"} collapsed={collapsed} />
+            </Link>
             
             <TikNavItem 
+              onClick={() => {
+                if (isLoggedIn && user) {
+                  router.push(`/@${user.username}`);
+                } else {
+                  dispatch(openAuthModal("login"));
+                }
+              }}
+              active={user ? pathname === `/@${user.username}` : false}
               icon={
                 isLoggedIn && user?.avatarUrl ? (
                   <div className="w-7 h-7 rounded-full overflow-hidden border border-elevated">
@@ -383,11 +412,27 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Mobile Bottom Nav */}
       <nav className="sm:hidden flex items-center justify-around border-t border-elevated bg-background/90 backdrop-blur-md h-[64px] flex-shrink-0 z-20 pb-safe">
-        <BottomNav icon={<HomeIcon size={26} />} label={t('sidebar.forYou')} active />
-        <BottomNav icon={<Compass className="w-[26px] h-[26px]" />} label={t('sidebar.explore')} />
-        <BottomNav icon={<Upload className="w-[26px] h-[26px]" />} label={t('sidebar.upload')} />
-        <BottomNav icon={<Users className="w-[26px] h-[26px]" />} label={t('bottomNav.friends')} />
+        <Link href="/">
+          <BottomNav icon={<HomeIcon size={26} />} label={t('sidebar.forYou')} active={pathname === "/"} />
+        </Link>
+        <Link href="/explore">
+          <BottomNav icon={<Compass className="w-[26px] h-[26px]" />} label={t('sidebar.explore')} active={pathname === "/explore"} />
+        </Link>
+        <Link href="/upload">
+          <BottomNav icon={<Upload className="w-[26px] h-[26px]" />} label={t('sidebar.upload')} active={pathname === "/upload"} />
+        </Link>
+        <Link href="/friends">
+          <BottomNav icon={<Users className="w-[26px] h-[26px]" />} label={t('bottomNav.friends')} active={pathname === "/friends"} />
+        </Link>
         <BottomNav 
+          active={user ? pathname === `/@${user.username}` : false}
+          onClick={() => {
+            if (isLoggedIn && user) {
+              router.push(`/@${user.username}`);
+            } else {
+              dispatch(openAuthModal("login"));
+            }
+          }}
           icon={
             isLoggedIn && user?.avatarUrl ? (
               <div className="w-6 h-6 rounded-full overflow-hidden border border-elevated">
