@@ -65,7 +65,7 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
-                processQueue(refreshError, null);
+                processQueue(refreshError as Error, null);
                 
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new CustomEvent("auth:expired"));
