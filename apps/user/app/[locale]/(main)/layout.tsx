@@ -25,6 +25,7 @@ import {
   Logo
 } from "@/components/layout/LayoutHelpers";
 import { SettingsMenu } from "@/components/layout/SettingsMenu";
+import { Avatar, Button } from "@repo/ui";
 
 const FAKE_FOLLOWING = [
   { name: "Hải Ly Manga Review", username: "hailymangareview", color: "#60a5fa", isLive: true },
@@ -47,8 +48,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
     const handleResize = () => {
       setIsSidebarCollapsed(window.innerWidth < 1024);
     };
@@ -105,30 +104,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           />
         </div>
         {!isLoggedIn && (
-          <button 
+          <Button 
             onClick={() => dispatch(openAuthModal("login"))}
-            className="btn-primary whitespace-nowrap ml-2" 
-            style={{ height: 32, fontSize: 13, padding: "0 14px" }}
+            size="sm"
+            className="ml-2 px-4 h-9"
           >
             {t('login')}
-          </button>
+          </Button>
         )}
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <aside
-          className="hidden sm:flex flex-col flex-shrink-0 bg-background"
+          className="hidden sm:flex flex-col flex-shrink-0 bg-background custom-scrollbar"
           style={{
             width: collapsed ? 72 : 240,
             transition: "width 300ms cubic-bezier(0.4,0,0.2,1)",
             overflowX: "hidden",
-            overflowY: "auto",
+            overflowY: "scroll",
             height: "100%",
           }}
         >
           {/* Logo - sticky at top */}
-          <div className="sticky top-0 z-10 bg-background flex-shrink-0">
+          <div className="sticky top-0 bg-background flex-shrink-0">
             <div className="flex items-center px-5 pt-6 pb-3">
               <Logo size="md" />
               <span className="text-xl font-bold tracking-tight whitespace-nowrap" style={labelStyle(collapsed, 180, 4)}>TopTop</span>
@@ -197,8 +196,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </>
             )}
             
-            <Link href="/upload">
-              <TikNavItem icon={<PlusSquare size={24} />} label={t('sidebar.upload')} active={pathname === "/upload"} collapsed={collapsed} />
+            <Link href="/toptopstudio/upload">
+              <TikNavItem icon={<PlusSquare size={24} />} label={t('sidebar.upload')} active={pathname === "/toptopstudio/upload"} collapsed={collapsed} />
             </Link>
             
             <TikNavItem 
@@ -211,19 +210,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               }}
               active={user ? pathname === `/@${user.username}` : false}
               icon={
-                isLoggedIn && user?.avatarUrl ? (
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-elevated relative">
-                    <Image src={user.avatarUrl} alt={user.nickname ?? ""} fill className="object-cover" />
-                  </div>
-                ) : isLoggedIn && user ? (
-                  <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center text-brand text-[12px] font-bold border border-brand/20">
-                    {(user.nickname ?? user.username ?? "U")[0].toUpperCase()}
-                  </div>
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-surface-secondary flex items-center justify-center">
-                    <User size={20} />
-                  </div>
-                )
+                <Avatar 
+                  src={user?.avatarUrl} 
+                  alt={user?.nickname ?? user?.username ?? "U"} 
+                  size="xs"
+                  showBorder={false}
+                  className={!isLoggedIn ? "bg-surface" : ""}
+                />
               } 
               label={t('sidebar.profile')} 
               collapsed={collapsed} 
@@ -278,13 +271,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   <p className="text-text-secondary text-[14px] mb-4 leading-relaxed font-medium">
                     {t('sidebar.loginPrompt')}
                   </p>
-                  <button 
+                  <Button 
                     onClick={() => dispatch(openAuthModal("login"))}
-                    className="btn-primary w-full text-[18px] font-bold"
-                    style={{ height: 48 }}
+                    className="w-full h-12 text-lg"
                   >
                     {t('login')}
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="px-4 pb-6 mt-6">
@@ -302,7 +294,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
         {/* Search Panel */}
         <div
-          className="hidden lg:flex flex-col flex-shrink-0 border-r border-elevated bg-background overflow-hidden shadow-2xl z-10"
+          className="hidden lg:flex flex-col flex-shrink-0 border-r border-elevated bg-background overflow-y-auto custom-scrollbar shadow-2xl z-10"
           style={{ width: searchOpen ? 320 : 0, opacity: searchOpen ? 1 : 0, transition: "width 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease" }}
         >
           <div className="w-[320px] p-6 flex flex-col gap-6 h-full">
@@ -375,13 +367,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <button 
+                  <Button 
                     onClick={() => dispatch(openAuthModal("login"))}
-                    className="btn-primary" 
-                    style={{ height: 34, fontSize: 14, minWidth: 84, padding: "0 18px", borderRadius: "12px" }}
+                    size="sm"
+                    className="h-9 px-6 rounded-xl"
                   >
                     {t('login')}
-                  </button>
+                  </Button>
                   <button 
                     onClick={() => setSettingsOpen(!settingsOpen)}
                     className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-hover transition-colors text-text-muted hover:text-text-primary"
@@ -396,7 +388,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <div ref={settingsMenuRef} className="absolute top-full right-0 mt-2 z-[70]">
                 <SettingsMenu 
                   onClose={() => setSettingsOpen(false)} 
-                  onLogout={isLoggedIn ? () => logoutMutation.mutate() : undefined}
+                  onLogout={isLoggedIn ? () => {logoutMutation.mutate(); setSettingsOpen(false);} : undefined}
                   isLoggedIn={isLoggedIn}
                 />
               </div>
@@ -420,8 +412,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <Link href="/explore">
           <BottomNav icon={<Compass className="w-[26px] h-[26px]" />} label={t('sidebar.explore')} active={pathname === "/explore"} />
         </Link>
-        <Link href="/upload">
-          <BottomNav icon={<Upload className="w-[26px] h-[26px]" />} label={t('sidebar.upload')} active={pathname === "/upload"} />
+        <Link href="/toptopstudio/upload">
+          <BottomNav icon={<Upload className="w-[26px] h-[26px]" />} label={t('sidebar.upload')} active={pathname === "/toptopstudio/upload"} />
         </Link>
         <Link href="/friends">
           <BottomNav icon={<Users className="w-[26px] h-[26px]" />} label={t('bottomNav.friends')} active={pathname === "/friends"} />

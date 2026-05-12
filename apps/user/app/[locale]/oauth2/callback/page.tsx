@@ -4,7 +4,6 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useDispatch } from "react-redux";
-import { setCredentials } from "@/store/slices/authSlice";
 import { useOAuth2Exchange } from "@/hooks/useOAuth2Exchange";
 import { AuthResponse } from "@/types/auth";
 
@@ -18,12 +17,10 @@ function CallbackContent() {
 
   useEffect(() => {
     if (!state) {
-      if (window.opener) {
-        window.opener.postMessage({ type: "AUTH_ERROR", error: "missing_state" }, window.location.origin);
-        window.close();
-      } else {
-        router.replace("/login?error=missing_state");
-      }
+      const channel = new BroadcastChannel("oauth_channel");
+      channel.postMessage({ type: "AUTH_ERROR", error: "missing_state" });
+      channel.close();
+      setTimeout(() => window.close(), 300);
       return;
     }
 
@@ -32,22 +29,17 @@ function CallbackContent() {
         ? data.data 
         : (data as unknown as AuthResponse);
 
-      if (window.opener) {
-        window.opener.postMessage({ type: "AUTH_SUCCESS", data: authData }, window.location.origin);
-        setTimeout(() => window.close(), 500);
-      } else {
-        dispatch(setCredentials(authData));
-        router.replace("/");
-      }
+      const channel = new BroadcastChannel("oauth_channel");
+      channel.postMessage({ type: "AUTH_SUCCESS", data: authData });
+      channel.close();
+      setTimeout(() => window.close(), 300);
     }
 
     if (isError) {
-      if (window.opener) {
-        window.opener.postMessage({ type: "AUTH_ERROR", error: "oauth2_failed" }, window.location.origin);
-        setTimeout(() => window.close(), 500);
-      } else {
-        router.replace("/login?error=oauth2_failed");
-      }
+      const channel = new BroadcastChannel("oauth_channel");
+      channel.postMessage({ type: "AUTH_ERROR", error: "oauth2_failed" });
+      channel.close();
+      setTimeout(() => window.close(), 300);
     }
   }, [state, isSuccess, isError, data, router, dispatch]);
 

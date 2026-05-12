@@ -6,17 +6,20 @@ import { X } from "lucide-react";
 
 export function Logo({ size = "md", className = "" }: { size?: "sm" | "md" | "lg", className?: string }) {
   const sizes = {
-    sm: { container: "w-8 h-8 rounded-[6px]", font: "text-lg", offset: "1px" },
-    md: { container: "w-11 h-11 rounded-[8px]", font: "text-2xl", offset: "1.5px" },
-    lg: { container: "w-14 h-14 rounded-[10px]", font: "text-3xl", offset: "2px" }
+    sm: { container: "w-8 h-8 rounded-[10px]", font: "text-lg", offset: "1.2px" },
+    md: { container: "w-11 h-11 rounded-[14px]", font: "text-2xl", offset: "1.8px" },
+    lg: { container: "w-14 h-14 rounded-[18px]", font: "text-3xl", offset: "2.4px" }
   };
   const s = sizes[size];
   
   return (
-    <div className={`${s.container} flex items-center justify-center shadow-lg relative overflow-hidden group flex-shrink-0 bg-background border border-elevated ${className}`}>
-      <span className={`text-text-primary font-extrabold ${s.font} italic tracking-tighter absolute z-10 select-none transition-colors duration-300`}>t</span>
-      <span className={`text-[#25F4EE] font-extrabold ${s.font} italic tracking-tighter absolute z-0 select-none`} style={{ transform: `translate(-${s.offset}, -${s.offset})` }}>t</span>
-      <span className={`text-[#FE2C55] font-extrabold ${s.font} italic tracking-tighter absolute z-0 select-none`} style={{ transform: `translate(${s.offset}, ${s.offset})` }}>t</span>
+    <div className={`${s.container} flex items-center justify-center shadow-xl relative overflow-hidden group flex-shrink-0 bg-background border border-elevated transition-all duration-500 hover:rotate-6 hover:scale-110 ${className}`}>
+      <span className={`text-text-primary font-black ${s.font} italic tracking-tighter absolute z-10 select-none`}>t</span>
+      <span className={`text-[#25F4EE] font-black ${s.font} italic tracking-tighter absolute z-0 select-none animate-pulse`} style={{ transform: `translate(-${s.offset}, -${s.offset})` }}>t</span>
+      <span className={`text-[#FE2C55] font-black ${s.font} italic tracking-tighter absolute z-0 select-none animate-pulse`} style={{ transform: `translate(${s.offset}, ${s.offset})` }}>t</span>
+      
+      {/* Glitch effect on hover */}
+      <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
   );
 }
@@ -44,26 +47,40 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
   return (
     <button
       onClick={onClick}
-      className={`flex items-center rounded-[8px] w-full py-1 transition-colors group ${
-        active 
-          ? "text-brand font-extrabold hover:bg-hover " 
-          : "text-text-secondary hover:bg-hover hover:text-text-primary font-bold"
-      }`}
+      className={`
+        flex items-center rounded-2xl w-full py-2.5 my-0.5 transition-all duration-300 group relative overflow-hidden
+        ${active 
+          ? "text-brand bg-brand/5 font-black" 
+          : "text-text-secondary hover:bg-hover hover:text-text-primary font-bold"}
+      `}
       style={{ 
-        paddingLeft: collapsed ? 0 : 10, 
-        paddingRight: 8, 
+        paddingLeft: collapsed ? 0 : 12, 
+        paddingRight: collapsed ? 0 : 12, 
         justifyContent: collapsed ? "center" : "flex-start" 
       }}
     >
-      <span className="flex items-center ml-2 justify-center w-6 h-8 flex-shrink-0 transition-transform group-active:scale-95">
-        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ strokeWidth?: number }>, { strokeWidth: 2.5 }) : icon}
+      {/* Active Indicator Bar */}
+      {active && !collapsed && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-brand rounded-r-full" />
+      )}
+
+      <span className={`flex items-center justify-center w-8 h-8 flex-shrink-0 transition-all duration-300 ${active ? "scale-110" : "group-hover:scale-110 group-active:scale-95"}`}>
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ strokeWidth?: number }>, { strokeWidth: active ? 3 : 2.5 }) : icon}
       </span>
       <span 
-        className="text-[16px] text-start  tracking-[-0.3px] whitespace-nowrap" 
-        style={labelStyle(collapsed, 160, 15)}
+        className="text-[17px] text-start tracking-tight whitespace-nowrap ml-3" 
+        style={labelStyle(collapsed, 160, 0)}
       >
         {label}
       </span>
+      
+      {/* Tooltip for collapsed mode */}
+      {collapsed && (
+        <div className="absolute left-full ml-4 px-3 py-1.5 bg-text-primary text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-xl">
+          {label}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-text-primary" />
+        </div>
+      )}
     </button>
   );
 }

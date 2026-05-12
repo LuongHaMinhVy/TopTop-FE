@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface MediaState {
   isMuted: boolean;
   volume: number;
+  autoScroll: boolean;
 }
 
 const loadMediaState = (): MediaState => {
@@ -22,6 +23,7 @@ const loadMediaState = (): MediaState => {
   return {
     isMuted: true,
     volume: 1,
+    autoScroll: false,
   };
 };
 
@@ -58,10 +60,15 @@ const mediaSlice = createSlice({
 
       saveMediaState(state);
     },
+
+    setAutoScroll: (state: MediaState, action: PayloadAction<boolean>) => {
+      state.autoScroll = action.payload;
+      saveMediaState(state);
+    },
   },
 });
 
-export const { setMuted, setVolume, toggleMuted } =
+export const { setMuted, setVolume, toggleMuted, setAutoScroll } =
   mediaSlice.actions;
 
 export default mediaSlice.reducer;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { 
   Lock, 
@@ -17,29 +17,32 @@ import {
   Users
 } from "lucide-react";
 import Image from "next/image";
-import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUserProfile, useFollowMutation, useUnfollowMutation } from "@/hooks/user-hooks";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { useState } from "react";
-import { followUser, unfollowUser } from "@/services/user-api-service";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfilePage() {
   const params = useParams();
   const rawUsername = params.username as string;
-  const username = rawUsername.startsWith("%40") ? rawUsername.substring(3) : rawUsername.startsWith("@") ? rawUsername.substring(1) : rawUsername;
+  
+  if (!rawUsername.startsWith("%40") && !rawUsername.startsWith("@")) {
+    notFound();
+  }
+
+  const username = rawUsername.startsWith("%40") ? rawUsername.substring(3) : rawUsername.substring(1);
   
   const t = useTranslations('profile');
-  const queryClient = useQueryClient();
   const { data: profileData, isLoading, isError } = useUserProfile(username);
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const [activeTab, setActiveTab] = useState("video");
-  const [followLoading, setFollowLoading] = useState(false);
+
+  const followMutation = useFollowMutation(username);
+  const unfollowMutation = useUnfollowMutation(username);
 
   if (isLoading) {
     return (
       <div className="w-full max-w-[800px] mx-auto px-4 lg:px-0 pt-8 pb-20 animate-pulse">
-        {/* Profile Header Skeleton */}
         <div className="flex flex-col gap-6 mb-8">
           <div className="flex items-start gap-5 lg:gap-8">
             <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-elevated" />
@@ -79,8 +82,8 @@ export default function ProfilePage() {
   if (isError || !profileData?.data) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-text-secondary">
-        <p className="text-xl font-bold mb-2">User not found</p>
-        <p>The account you&apos;re looking for doesn&apos;t exist.</p>
+        <p className="text-xl font-bold mb-2">{t('notFoundTitle')}</p>
+        <p>{t('notFoundSubtitle')}</p>
       </div>
     );
   }
@@ -90,19 +93,16 @@ export default function ProfilePage() {
   const relationship = profile.relationship;
 
   const handleFollowToggle = async () => {
-    if (followLoading) return;
-    setFollowLoading(true);
+    if (!currentUser) return;
+    
     try {
       if (relationship?.isFollowing) {
-        await unfollowUser(profile.username!);
+        await unfollowMutation.mutateAsync();
       } else {
-        await followUser(profile.username!);
+        await followMutation.mutateAsync();
       }
-      queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
     } catch (error) {
       console.error("Follow action failed:", error);
-    } finally {
-      setFollowLoading(false);
     }
   };
 
@@ -122,7 +122,7 @@ export default function ProfilePage() {
           <div className="relative group flex-shrink-0">
             <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105">
               {profile.avatarUrl ? (
-                <Image src={profile.avatarUrl} alt={profile.nickname ?? ""} fill className="object-cover" />
+                <Image src={profile.avatarUrl} alt={profile.nickname ?? ""} fill className="object-cover rounded-full" />
               ) : (
                 <div className="w-full h-full bg-brand/10 flex items-center justify-center text-brand text-3xl font-bold">
                   {(profile.nickname ?? profile.username ?? "U")[0].toUpperCase()}
@@ -162,29 +162,29 @@ export default function ProfilePage() {
                   {relationship?.isFriend ? (
                     <button 
                       onClick={handleFollowToggle}
-                      disabled={followLoading}
+                      disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex items-center gap-2 px-8 h-11 rounded-[4px] bg-elevated hover:bg-hover font-bold text-[16px] transition-colors disabled:opacity-50"
                     >
                       <Users className="w-5 h-5" />
-                      {t('friends') || "Friends"}
+                      {t('friends')}
                     </button>
                   ) : relationship?.isFollowing ? (
                     <button 
                       onClick={handleFollowToggle}
-                      disabled={followLoading}
+                      disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex items-center gap-2 px-8 h-11 rounded-[4px] bg-elevated hover:bg-hover font-bold text-[16px] transition-colors disabled:opacity-50"
                     >
                       <UserCheck className="w-5 h-5" />
-                      {t('following') || "Following"}
+                      {t('following')}
                     </button>
                   ) : (
                     <button 
                       onClick={handleFollowToggle}
-                      disabled={followLoading}
+                      disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex items-center gap-2 px-10 h-11 rounded-[4px] bg-brand hover:bg-brand/90 text-white font-bold text-[16px] transition-all active:scale-95 disabled:opacity-50"
                     >
                       <UserPlus className="w-5 h-5" />
-                      {relationship?.isFollower ? (t('followBack') || "Follow Back") : (t('follow'))}
+                      {relationship?.isFollower ? t('followBack') : t('follow')}
                     </button>
                   )}
                   

@@ -39,12 +39,17 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased overflow-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col overflow-hidden bg-background text-text-primary transition-colors duration-300">
+      <body className="min-h-full flex flex-col bg-background text-text-primary transition-colors duration-300">
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider 
+            attribute="class" 
+            defaultTheme="system" 
+            enableSystem
+            enableColorScheme={false}
+          >
             <QueryProvider>
               <StoreProvider>
                 <AuthWrapper>
@@ -58,4 +63,3 @@ export default async function LocaleLayout({
     </html>
   );
 }
-

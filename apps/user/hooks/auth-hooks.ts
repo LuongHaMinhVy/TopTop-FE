@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import { authLogin, authRegister, authLogout } from "@/services/auth-api-service";
+import { authLogin, authRegister, authLogout, authVerifyEmail } from "@/services/auth-api-service";
 import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import type { ApiResponse } from "@/types/api";
 import type { AuthResponse, LoginRequest, RegisterRequest } from "@/types/auth";
@@ -56,9 +57,14 @@ export const useLogoutMutation = () => {
   });
 };
 
+export const useVerifyEmailMutation = () => {
+  return useMutation<ApiResponse<void>, AxiosError<ApiResponse<void>>, string>({
+    mutationFn: (token: string) => authVerifyEmail(token),
+  });
+};
+
 export const useOAuth = () => {
   const openAuthPopup = (provider: 'google' | 'facebook') => {
-    // Set cookie for backend
     document.cookie = `X-App-Id=toptopuser; path=/; max-age=3600; SameSite=Lax`;
 
     const urls = {

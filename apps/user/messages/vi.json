@@ -56,6 +56,101 @@
       "liked": "Đã thích"
     },
     "empty": "Chưa có video nào",
-    "private": "Tài khoản này là riêng tư"
+    "private": "Tài khoản này là riêng tư",
+    "notFoundTitle": "Không tìm thấy người dùng",
+    "notFoundSubtitle": "Tài khoản bạn đang tìm kiếm không tồn tại.",
+    "friends": "Bạn bè",
+    "followBack": "Follow lại"
+  },
+  "Studio": {
+    "title": "TopTop Studio",
+    "dashboard": "Bảng điều khiển",
+    "content": "Nội dung",
+    "analytics": "Phân tích",
+    "comments": "Bình luận",
+    "settings": "Cài đặt",
+    "feedback": "Phản hồi",
+    "manage": {
+        "title": "Nội dung video",
+        "subtitle": "Quản lý các video đã tải lên của bạn",
+        "table": {
+            "video": "Video",
+            "status": "Trạng thái",
+            "date": "Ngày",
+            "views": "Lượt xem",
+            "likes": "Lượt thích",
+            "comments": "Bình luận",
+            "actions": "Hành động",
+            "published": "Đã đăng",
+            "empty": "Không tìm thấy video nào. Hãy bắt đầu bằng cách tải lên một video!",
+            "deleteConfirm": "Bạn có chắc chắn muốn xóa video này không?"
+        }
+    },
+    "upload": {
+        "title": "Tải video lên",
+        "subtitle": "Đăng video vào tài khoản của bạn",
+        "previewLabel": "Xem trước video của bạn",
+        "compressing": "Đang nén...",
+        "uploading": "Đang tải lên...",
+        "compressingHint": "Tối ưu hóa cho web",
+        "uploadingHint": "Đang gửi đến TopTop",
+        "pleaseWait": "Vui lòng chờ",
+        "selectFile": "Chọn video để tải lên",
+        "dragHint": "Hoặc kéo và thả tệp",
+        "selectBtn": "Chọn tệp",
+        "editInfo": "Chỉnh sửa thông tin video",
+        "postBtn": "Đăng lên TopTop",
+        "titlePlaceholder": "Thu hút sự chú ý của người xem",
+        "description": "Mô tả",
+        "descriptionPlaceholder": "Cho người xem biết thêm về video này",
+        "category": "Danh mục",
+        "selectCat": "Chọn danh mục",
+        "status": "Trạng thái video",
+        "autoCompress": "TỰ ĐỘNG NÉN",
+        "ready": "SẴN SÀNG",
+        "successTitle": "Tải lên hoàn tất!",
+        "successMsg": "Video của bạn đang được xử lý và sẽ sớm xuất hiện.",
+        "uploadNext": "Tải lên video tiếp theo",
+        "errorVideo": "Vui lòng chọn một tệp video"
+    }
+  },
+  "video": {
+    "quality": "Chất lượng",
+    "captions": "Phụ đề",
+    "autoScroll": "Cuộn tự động",
+    "pip": "Trình phát nổi",
+    "notInterested": "Không quan tâm",
+    "report": "Báo cáo",
+    "pipActive": "Đang phát trong trình phát nổi",
+    "back": "Quay lại",
+    "seeTranslation": "Xem bản dịch"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "signup": "Đăng ký",
+    "loginTo": "Đăng nhập vào TopTop",
+    "signupTo": "Đăng ký TopTop",
+    "useEmail": "Sử dụng email",
+    "continueWithGoogle": "Tiếp tục với Google",
+    "continueWithFacebook": "Tiếp tục với Facebook",
+    "username": "Tên người dùng",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "dob": "Ngày sinh",
+    "forgotPassword": "Quên mật khẩu?",
+    "termsPrompt": "Bằng cách tiếp tục, bạn đồng ý với Điều khoản Dịch vụ và Chính sách Quyền riêng tư của TopTop.",
+    "terms": "Điều khoản Dịch vụ",
+    "privacy": "Chính sách Quyền riêng tư",
+    "noAccount": "Bạn chưa có tài khoản?",
+    "hasAccount": "Bạn đã có tài khoản?",
+    "successLogin": "Đăng nhập thành công",
+    "successRegister": "Đăng ký thành công",
+    "errorAuth": "Xác thực thất bại"
+  },
+  "notFound": {
+    "title": "Oops! Trang này không tồn tại",
+    "subtitle": "Có vẻ như bạn đã đi lạc vào một không gian không có video nào ở đây. Đừng lo, hãy quay lại trang chủ để tiếp tục khám phá nhé!",
+    "back": "Quay lại",
+    "goHome": "Về Trang Chủ"
   }
 }

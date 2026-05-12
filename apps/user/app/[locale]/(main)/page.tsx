@@ -2,61 +2,68 @@
 
 import { ChevronUp, ChevronDown } from "lucide-react";
 import VideoCard from "@/components/video/VideoCard";
+import { useAllVideos } from "@/hooks/video-hooks";
+
+function VideoSkeleton() {
+  return (
+    <div
+      className="h-full flex items-center justify-center"
+      style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
+    >
+      <div className="flex flex-row items-end gap-4 w-full sm:w-auto h-full sm:h-auto justify-center">
+        <div className="relative flex-shrink-0 bg-[#1a1a1a] w-full h-full sm:w-[360px] sm:h-[640px] sm:rounded-xl animate-pulse" />
+        <div className="hidden sm:flex flex-col gap-4 pb-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="w-12 h-12 rounded-full bg-[#1a1a1a] animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function FeedPage() {
+  const { data, isLoading, isError } = useAllVideos();
+  const videos = data?.data ?? [];
   return (
     <>
       <div
-        className="h-full overflow-y-auto"
+        className="h-full overflow-y-auto custom-scrollbar"
         style={{
           scrollSnapType: "y mandatory",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         } as React.CSSProperties}
       >
-        {[
-          { 
-            index: 0, 
-            videoUrl: "/1.mp4",
-            username: "juxtweb",
-            caption: "EVIL AURAA COME OUT! #webtoon #manhwa #webtoonrecomendation #manhwarecomendation",
-            likes: "8676",
-            comments: "52",
-            saves: "2122",
-            shares: "113"
-          },
-          { 
-            index: 1, 
-            videoUrl: "/2.mp4",
-            username: "baprang4k", 
-            caption: "This is a vertical video test. 📱 #vertical #toptop",
-            likes: "12.5K",
-            comments: "431",
-            saves: "5000",
-            shares: "120"
-          },
-          { 
-            index: 2, 
-            videoUrl: "/3.mp4",
-            username: "baprang4k", 
-            caption: "This is a vertical video test. 📱 #vertical #toptop",
-            likes: "12.5K",
-            comments: "431",
-            saves: "5000",
-            shares: "120"
-          },
-          {
-            index: 3,
-            videoUrl: "/4.mp4",
-            username: "baprang4k",
-            caption: "This is a vertical video test. 📱 #vertical #toptop",
-            likes: "12.5K",
-            comments: "431",
-            saves: "5000",
-            shares: "120"
-          }
-        ].map((v) => (
-          <VideoCard key={v.index} {...v} />
+        {isLoading && (
+          <>
+            <VideoSkeleton />
+            <VideoSkeleton />
+          </>
+        )}
+
+        {isError && (
+          <div
+            className="h-full flex items-center justify-center"
+            style={{ scrollSnapAlign: "center" }}
+          >
+            <div className="text-center space-y-3 p-8">
+              <p className="text-text-muted text-[15px]">Không thể tải video. Vui lòng thử lại.</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !isError && videos.length === 0 && (
+          <div
+            className="h-full flex items-center justify-center"
+            style={{ scrollSnapAlign: "center" }}
+          >
+            <p className="text-text-muted text-[15px]">Chưa có video nào.</p>
+          </div>
+        )}
+
+        {videos.map((video) => (
+          <VideoCard key={video.id} video={video} />
         ))}
       </div>
 

@@ -13,6 +13,7 @@
   --color-text-primary: rgba(0, 0, 0, 0.9);
   --color-text-secondary: rgba(0, 0, 0, 0.75);
   --color-text-muted: rgba(0, 0, 0, 0.5);
+  --color-surface-secondary: #f1f1f1;
 
   --font-sans: "IBM Plex Sans", TikTokFont, Arial, Tahoma, PingFangSC, sans-serif;
 }
@@ -26,6 +27,7 @@
   --color-text-primary: rgba(255, 255, 255, 0.9);
   --color-text-secondary: rgba(255, 255, 255, 0.75);
   --color-text-muted: rgba(255, 255, 255, 0.5);
+  --color-surface-secondary: #1e1e1e;
 }
 
 @theme inline {
@@ -39,6 +41,7 @@
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
+  --color-surface-secondary: var(--color-surface-secondary);
   --font-sans: var(--font-sans);
 }
 
@@ -164,30 +167,58 @@ button {
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
+/* Global Custom Scrollbar */
+::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  transition: all 0.3s;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Specific Custom Scrollbar Class (if needed) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-brand);
+  opacity: 0.5;
 }
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+  50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+
 .animate-spin-slow {
   animation: spinSlow 3s linear infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounceSlow 3s infinite;
 }
 
 .pb-safe {

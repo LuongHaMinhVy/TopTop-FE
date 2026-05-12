@@ -1,0 +1,23 @@
+export interface Video {
+  id: number;
+  title: string;
+  description?: string;
+  thumbnailUrl?: string;
+  fileUrl: string;
+  duration?: number;
+  category?: string;
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+  userId: number;
+  username: string;
+  userNickname?: string;
+  userAvatarUrl?: string;
+  createdAt: string;
+}
+
+export interface VideoUploadData {
+  title: string;
+  description: string;
+  category: string;
+}

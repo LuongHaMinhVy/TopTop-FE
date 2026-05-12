@@ -33,31 +33,30 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+    const channel = new BroadcastChannel("oauth_channel");
 
+    channel.onmessage = (event) => {
       const authEvent = event.data as AuthMessageData;
 
       if (authEvent.type === "AUTH_SUCCESS") {
-        const { data } = authEvent;
         setSuccessMsg("Đăng nhập thành công");
-        if (data) dispatch(setCredentials(data));
-        // Small delay to ensure browser has processed cookies from the popup's last request
+        if (authEvent.data) dispatch(setCredentials(authEvent.data));
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         }, 300);
         setTimeout(() => {
-          router.push("/");
-          router.refresh();
-        }, 1000);
-      } else if (authEvent.type === "AUTH_ERROR") {
-        setErrorMsg(authEvent.error || "Xác thực thất bại");
-      }
-    };
+        router.push("/");
+        router.refresh();
+      }, 1000);
+    } else if (authEvent.type === "AUTH_ERROR") {
+      setErrorMsg(authEvent.error || "Xác thực thất bại");
+    }
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [dispatch, router, queryClient]);
+    channel.close();
+  };
+
+  return () => channel.close();
+}, [dispatch, router, queryClient]);
 
   const { openAuthPopup } = useOAuth();
   const loginMutation = useLoginMutation(() => {
@@ -70,7 +69,7 @@ export default function LoginPage() {
   const handleFacebookLogin = () => openAuthPopup('facebook');
   const handleGoogleLogin = () => openAuthPopup('google');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");

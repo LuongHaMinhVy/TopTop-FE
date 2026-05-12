@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { authVerifyEmail } from "@/services/auth-api-service";
+import { useVerifyEmailMutation } from "@/hooks/auth-hooks";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -13,32 +13,25 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(token ? "loading" : "error");
   const [message, setMessage] = useState(token ? "" : "Không tìm thấy mã xác thực.");
 
+  const verifyEmailMutation = useVerifyEmailMutation();
+
   useEffect(() => {
     if (!token) return;
 
-    let isMounted = true;
-    
-    authVerifyEmail(token)
-      .then((res) => {
-        if (isMounted) {
-          setStatus("success");
-          setMessage(res.message || "Xác thực email thành công!");
-          setTimeout(() => {
-            router.push("/");
-          }, 3000);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setStatus("error");
-          setMessage(err instanceof Error ? err.message : "Xác thực email thất bại");
-        }
-      });
-      
-    return () => {
-      isMounted = false;
-    };
-  }, [token, router]);
+    verifyEmailMutation.mutate(token, {
+      onSuccess: (res) => {
+        setStatus("success");
+        setMessage(res.message || "Xác thực email thành công!");
+        setTimeout(() => {
+          router.push("/");
+        }, 3000);
+      },
+      onError: (err) => {
+        setStatus("error");
+        setMessage(err.response?.data?.message || "Xác thực email thất bại");
+      }
+    });
+  }, [token, router, verifyEmailMutation]);
 
   return (
     <div className="w-full max-w-[400px] bg-surface border border-elevated rounded-[12px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col items-center text-center">

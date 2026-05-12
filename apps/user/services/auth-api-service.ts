@@ -95,3 +95,13 @@ export const authRefresh = async (): Promise<ApiResponse<AuthResponse>> => {
     throw error;
   }
 };
+
+export const oauth2Exchange = async (state: string): Promise<ApiResponse<AuthResponse>> => {
+  try {
+    const response = await api.get<ApiResponse<AuthResponse>>(`/auth/oauth2/exchange?state=${state}&X-App-Id=toptopuser`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
