@@ -9,6 +9,23 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname, "../../"),
   },
   allowedDevOrigins: ['26.87.198.178', 'http://[IP_ADDRESS]', 'http://localhost'],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
+      },
+    ],
+  },
+  
 };
 
-export default withNextIntl(nextConfig);
+export default withNextIntl(nextConfig);
