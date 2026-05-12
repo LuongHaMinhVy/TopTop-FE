@@ -56,7 +56,7 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
       }}
     >
       <span className="flex items-center ml-2 justify-center w-6 h-8 flex-shrink-0 transition-transform group-active:scale-95">
-        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { strokeWidth: 2.5 } as any) : icon}
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ strokeWidth?: number }>, { strokeWidth: 2.5 }) : icon}
       </span>
       <span 
         className="text-[16px] text-start  tracking-[-0.3px] whitespace-nowrap" 

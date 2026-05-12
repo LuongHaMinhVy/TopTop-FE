@@ -4,6 +4,81 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store/store";
 import { setMuted, setVolume, toggleMuted } from "@/store/slices/mediaSlice";
 import { InteractionButton } from "./InteractionButton";
+import Image from "next/image";
+
+interface InteractionSidebarProps {
+  overlay?: boolean;
+  avatarUrl: string;
+  username: string;
+  isLiked: boolean;
+  isSaved: boolean;
+  likes: string;
+  comments: string;
+  saves: string;
+  shares: string;
+  onLike: () => void;
+  onSave: () => void;
+}
+
+const InteractionSidebar = ({ 
+  overlay = false,
+  avatarUrl,
+  username,
+  isLiked,
+  isSaved,
+  likes,
+  comments,
+  saves,
+  shares,
+  onLike,
+  onSave
+}: InteractionSidebarProps) => (
+  <div className={`flex flex-col items-center gap-3 ${overlay ? "" : "pb-10"}`}>
+    {/* Avatar */}
+    <div className="relative mb-1">
+      <div className={`${overlay ? "w-10 h-10" : "w-12 h-12"} rounded-full border-2 border-white/20 overflow-hidden cursor-pointer shadow-lg flex-shrink-0 relative`}>
+        <Image src={avatarUrl} alt={username} fill className="object-cover" />
+      </div>
+      <button className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white hover:scale-110 transition-transform border-2 border-background shadow">
+        <Plus className="w-3 h-3" />
+      </button>
+    </div>
+
+    <InteractionButton
+      active={isLiked}
+      activeColor="text-brand"
+      icon={<Heart className={`w-7 h-7 ${isLiked ? "fill-brand" : ""}`} />}
+      label={likes}
+      onClick={onLike}
+      isOverlay={overlay}
+    />
+    <InteractionButton
+      icon={<MessageCircle className="w-7 h-7" />}
+      label={comments}
+      isOverlay={overlay}
+    />
+    <InteractionButton
+      active={isSaved}
+      activeColor="text-yellow-400"
+      icon={<Bookmark className={`w-7 h-7 ${isSaved ? "fill-yellow-400" : ""}`} />}
+      label={saves}
+      onClick={onSave}
+      isOverlay={overlay}
+    />
+    <InteractionButton
+      icon={<Share2 className="w-7 h-7" />}
+      label={shares}
+      isOverlay={overlay}
+    />
+    {!overlay && (
+      <InteractionButton
+        icon={<MoreHorizontal className="w-7 h-7" />}
+        label=""
+        isOverlay={false}
+      />
+    )}
+  </div>
+);
 
 interface VideoCardProps {
   index: number;
@@ -20,7 +95,6 @@ interface VideoCardProps {
 }
 
 export default function VideoCard({
-  index,
   videoUrl,
   username = "baprang4k",
   caption = "80% SINH VIÊN KHÔNG BIẾT NHỮNG MẸO NGẦM TÂM LÝ KHI BẢO VỆ KLTN...",
@@ -31,7 +105,7 @@ export default function VideoCard({
   comments = "8",
   saves = "2292",
   shares = "495",
-}: VideoCardProps) {
+}: Omit<VideoCardProps, 'index'>) {
   const dispatch = useDispatch();
   const isMuted = useSelector((state: RootState) => state.media.isMuted);
   const volume = useSelector((state: RootState) => state.media.volume);
@@ -135,55 +209,6 @@ export default function VideoCard({
     if (videoRef.current) videoRef.current.volume = newVolume;
   };
 
-  /* ── Reusable interaction sidebar ── */
-  const InteractionSidebar = ({ overlay = false }: { overlay?: boolean }) => (
-    <div className={`flex flex-col items-center gap-3 ${overlay ? "" : "pb-10"}`}>
-      {/* Avatar */}
-      <div className="relative mb-1">
-        <div className={`${overlay ? "w-10 h-10" : "w-12 h-12"} rounded-full border-2 border-white/20 overflow-hidden cursor-pointer shadow-lg flex-shrink-0`}>
-          <img src={avatarUrl} alt={username} className="w-full h-full object-cover" />
-        </div>
-        <button className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white hover:scale-110 transition-transform border-2 border-background shadow">
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
-
-      <InteractionButton
-        active={isLiked}
-        activeColor="text-brand"
-        icon={<Heart className={`w-7 h-7 ${isLiked ? "fill-brand" : ""}`} />}
-        label={likes}
-        onClick={() => setIsLiked(!isLiked)}
-        isOverlay={overlay}
-      />
-      <InteractionButton
-        icon={<MessageCircle className="w-7 h-7" />}
-        label={comments}
-        isOverlay={overlay}
-      />
-      <InteractionButton
-        active={isSaved}
-        activeColor="text-yellow-400"
-        icon={<Bookmark className={`w-7 h-7 ${isSaved ? "fill-yellow-400" : ""}`} />}
-        label={saves}
-        onClick={() => setIsSaved(!isSaved)}
-        isOverlay={overlay}
-      />
-      <InteractionButton
-        icon={<Share2 className="w-7 h-7" />}
-        label={shares}
-        isOverlay={overlay}
-      />
-      {!overlay && (
-        <InteractionButton
-          icon={<MoreHorizontal className="w-7 h-7" />}
-          label=""
-          isOverlay={false}
-        />
-      )}
-    </div>
-  );
-
   return (
     <div
       className="flex items-center justify-center h-full w-full"
@@ -265,7 +290,19 @@ export default function VideoCard({
 
               {/* Mobile overlay interaction buttons */}
               <div className="absolute right-2 bottom-24 sm:hidden flex flex-col items-center gap-2 z-40">
-                <InteractionSidebar overlay />
+                <InteractionSidebar 
+                  overlay 
+                  avatarUrl={avatarUrl}
+                  username={username}
+                  isLiked={isLiked}
+                  isSaved={isSaved}
+                  likes={likes}
+                  comments={comments}
+                  saves={saves}
+                  shares={shares}
+                  onLike={() => setIsLiked(!isLiked)}
+                  onSave={() => setIsSaved(!isSaved)}
+                />
               </div>
 
               {/* Bottom gradient */}
@@ -274,7 +311,9 @@ export default function VideoCard({
               {/* Caption / username */}
               <div className="absolute bottom-5 left-3 right-20 sm:right-4 z-20 text-white select-none pointer-events-none">
                 <div className="flex items-center gap-2 mb-1 pointer-events-auto">
-                  <img src={avatarUrl} alt={username} className="sm:hidden w-8 h-8 rounded-full border border-white/30 object-cover" />
+                  <div className="sm:hidden w-8 h-8 rounded-full border border-white/30 overflow-hidden relative">
+                    <Image src={avatarUrl} alt={username} fill className="object-cover" />
+                  </div>
                   <h3 className="font-bold text-[15px] sm:text-[17px] hover:underline cursor-pointer">@{username}</h3>
                 </div>
                 <p className="text-[13px] sm:text-[14px] line-clamp-2 leading-relaxed opacity-90">
@@ -326,7 +365,18 @@ export default function VideoCard({
 
         {/* ── Tablet/Desktop interaction sidebar (right of video) ── */}
         <div className="hidden sm:block flex-shrink-0 pb-4">
-          <InteractionSidebar />
+          <InteractionSidebar 
+            avatarUrl={avatarUrl}
+            username={username}
+            isLiked={isLiked}
+            isSaved={isSaved}
+            likes={likes}
+            comments={comments}
+            saves={saves}
+            shares={shares}
+            onLike={() => setIsLiked(!isLiked)}
+            onSave={() => setIsSaved(!isSaved)}
+          />
         </div>
       </div>
     </div>

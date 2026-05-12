@@ -14,6 +14,7 @@ import { openAuthModal } from "@/store/slices/authSlice";
 import { useLogoutMutation } from "@/hooks/auth-hooks";
 import { useTranslations } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
+import Image from "next/image";
 
 import { 
   SearchRow, 
@@ -46,6 +47,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const handleResize = () => {
       setIsSidebarCollapsed(window.innerWidth < 1024);
@@ -210,8 +212,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               active={user ? pathname === `/@${user.username}` : false}
               icon={
                 isLoggedIn && user?.avatarUrl ? (
-                  <div className="w-7 h-7 rounded-full overflow-hidden border border-elevated">
-                    <img src={user.avatarUrl} alt={user.nickname ?? ""} className="w-full h-full object-cover" />
+                  <div className="w-7 h-7 rounded-full overflow-hidden border border-elevated relative">
+                    <Image src={user.avatarUrl} alt={user.nickname ?? ""} fill className="object-cover" />
                   </div>
                 ) : isLoggedIn && user ? (
                   <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center text-brand text-[12px] font-bold border border-brand/20">
@@ -357,9 +359,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   onClick={() => setSettingsOpen(!settingsOpen)}
                 >
                   <div className="flex items-center gap-2 lg:gap-2.5 group">
-                    <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full overflow-hidden bg-elevated flex items-center justify-center border-2 border-brand/20 group-hover:border-brand/50 transition-all shadow-inner">
+                    <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full overflow-hidden bg-elevated flex items-center justify-center border-2 border-brand/20 group-hover:border-brand/50 transition-all shadow-inner relative">
                       {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.nickname ?? ""} className="w-full h-full object-cover" />
+                        <Image src={user.avatarUrl} alt={user.nickname ?? ""} fill className="object-cover" />
                       ) : (
                         <span className="text-[14px] font-bold text-brand">
                           {(user.nickname ?? user.username ?? "U")[0].toUpperCase()}
@@ -435,8 +437,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           }}
           icon={
             isLoggedIn && user?.avatarUrl ? (
-              <div className="w-6 h-6 rounded-full overflow-hidden border border-elevated">
-                <img src={user.avatarUrl} alt={user.nickname ?? ""} className="w-full h-full object-cover" />
+              <div className="w-6 h-6 rounded-full overflow-hidden border border-elevated relative">
+                <Image src={user.avatarUrl} alt={user.nickname ?? ""} fill className="object-cover" />
               </div>
             ) : isLoggedIn && user ? (
               <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center text-brand text-[11px] font-bold border border-brand/20">

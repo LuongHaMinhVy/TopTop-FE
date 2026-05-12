@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@/utils/interfaces";
 
 export const handleErrorResponse = (error: AxiosError): never => {
-  const data = error.response?.data as ApiResponse<any> | undefined;
+  const data = error.response?.data as ApiResponse<unknown> | undefined;
   const message =
     data?.message ||
     data?.errors?.[0]?.message ||

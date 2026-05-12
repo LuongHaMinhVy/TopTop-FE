@@ -12,10 +12,15 @@ const api = axios.create({
     }
 })
 
-let isRefreshing = false;
-let failedQueue: any[] = [];
+interface FailedRequest {
+    resolve: (token: string | null) => void;
+    reject: (error: unknown) => void;
+}
 
-const processQueue = (error: any, token: string | null = null) => {
+let isRefreshing = false;
+let failedQueue: FailedRequest[] = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
     failedQueue.forEach(prom => {
         if (error) {
             prom.reject(error);
@@ -58,7 +63,7 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
-                processQueue(refreshError, null);
+                processQueue(refreshError as Error, null);
                 
                 if (typeof window !== "undefined") {
                     window.dispatchEvent(new CustomEvent("auth:expired"));
@@ -77,4 +82,4 @@ api.interceptors.response.use(
     }
 );
 
-export default api;
+export default api;

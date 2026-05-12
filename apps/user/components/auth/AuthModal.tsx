@@ -19,7 +19,7 @@ import { useLoginMutation, useRegisterMutation, useOAuth } from "@/hooks/auth-ho
 import type { AuthType, AuthMethod, AuthModalProps, AuthMessageData } from "@/types/auth";
 import type { InputProps } from "@/types/ui";
 
-export default function AuthModal({ isOpen, onClose, initialType = "login" }: AuthModalProps) {
+export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthModalProps, 'isOpen'>) {
   const router = useRouter();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -58,21 +58,7 @@ export default function AuthModal({ isOpen, onClose, initialType = "login" }: Au
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [dispatch, onClose, router]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      setType(initialType);
-      setMethod("options");
-      resetForm();
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen, initialType]);
+  }, [dispatch, onClose, router, queryClient]);
 
   const resetForm = () => {
     setFormData({ email: "", password: "", username: "", dateOfBirth: "" });
@@ -80,6 +66,13 @@ export default function AuthModal({ isOpen, onClose, initialType = "login" }: Au
     setSuccessMsg("");
     setShowPassword(false);
   };
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
 
   const { openAuthPopup } = useOAuth();
   const loginMutation = useLoginMutation(() => {
@@ -115,16 +108,14 @@ export default function AuthModal({ isOpen, onClose, initialType = "login" }: Au
       const err = validateSignup();
       if (err) return setErrorMsg(err);
       registerMutation.mutate(formData, {
-        onError: (err: any) => setErrorMsg(err.message || "Đăng ký thất bại")
+        onError: (err: Error) => setErrorMsg(err.message || "Đăng ký thất bại")
       });
     } else {
       loginMutation.mutate({ email: formData.email, password: formData.password }, {
-        onError: (err: any) => setErrorMsg(err.message || "Xác thực thất bại")
+        onError: (err: Error) => setErrorMsg(err.message || "Xác thực thất bại")
       });
     }
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">

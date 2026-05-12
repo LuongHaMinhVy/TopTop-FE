@@ -16,6 +16,7 @@ import {
   UserPlus,
   Users
 } from "lucide-react";
+import Image from "next/image";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -79,7 +80,7 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-text-secondary">
         <p className="text-xl font-bold mb-2">User not found</p>
-        <p>The account you're looking for doesn't exist.</p>
+        <p>The account you&apos;re looking for doesn&apos;t exist.</p>
       </div>
     );
   }
@@ -121,7 +122,7 @@ export default function ProfilePage() {
           <div className="relative group flex-shrink-0">
             <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105">
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.nickname ?? ""} className="w-full h-full object-cover" />
+                <Image src={profile.avatarUrl} alt={profile.nickname ?? ""} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-brand/10 flex items-center justify-center text-brand text-3xl font-bold">
                   {(profile.nickname ?? profile.username ?? "U")[0].toUpperCase()}

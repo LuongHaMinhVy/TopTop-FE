@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
 
       router.push("/dashboard");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setErrorMsg(err.message || t("unknownError"));
     },
   });

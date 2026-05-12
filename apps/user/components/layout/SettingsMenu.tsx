@@ -11,7 +11,6 @@ import {
   Monitor, 
   Globe, 
   LogOut, 
-  X,
   User
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -40,6 +39,7 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
   ];
 
   const handleLanguageChange = (code: string) => {
+    // eslint-disable-next-line react-hooks/immutability
     document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=31536000`;
     window.location.reload();
   };

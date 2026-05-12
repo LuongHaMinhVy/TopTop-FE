@@ -10,15 +10,11 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(token ? "loading" : "error");
+  const [message, setMessage] = useState(token ? "" : "Không tìm thấy mã xác thực.");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setMessage("Không tìm thấy mã xác thực.");
-      return;
-    }
+    if (!token) return;
 
     let isMounted = true;
     

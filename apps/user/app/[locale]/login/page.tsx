@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { 
-  QrCode, 
   User, 
   ChevronLeft,
   X,
@@ -12,15 +11,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authLogin } from "@/services/auth-api-service";
 import Facebook from "@/components/shared/icons/FaceBookIcon";
 import Google from "@/components/shared/icons/GoogleIcon";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLoginMutation, useOAuth } from "@/hooks/auth-hooks";
-import type { AuthMessageData, AuthResponse } from "@/types/auth";
-import type { ApiResponse } from "@/types/api";
+import type { AuthMessageData } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -60,7 +57,7 @@ export default function LoginPage() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [dispatch, router]);
+  }, [dispatch, router, queryClient]);
 
   const { openAuthPopup } = useOAuth();
   const loginMutation = useLoginMutation(() => {
@@ -78,7 +75,7 @@ export default function LoginPage() {
     setErrorMsg("");
     setSuccessMsg("");
     loginMutation.mutate({ email, password }, {
-      onError: (err: any) => {
+      onError: (err: Error) => {
         setErrorMsg(err.message || "Xác thực thất bại");
       }
     });

@@ -48,11 +48,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   return (
     <>
       {children}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => dispatch(closeAuthModal())} 
-        initialType={authModalType}
-      />
+      {isAuthModalOpen && (
+        <AuthModal 
+          onClose={() => dispatch(closeAuthModal())} 
+          initialType={authModalType}
+        />
+      )}
     </>
   );
 }
