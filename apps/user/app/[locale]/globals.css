@@ -200,8 +200,11 @@ button {
   width: 5px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-brand);
-  opacity: 0.5;
+  background: rgba(254, 44, 85, 0.4);
+  border-radius: 20px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(254, 44, 85, 0.7);
 }
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
@@ -235,4 +238,13 @@ button {
 
 .pr-safe {
   padding-right: env(safe-area-inset-right);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

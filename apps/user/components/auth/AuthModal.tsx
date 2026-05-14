@@ -1,9 +1,8 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   User, 
   ChevronLeft,
+  ChevronDown,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Facebook from "@/components/shared/icons/FaceBookIcon";
@@ -33,17 +32,29 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
     username: "",
     dateOfBirth: ""
   });
+  const [dob, setDob] = useState({
+    month: "",
+    day: "",
+    year: ""
+  });
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+    const channel = new BroadcastChannel("oauth_channel");
+
+    channel.onmessage = (event) => {
       const authEvent = event.data as AuthMessageData;
       if (authEvent.type === "AUTH_SUCCESS") {
         const { data } = authEvent;
         setSuccessMsg(t('successLogin'));
-        if (data) dispatch(setCredentials(data));
+        if (data) {
+          dispatch(setCredentials(data));
+          const user = 'user' in data ? data.user : data;
+          if (user) {
+            queryClient.setQueryData(["currentUser"], { data: user });
+          }
+        }
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         }, 300);
@@ -51,17 +62,17 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
           onClose();
           router.refresh();
         }, 1000);
-      } else if (event.data?.type === "AUTH_ERROR") {
-        setErrorMsg(event.data.error || t('errorAuth'));
+      } else if (authEvent.type === "AUTH_ERROR") {
+        setErrorMsg(authEvent.error || t('errorAuth'));
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    return () => channel.close();
   }, [dispatch, onClose, router, queryClient, t]);
 
   const resetForm = () => {
     setFormData({ email: "", password: "", username: "", dateOfBirth: "" });
+    setDob({ month: "", day: "", year: "" });
     setErrorMsg("");
     setSuccessMsg("");
   };
@@ -83,11 +94,11 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
 
   const validateSignup = () => {
     const { username, email, password, dateOfBirth } = formData;
-    if (username.length < 2 || username.length > 24) return t('username') + " phải từ 2-24 ký tự."; // Ideally these would be separate keys
+    if (username.length < 2 || username.length > 24) return t('username') + " phải từ 2-24 ký tự.";
     if (!/^[a-zA-Z0-9._]+$/.test(username)) return t('username') + " chứa ký tự không hợp lệ.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Định dạng " + t('email') + " không hợp lệ.";
     if (password.length < 8) return t('password') + " phải có ít nhất 8 ký tự.";
-    if (!dateOfBirth) return "Vui lòng nhập " + t('dob').toLowerCase() + ".";
+    if (!dateOfBirth) return "Vui lòng chọn " + t('dob').toLowerCase() + ".";
     return null;
   };
 
@@ -109,10 +120,28 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
     }
   };
 
+  const updateDob = (updates: Partial<typeof dob>) => {
+    const newDob = { ...dob, ...updates };
+    setDob(newDob);
+    if (newDob.month && newDob.day && newDob.year) {
+      const month = newDob.month.padStart(2, '0');
+      const day = newDob.day.padStart(2, '0');
+      setFormData(prev => ({ ...prev, dateOfBirth: `${newDob.year}-${month}-${day}` }));
+    } else {
+      setFormData(prev => ({ ...prev, dateOfBirth: "" }));
+    }
+  };
+
+  // Date ranges
+  const years = Array.from({ length: 121 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
   return (
     <Modal
       isOpen={true} 
       onClose={onClose}
+      className="p-4"
       title={method === "options" ? (type === "login" ? t('loginTo') : t('signupTo')) : undefined}
     >
       <div className="flex flex-col h-full">
@@ -147,17 +176,36 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
               <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                 {type === "signup" && (
                   <>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">
+                        {t('dob')}
+                      </label>
+                      <div className="flex gap-2">
+                        <CustomDropdown 
+                          value={dob.month} 
+                          options={months} 
+                          placeholder={t('Month')} 
+                          onChange={(val) => updateDob({ month: val })} 
+                        />
+                        <CustomDropdown 
+                          value={dob.day} 
+                          options={days} 
+                          placeholder={t('Day')} 
+                          onChange={(val) => updateDob({ day: val })} 
+                        />
+                        <CustomDropdown 
+                          value={dob.year} 
+                          options={years} 
+                          placeholder={t('Year')} 
+                          onChange={(val) => updateDob({ year: val })} 
+                        />
+                      </div>
+                    </div>
                     <Input 
                       label={t('username')} 
                       placeholder={t('username')} 
                       value={formData.username} 
                       onChange={(e) => setFormData({...formData, username: e.target.value})} 
-                    />
-                    <Input 
-                      label={t('dob')} 
-                      type="date" 
-                      value={formData.dateOfBirth} 
-                      onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})} 
                     />
                   </>
                 )}
@@ -213,6 +261,59 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
         </div>
       </div>
     </Modal>
+  );
+}
+
+function CustomDropdown({ value, options, placeholder, onChange }: { 
+  value: string, 
+  options: (number | string)[], 
+  placeholder: string, 
+  onChange: (val: string) => void 
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative flex-1" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-4 bg-surface border border-elevated rounded-2xl outline-none focus:ring-2 focus:ring-brand focus:border-brand text-text-primary flex items-center justify-between transition-all duration-200"
+      >
+        <span className={`text-[15px] font-medium ${!value ? "text-text-muted" : "text-text-primary"}`}>
+          {value || placeholder}
+        </span>
+        <ChevronDown size={18} className={`text-text-muted transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-2 max-h-60 overflow-y-auto bg-background border border-elevated rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-50 py-2 custom-scrollbar animate-in zoom-in fade-in duration-200">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => {
+                onChange(String(opt));
+                setIsOpen(false);
+              }}
+              className={`w-full px-6 py-3 text-left hover:bg-hover transition-colors text-[15px] font-medium ${String(opt) === value ? "text-brand bg-brand/5" : "text-text-primary"}`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

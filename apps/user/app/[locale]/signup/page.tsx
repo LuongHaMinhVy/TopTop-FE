@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
-  QrCode, 
   User, 
-  Apple, 
   ChevronLeft,
-  X,
   Loader2,
   Eye,
   EyeOff
@@ -14,16 +11,55 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authRegister } from "@/services/auth-api-service";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/store/slices/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
+import type { AuthMessageData } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
 
 export default function SignupPage() {
 
   const router = useRouter();
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const [authMethod, setAuthMethod] = useState<AuthMethod>("options");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    const channel = new BroadcastChannel("oauth_channel");
+
+    channel.onmessage = (event) => {
+      const authEvent = event.data as AuthMessageData;
+
+      if (authEvent.type === "AUTH_SUCCESS") {
+        setSuccessMsg("Đăng ký thành công");
+        if (authEvent.data) {
+          dispatch(setCredentials(authEvent.data));
+          const user = 'user' in authEvent.data ? authEvent.data.user : authEvent.data;
+          if (user) {
+            queryClient.setQueryData(["currentUser"], { data: user });
+          }
+        }
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+        }, 300);
+        setTimeout(() => {
+          router.push("/");
+          router.refresh();
+        }, 1000);
+      } else if (authEvent.type === "AUTH_ERROR") {
+        setErrorMsg(authEvent.error || "Xác thực thất bại");
+      }
+
+      channel.close();
+    };
+
+    return () => channel.close();
+  }, [dispatch, router, queryClient]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,11 +129,6 @@ export default function SignupPage() {
       </h2>
 
       <div className="flex flex-col gap-4">
-        <button className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface">
-          <QrCode className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng mã QR</span>
-        </button>
-
         <button 
           onClick={() => {
             setAuthMethod("phone_email");
@@ -107,13 +138,10 @@ export default function SignupPage() {
           className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface"
         >
           <User className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng điện thoại / email / tên người dùng</span>
+          <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng email / tên người dùng</span>
         </button>
 
-        <button className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface">
-          <Apple className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Tiếp tục với Apple</span>
-        </button>
+        <SocialLoginButtons />
       </div>
     </div>
   );
@@ -213,10 +241,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[rgba(0,0,0,0.7)] px-4">
       <div className="w-full max-w-[480px] bg-transparent rounded-[12px] p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
-        
-        <Link href="/" className="absolute top-4 right-4 p-2 rounded-full text-text-secondary hover:bg-[rgba(255,255,255,0.1)] hover:text-text-primary transition-colors">
-          <X className="w-6 h-6" />
-        </Link>
+      
 
         <div className="flex-1 mt-6">
           {authMethod === "options" ? renderOptions() : renderForm()}

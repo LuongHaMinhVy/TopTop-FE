@@ -11,13 +11,19 @@ const loadMediaState = (): MediaState => {
     return {
       isMuted: true,
       volume: 1,
+      autoScroll: false,
     };
   }
 
   const saved = localStorage.getItem('media');
 
   if (saved) {
-    return {...JSON.parse(saved), isMuted: true};
+    const parsed = JSON.parse(saved);
+    return {
+      isMuted: parsed.isMuted ?? true,
+      volume: parsed.volume ?? 1,
+      autoScroll: parsed.autoScroll ?? false,
+    };
   }
 
   return {
@@ -37,13 +43,13 @@ const mediaSlice = createSlice({
   name: 'media',
   initialState,
   reducers: {
-    setMuted: (state : { isMuted: boolean, volume: number}, action: PayloadAction<boolean>) => {
+    setMuted: (state: MediaState, action: PayloadAction<boolean>) => {
       state.isMuted = action.payload;
 
       saveMediaState(state);
     },
 
-    setVolume: (state:  { isMuted: boolean, volume: number}, action: PayloadAction<number>) => {
+    setVolume: (state: MediaState, action: PayloadAction<number>) => {
       state.volume = action.payload;
 
       state.isMuted = action.payload <= 0;
@@ -51,7 +57,7 @@ const mediaSlice = createSlice({
       saveMediaState(state);
     },
 
-    toggleMuted: (state: { isMuted: boolean, volume: number}) => {
+    toggleMuted: (state: MediaState) => {
       state.isMuted = !state.isMuted;
 
       if (!state.isMuted && state.volume === 0) {

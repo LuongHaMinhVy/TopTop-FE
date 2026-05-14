@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Heart,
   MessageCircle,
@@ -15,13 +17,19 @@ import {
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store/store";
+import { ReportModal } from "@/components/report/ReportModal";
 import { setMuted, setVolume, toggleMuted } from "@/store/slices/mediaSlice";
 import { VideoOptionsMenu } from "./VideoOptionsMenu";
 import { IconButton } from "@repo/ui/icon-button";
 import { useTranslations } from "next-intl";
+import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
+import { VideoContextMenu } from "../video-detail/VideoContextMenu";
 import { Avatar } from "@repo/ui/avatar";
 import { Button } from "@repo/ui/button";
+import Image from "next/image";
 import type { Video } from "@/types/video";
+import { useLikeVideoMutation, useUnlikeVideoMutation } from "@/hooks/video-hooks";
+import { useRouter } from "@/i18n/routing";
 
 interface InteractionSidebarProps {
   overlay?: boolean;
@@ -35,6 +43,9 @@ interface InteractionSidebarProps {
   shares: string;
   onLike: () => void;
   onSave: () => void;
+  onAvatarClick?: () => void;
+  onCommentsClick?: () => void;
+  showFollowButton?: boolean;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
@@ -50,20 +61,31 @@ const InteractionSidebar = ({
   shares,
   onLike,
   onSave,
+  onAvatarClick,
+  onCommentsClick,
+  showFollowButton = true,
 }: InteractionSidebarProps) => {
   return (
     <div className={`flex flex-col items-center gap-3 ${overlay ? "" : "pb-10"}`}>
       {/* Avatar */}
-      <div className="relative mb-1">
-        <Avatar
-          src={avatarUrl}
-          alt={username}
-          size={overlay ? "md" : "lg"}
-          className="cursor-pointer"
-        />
-        <button className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white hover:scale-110 transition-transform border-2 border-background shadow">
-          <Plus className="w-3 h-3" />
-        </button>
+      <div className="relative mb-1 group/avatar">
+        <div 
+          className="relative rounded-full bg-gradient-to-tr from-brand to-pink-500 active:scale-90 transition-transform duration-200 shadow-[0_0_15px_rgba(254,44,85,0.3)] group-hover/avatar:shadow-[0_0_20px_rgba(254,44,85,0.5)]"
+          onClick={onAvatarClick}
+        >
+          <Avatar
+            src={avatarUrl}
+            alt={username}
+            size={overlay ? "md" : "lg"}
+            className="cursor-pointer"
+            showBorder={false}
+          />
+        </div>
+        {showFollowButton && (
+          <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white hover:scale-110 transition-all duration-200 border-2 border-background shadow-md group-hover/avatar:bg-brand-dark">
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          </button>
+        )}
       </div>
 
       <IconButton
@@ -77,6 +99,7 @@ const InteractionSidebar = ({
       <IconButton
         icon={<MessageCircle className="w-7 h-7" />}
         label={comments}
+        onClick={onCommentsClick}
         isOverlay={overlay}
       />
       <IconButton
@@ -129,29 +152,45 @@ interface VideoCardProps {
 export default function VideoCard({
   video,
   videoUrl: videoUrlProp,
-  username: usernameProp = "baprang4k",
-  caption: captionProp = "80% SINH VIÊN KHÔNG BIẾT NHỮNG MẸO NGẦM TÂM LÝ KHI BẢO VỆ KLTN...",
-  sound = "Original sound - baprang4k",
+  username: usernameProp = "user",
+  caption: captionProp = "",
+  sound: soundProp,
   aspectRatio = "9/16",
-  avatarUrl: avatarUrlProp = "https://i.pinimg.com/736x/7d/46/e8/7d46e8ca8d23441a71ddcb1df89b7ba5.jpg",
-  likes: likesProp = "4549",
-  comments: commentsProp = "8",
-  saves = "2292",
-  shares = "495",
-}: VideoCardProps) {
+  avatarUrl: avatarUrlProp = "",
+  likes: likesProp,
+  comments: commentsProp,
+  saves: savesProp = "0",
+  shares: sharesProp = "0",
+  ref,
+}: VideoCardProps & { ref?: React.Ref<HTMLDivElement> }) {
   // ── Derived props ──
   const videoUrl  = video ? video.fileUrl                         : videoUrlProp;
-  const username  = video ? video.username                        : usernameProp;
-  const caption   = video ? (video.description ?? video.title)   : captionProp;
-  const avatarUrl = video ? (video.userAvatarUrl ?? avatarUrlProp) : avatarUrlProp;
-  const likes     = video ? formatCount(video.likeCount)         : likesProp;
-  const comments  = video ? formatCount(video.commentCount)      : commentsProp;
+  const username  = (video ? video.username                        : usernameProp) || "user";
+  const userNickname = video ? video.userNickname                  : undefined;
+  const caption   = video ? (video.description ?? video.title)   : (captionProp || "");
+  const avatarUrl = (video ? video.userAvatarUrl                  : avatarUrlProp) || "";
+  const likes     = video ? formatCount(video.likeCount)         : (likesProp || "0");
+  const comments  = video ? formatCount(video.commentCount)      : (commentsProp || "0");
+  const saves     = video ? formatCount(video.saveCount ?? 0)    : (savesProp || "0");
+  const shares    = video ? formatCount(video.shareCount ?? 0)   : (sharesProp || "0");
 
   const t        = useTranslations("video");
+  const sound     = video ? t('originalSound', { username: video.username }) : (soundProp || t('originalSound', { username }));
   const dispatch = useDispatch();
+  const router   = useRouter();
+  
+  const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Redux state
   const isMuted  = useSelector((state: RootState) => state.media.isMuted);
   const volume   = useSelector((state: RootState) => state.media.volume);
   const autoScroll = useSelector((state: RootState) => state.media.autoScroll);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+
+  const isOwnVideo = currentUser && video && currentUser.id === video.userId;
+
+  const likeMutation = useLikeVideoMutation();
+  const unlikeMutation = useUnlikeVideoMutation();
 
   // ── State ──
   const [isLiked,         setIsLiked]         = useState(false);
@@ -163,15 +202,50 @@ export default function VideoCard({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isPipActive,     setIsPipActive]     = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [isNearViewport,  setIsNearViewport]  = useState(false);
 
   // ── Refs ──
+  const internalRef       = useRef<HTMLDivElement>(null);
   const videoRef          = useRef<HTMLVideoElement>(null);
   const menuRef           = useRef<HTMLDivElement>(null);
   const isIntersectingRef = useRef(false);
   const isPlayingRef      = useRef(isPlaying);
 
+  // Helper to merge internal and external refs
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    internalRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [ref]);
+
   /** FIX 1 — throttle progress: only update when delta > 0.5% */
   const lastProgressRef   = useRef(0);
+
+  // Context Menu Logic
+  const { isOpen: isCtxOpen, position: ctxPos, openMenu, closeMenu } = useVideoContextMenu();
+
+  const handleCopyLink = () => {
+    if (video) {
+        const url = `${window.location.origin}/@${video.username}/${video.id}`;
+        navigator.clipboard.writeText(url);
+        closeMenu();
+    }
+  };
+
+  const handleDownload = () => {
+    if (video) {
+        const anchor = document.createElement("a");
+        anchor.href = video.fileUrl;
+        anchor.download = `${video.username}-${video.id}.mp4`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        closeMenu();
+    }
+  };
 
   /** FIX 2 — debounce togglePlay: prevent double-click jitter */
   const isTogglingRef     = useRef(false);
@@ -200,10 +274,28 @@ export default function VideoCard({
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showOptionsMenu]);
+  }, [showOptionsMenu, setShowOptionsMenu]);
 
-  // ── PiP + IntersectionObserver + visibility ──
+  // ── Memory Management Observer (Near Viewport) ──
   useEffect(() => {
+    const container = internalRef.current;
+    if (!container) return;
+
+    const nearObserver = new IntersectionObserver(
+      ([entry]) => {
+        setIsNearViewport(entry.isIntersecting);
+      },
+      { rootMargin: "800px 0px" } // Load video when within 800px of viewport
+    );
+    
+    nearObserver.observe(container);
+    return () => nearObserver.disconnect();
+  }, []);
+
+  // ── Video Playback & Visibility Observer ──
+  useEffect(() => {
+    if (!isNearViewport) return;
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -221,10 +313,6 @@ export default function VideoCard({
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    /**
-     * FIX 3 — removed `currentTime = 0` reset so re-entering the viewport
-     * doesn't snap video back to the beginning mid-scroll.
-     */
     const observer = new IntersectionObserver(
       ([entry]) => {
         isIntersectingRef.current = entry.isIntersecting;
@@ -251,12 +339,16 @@ export default function VideoCard({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       observer.disconnect();
     };
-  }, []);
+  }, [isNearViewport]);
 
-  // ── Sync volume from Redux ──
+  // ── Sync volume and muted from Redux ──
   useEffect(() => {
-    if (videoRef.current) videoRef.current.volume = volume;
-  }, [volume]);
+    const vid = videoRef.current;
+    if (vid) {
+      vid.volume = volume;
+      vid.muted = isMuted;
+    }
+  }, [volume, isMuted, isNearViewport]);
 
   // ── Cleanup control-icon timer on unmount ──
   useEffect(() => {
@@ -291,11 +383,17 @@ export default function VideoCard({
     }
     setIsPlaying((prev) => !prev);
 
-    // show flash icon
     setShowControlIcon(true);
     if (controlIconTimerRef.current) clearTimeout(controlIconTimerRef.current);
     controlIconTimerRef.current = setTimeout(() => setShowControlIcon(false), 600);
   }, [isPipActive]);
+
+  const handleProfileClick = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (username) {
+      router.push(`/@${username}`);
+    }
+  }, [router, username]);
 
   const exitPip = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -347,11 +445,27 @@ export default function VideoCard({
     if (videoRef.current) videoRef.current.volume = newVolume;
   };
 
+  const renderCaptionWithHashtags = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(#\w+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('#')) {
+        return (
+          <span key={index} className="font-bold hover:underline cursor-pointer text-white drop-shadow-md">
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   // ──────────────────────────────────────────
   // Render
   // ──────────────────────────────────────────
   return (
     <div
+      ref={setRefs}
       className="flex items-center justify-center h-full w-full"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >
@@ -360,39 +474,53 @@ export default function VideoCard({
         {/* ── Video wrapper ── */}
         <div
           className={`
-            relative group flex-shrink-0 shadow-2xl bg-black
+            relative group flex-shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-black
             w-full h-full rounded-none
-            sm:w-auto sm:h-auto sm:rounded-xl
-            ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(650px,70vh)]"}
+            sm:w-auto sm:h-auto sm:rounded-[32px]
+            ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(680px,75vh)]"}
           `}
         >
           {videoUrl ? (
             <>
               <div
-                className="relative w-full h-full overflow-hidden rounded-none sm:rounded-xl cursor-pointer"
+                className="relative w-full h-full overflow-hidden rounded-none sm:rounded-[32px] cursor-pointer shadow-inner"
                 onClick={togglePlay}
+                onContextMenu={openMenu}
               >
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  className={`
-                    block w-full h-full object-cover
-                    sm:w-auto sm:h-auto sm:object-contain
-                    ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(650px,70vh)]"}
-                    sm:max-w-full
-                  `}
-                  loop={!autoScroll}
-                  onEnded={handleEnded}
-                  muted={isMuted}
-                  playsInline
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={() => {}}
-                  /**
-                   * FIX 4 — GPU-accelerate the video element so compositing
-                   * happens on the GPU layer, reducing main-thread jank.
-                   */
-                  style={{ willChange: "transform" }}
-                />
+                {isNearViewport ? (
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    className={`
+                      block w-full h-full object-cover
+                      sm:w-auto sm:h-auto sm:object-contain
+                      ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(680px,75vh)]"}
+                      sm:max-w-full
+                    `}
+                    loop={!autoScroll}
+                    onEnded={handleEnded}
+                    muted={isMuted}
+                    playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={() => {}}
+                    preload="metadata"
+                    poster={video?.thumbnailUrl}
+                    style={{ willChange: "transform" }}
+                  />
+                ) : (
+                  <div className="w-full h-full relative">
+                    {video?.thumbnailUrl ? (
+                      <Image 
+                        src={video.thumbnailUrl} 
+                        alt={caption} 
+                        fill 
+                        className="object-cover sm:object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#121212]" />
+                    )}
+                  </div>
+                )}
 
                 {/* PiP Overlay */}
                 {isPipActive && (
@@ -444,8 +572,8 @@ export default function VideoCard({
                   </button>
                   <div
                     className={`
-                      flex items-center bg-black/40 backdrop-blur-md
-                      rounded-r-full pr-4 pl-1 h-10
+                      flex items-center bg-black/40
+                      rounded-full p-3 ml-1
                       transition-all duration-300 origin-left
                       ${showVolumeSlider ? "w-32 opacity-100" : "w-0 opacity-0 overflow-hidden"}
                     `}
@@ -471,8 +599,22 @@ export default function VideoCard({
                     comments={comments}
                     saves={saves}
                     shares={shares}
-                    onLike={() => setIsLiked((p) => !p)}
+                    onLike={() => {
+                      setIsLiked((p) => {
+                        const newLiked = !p;
+                        if (video?.id) {
+                          if (newLiked) {
+                            likeMutation.mutate(video.id);
+                          } else {
+                            unlikeMutation.mutate(video.id);
+                          }
+                        }
+                        return newLiked;
+                      });
+                    }}
                     onSave={() => setIsSaved((p) => !p)}
+                    onAvatarClick={handleProfileClick}
+                    showFollowButton={!isOwnVideo}
                     videoRef={videoRef}
                   />
                 </div>
@@ -480,25 +622,35 @@ export default function VideoCard({
                 {/* Bottom gradient */}
                 <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none z-10" />
 
-                {/* Caption / username */}
-                <div className="absolute bottom-5 left-3 right-20 sm:right-4 z-20 text-white select-none pointer-events-none">
-                  <div className="flex items-center gap-2 mb-1 pointer-events-auto">
-                    <Avatar src={avatarUrl} alt={username} size="sm" className="sm:hidden" />
-                    <h3 className="font-bold text-[15px] sm:text-[17px] hover:underline cursor-pointer">
-                      @{username}
+                {/* Caption / username area with better typography */}
+                <div className="absolute bottom-5 left-3 right-20 sm:right-4 z-0 text-white select-none pointer-events-none">
+                  <div 
+                    className="flex items-center gap-2 mb-1.5 pointer-events-auto group/user cursor-pointer w-fit"
+                    onClick={handleProfileClick}
+                  >
+                    <div className="relative sm:hidden rounded-full p-[1.5px] bg-white/20 shadow-xl backdrop-blur-sm">
+                      <Avatar src={avatarUrl} alt={username} size="md" showBorder={false} />
+                    </div>
+                    <h3 className="font-bold text-[16px] sm:text-[19px] hover:underline drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">
+                      {userNickname ? `${userNickname}` : `@${username}`}
                     </h3>
                   </div>
-                  <p className="text-[13px] sm:text-[14px] line-clamp-2 leading-relaxed opacity-90">
-                    {caption}
+                  
+                  <p className="text-[14px] sm:text-[15px] line-clamp-3 leading-relaxed opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] font-medium max-w-[420px]">
+                    {renderCaptionWithHashtags(caption)}
                   </p>
-                  <div className="mt-1 pointer-events-auto">
-                    <button className="text-[12px] font-bold opacity-80 hover:opacity-100 transition-opacity">
+                  
+                  <div className="mt-2 pointer-events-auto flex items-center gap-4">
+                    <button className="text-[12px] font-bold opacity-70 hover:opacity-100 transition-opacity bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-sm">
                       {t("seeTranslation")}
                     </button>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 opacity-80">
-                    <Music className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="text-[12px] truncate">{sound}</span>
+                  
+                  <div className="flex items-center gap-1.5 mt-3 opacity-90 group/music cursor-pointer pointer-events-auto w-fit">
+                    <div className="bg-black/10 p-1 rounded-full backdrop-blur-sm">
+                      <Music className="w-3.5 h-3.5 flex-shrink-0 animate-[bounce_2s_infinite]" />
+                    </div>
+                    <span className="text-[13px] truncate font-medium drop-shadow-md hover:underline decoration-white/30">{sound}</span>
                   </div>
                 </div>
 
@@ -528,15 +680,19 @@ export default function VideoCard({
                   <VideoOptionsMenu
                     onClose={() => setShowOptionsMenu(false)}
                     videoRef={videoRef}
+                    videoId={video?.id}
+                    onReportClick={() => setIsReportOpen(true)}
                   />
                 )}
               </div>
             </>
           ) : (
             <div
-              className="bg-[#1f1f1f] w-full h-full sm:rounded-xl"
+              className="bg-[#121212] w-full h-full sm:rounded-[32px] flex items-center justify-center"
               style={{ aspectRatio, minHeight: 300 }}
-            />
+            >
+              <div className="w-12 h-12 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+            </div>
           )}
 
           {/* Progress bar */}
@@ -544,7 +700,7 @@ export default function VideoCard({
             className="absolute bottom-0 left-0 w-full h-6 z-50 group/progress"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute bottom-0 left-0 w-full h-1 group-hover/progress:h-2 transition-all duration-150 bg-white/20 rounded-b-xl overflow-hidden">
+            <div className="absolute bottom-0 left-0 w-full h-1 group-hover/progress:h-1.5 transition-all duration-150 bg-white/10 rounded-b-[32px] overflow-hidden">
               <div
                 className="h-full bg-brand transition-[width] duration-100"
                 style={{ width: `${progress}%` }}
@@ -574,12 +730,52 @@ export default function VideoCard({
             comments={comments}
             saves={saves}
             shares={shares}
-            onLike={() => setIsLiked((p) => !p)}
+            onLike={() => {
+              setIsLiked((p) => {
+                const newLiked = !p;
+                if (video?.id) {
+                  if (newLiked) {
+                    likeMutation.mutate(video.id);
+                  } else {
+                    unlikeMutation.mutate(video.id);
+                  }
+                }
+                return newLiked;
+              });
+            }}
             onSave={() => setIsSaved((p) => !p)}
+            onAvatarClick={handleProfileClick}
+            onCommentsClick={() => {
+              if (video) router.push(`/@${video.username}/${video.id}`);
+            }}
+            showFollowButton={!isOwnVideo}
             videoRef={videoRef}
           />
         </div>
       </div>
+
+      {/* Report Modal */}
+      {video?.id && (
+        <ReportModal
+          isOpen={isReportOpen}
+          onClose={() => setIsReportOpen(false)}
+          targetType="VIDEO"
+          targetId={video.id}
+        />
+      )}
+
+      {/* Context Menu */}
+      <VideoContextMenu 
+        isOpen={isCtxOpen}
+        position={ctxPos}
+        onCopyLink={handleCopyLink}
+        onDownload={handleDownload}
+        onSendToFriends={() => closeMenu()}
+        onViewDetails={() => {
+            closeMenu();
+            if (video) router.push(`/@${video.username}/${video.id}`);
+        }}
+      />
     </div>
   );
 }

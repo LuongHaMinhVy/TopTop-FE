@@ -14,6 +14,10 @@ export interface Video {
   userNickname?: string;
   userAvatarUrl?: string;
   createdAt: string;
+  isLiked?: boolean;
+  isSaved?: boolean;
+  saveCount?: number;
+  shareCount?: number;
 }
 
 export interface VideoUploadData {

@@ -16,8 +16,8 @@ export interface RelationshipStatus {
 }
 
 export interface UserInfo {
-  id?: number;
-  username?: string;
+  id: number;
+  username: string;
   nickname?: string;
   email?: string;
   bio?: string;
@@ -39,6 +39,6 @@ export interface UserInfo {
   dateOfBirth?: string;
   privacySettings?: PrivacySettings;
   relationship?: RelationshipStatus;
-  roles?: string[];
+  roles: string[];
   createdAt?: string;
 }

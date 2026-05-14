@@ -1,8 +1,27 @@
 import axios from "axios";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACK_END_URL 
-    ? `${process.env.NEXT_PUBLIC_BACK_END_URL}/api/v1` 
-    : "http://localhost:8080/api/v1";
+const getBaseUrl = () => {
+    if (typeof window === "undefined") {
+        return process.env.NEXT_PUBLIC_BACK_END_URL || "http://localhost:8080";
+    }
+
+    const hostname = window.location.hostname;
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return (
+            process.env.NEXT_PUBLIC_BACK_END_URL ||
+            "http://localhost:8080"
+        );
+    }
+
+    return (
+        process.env.NEXT_PUBLIC_IP_BACK_END_URL ||
+        process.env.NEXT_PUBLIC_BACK_END_URL ||
+        "http://localhost:8080"
+    );
+};
+
+const baseUrl = `${getBaseUrl()}/api/v1`;
 
 const api = axios.create({
     baseURL: baseUrl,
@@ -13,6 +32,19 @@ const api = axios.create({
         'X-App-Id': 'toptopuser',
     }
 })
+
+api.interceptors.request.use((config) => {
+    if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        const isMaintenance = !!document.querySelector(".is-maintenance-page");
+        const isNotFound = !!document.querySelector(".is-not-found-page");
+
+        if (path.includes("/maintenance") || isMaintenance || isNotFound) {
+            return Promise.reject(new Error("Requests are disabled on this page"));
+        }
+    }
+    return config;
+});
 
 interface FailedRequest {
     resolve: (token: string | null) => void;
@@ -77,6 +109,12 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && (originalRequest._retry || originalRequest.url === "/auth/refresh")) {
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("auth:expired"));
+            }
+        }
+
+        if (!error.response || error.response.status === 503) {
+            if (typeof window !== "undefined" && !window.location.pathname.includes("/maintenance")) {
+                window.location.href = "/maintenance";
             }
         }
 

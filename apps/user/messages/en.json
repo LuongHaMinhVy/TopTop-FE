@@ -4,6 +4,12 @@
     "searchPlaceholder": "Accounts and videos",
     "login": "Log in",
     "logout": "Log out",
+    "notifications": {
+      "empty": "No notifications yet",
+      "liked": "liked your video",
+      "commented": "commented on your video",
+      "followed": "started following you"
+    },
     "sidebar": {
         "forYou": "For You",
         "explore": "Explore",
@@ -17,6 +23,7 @@
         "more": "More",
         "followingAccounts": "Following accounts",
         "seeAll": "See all",
+        "noFollowing": "Accounts you follow will appear here",
         "loginPrompt": "Log in to follow creators, like videos, and view comments."
     },
     "footer": {
@@ -89,20 +96,20 @@
     "upload": {
         "title": "Upload video",
         "subtitle": "Post a video to your account",
-        "previewLabel": "Preview your video here",
+        "previewLabel": "Preview will appear here",
         "compressing": "Compressing...",
         "uploading": "Uploading...",
         "compressingHint": "Optimizing for web",
         "uploadingHint": "Sending to TopTop",
         "pleaseWait": "Please wait",
         "selectFile": "Select video to upload",
-        "dragHint": "Or drag and drop a file",
-        "selectBtn": "Select File",
+        "dragHint": "Or drag and drop a file here",
+        "selectBtn": "Select video",
         "editInfo": "Edit Video Info",
-        "postBtn": "Post to TopTop",
+        "postBtn": "Post",
         "titlePlaceholder": "Capture your audience's attention",
         "description": "Description",
-        "descriptionPlaceholder": "Tell your viewers more about this video",
+        "descriptionPlaceholder": "Share more about your video here...",
         "category": "Category",
         "selectCat": "Select Category",
         "status": "Video Status",
@@ -110,8 +117,43 @@
         "ready": "READY",
         "successTitle": "Upload Complete!",
         "successMsg": "Your video is being processed and will be live soon.",
-        "uploadNext": "Upload Next",
-        "errorVideo": "Please select a video file"
+        "uploadNext": "Upload another video",
+        "errorVideo": "Please select a video file",
+        "replace": "Replace",
+        "uploaded": "Uploaded",
+        "details": "Details",
+        "hashtag": "Hashtag",
+        "mention": "Mention",
+        "history": "History",
+        "cover": "Cover",
+        "editCover": "Edit cover",
+        "settings": "Settings",
+        "whenToPost": "When to post",
+        "postNow": "Now",
+        "schedule": "Schedule",
+        "whoCanWatch": "Who can watch this video",
+        "everyone": "Everyone",
+        "friends": "Friends",
+        "onlyMe": "Only me",
+        "allowComments": "Allow comments",
+        "allowDuet": "Allow Duet",
+        "allowStitch": "Allow Stitch",
+        "saveDraft": "Save draft",
+        "cancel": "Cancel",
+        "discard": "Discard",
+        "infoSize": "Size and duration",
+        "infoSizeDesc": "Max size: 10 GB, duration: 60 min.",
+        "infoFormat": "File format",
+        "infoFormatDesc": "Recommended: .mp4. Other formats supported.",
+        "infoResolution": "Video resolution",
+        "infoResolutionDesc": "Recommended HD: 1080p, 1440p, 4K.",
+        "infoAspect": "Aspect ratio",
+        "infoAspectDesc": "Recommended: 16:9 landscape, 9:16 portrait.",
+        "feed": "Feed",
+        "profile": "Profile",
+        "web": "Web",
+        "duration": "Duration",
+        "remaining": "remaining"
     }
   },
   "video": {
@@ -123,7 +165,13 @@
     "report": "Report",
     "pipActive": "Playing in floating player",
     "back": "Go back",
-    "seeTranslation": "See translation"
+    "seeTranslation": "See translation",
+    "originalSound": "Original sound - @{username}",
+    "comments": "Comments",
+    "noComments": "Be the first to comment!",
+    "reply": "Reply",
+    "commentPlaceholder": "Add a comment...",
+    "loginToComment": "Log in to comment"
   },
   "auth": {
     "login": "Log in",
@@ -137,6 +185,9 @@
     "email": "Email",
     "password": "Password",
     "dob": "Date of birth",
+    "Month": "Month",
+    "Day": "Day",
+    "Year": "Year",
     "forgotPassword": "Forgot password?",
     "termsPrompt": "By continuing, you agree to TopTop's Terms of Service and Privacy Policy.",
     "terms": "Terms of Service",
@@ -152,5 +203,23 @@
     "subtitle": "Looks like you've wandered into a space where there are no videos here. Don't worry, head back home to keep exploring!",
     "back": "Go back",
     "goHome": "Go home"
+  },
+  "Report": {
+    "title": "Report",
+    "chooseSituation": "Please choose a situation",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "loadError": "Unable to load report reasons.",
+    "successTitle": "Report submitted",
+    "successDescription": "Thank you for helping keep the community safe.",
+    "done": "Done",
+    "policyIntro": "We do not allow the posting of content that:"
+  },
+  "report": {
+    "reason": {
+      "nudity_sexual_content": "Nudity or sexual content",
+      "violence_abuse_exploitation": "Violence, abuse, and criminal exploitation",
+      "minor_sexual_exploitation": "Minor sexual exploitation"
+    }
   }
 }

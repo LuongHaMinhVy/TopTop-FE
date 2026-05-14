@@ -14,10 +14,13 @@ import {
   Play,
   UserCheck,
   UserPlus,
-  Users
+  Users,
+  Link as LinkIcon,
+  MapPin,
 } from "lucide-react";
 import Image from "next/image";
 import { useUserProfile, useFollowMutation, useUnfollowMutation } from "@/hooks/user-hooks";
+import { useUserVideos, useFavoriteVideos } from "@/hooks/video-hooks";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { useState } from "react";
@@ -39,6 +42,15 @@ export default function ProfilePage() {
 
   const followMutation = useFollowMutation(username);
   const unfollowMutation = useUnfollowMutation(username);
+
+  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profileData?.data?.id);
+  const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos();
+
+  const userVideos = userVideosRes?.data || [];
+  const favoriteVideos = favoriteVideosRes?.data || [];
+
+  const displayedVideos = activeTab === "video" ? userVideos : activeTab === "favorites" ? favoriteVideos : [];
+  const isDisplayedLoading = activeTab === "video" ? isLoadingVideos : activeTab === "favorites" ? isLoadingFavorites : false;
 
   if (isLoading) {
     return (
@@ -79,7 +91,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (isError || !profileData?.data) {
+  if (isError || !profileData?.data || profileData.data.roles?.includes("ROLE_ADMIN")) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-text-secondary">
         <p className="text-xl font-bold mb-2">{t('notFoundTitle')}</p>
@@ -134,12 +146,16 @@ export default function ProfilePage() {
           {/* User Info */}
           <div className="flex-1 min-w-0 pt-1">
             <div className="flex flex-col gap-1 mb-4">
-              <h1 className="text-2xl lg:text-[32px] font-bold tracking-tight truncate leading-tight">
+              <h1 className="text-2xl lg:text-[32px] font-bold tracking-tight truncate leading-tight flex items-center gap-2">
                 {profile.nickname ?? profile.username}
+                
               </h1>
-              <h2 className="text-[16px] lg:text-[18px] font-semibold text-text-primary truncate">
-                {profile.username}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[16px] lg:text-[18px] font-semibold text-text-primary truncate">
+                  {profile.username}
+                </h2>
+                
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -200,7 +216,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center gap-6 text-[18px]">
           <div className="flex items-center gap-1.5">
             <span className="font-bold">{profile.followingCount ?? 0}</span>
@@ -214,14 +229,38 @@ export default function ProfilePage() {
             <span className="font-bold">{profile.totalLikes ?? 0}</span>
             <span className="text-text-secondary text-[16px]">{t('likes')}</span>
           </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold">{profile.videoCount ?? 0}</span>
+            <span className="text-text-secondary text-[16px]">{t('tabs.video')}</span>
+          </div>
         </div>
 
-        {/* Bio */}
-        {profile.bio && (
-          <p className="text-[16px] leading-relaxed max-w-[600px] whitespace-pre-wrap">
-            {profile.bio}
-          </p>
-        )}
+        {/* Bio and Links */}
+        <div className="flex flex-col gap-3">
+          {profile.bio && (
+            <p className="text-[16px] leading-relaxed max-w-[600px] whitespace-pre-wrap">
+              {profile.bio}
+            </p>
+          )}
+
+          {/* Social Links & Info */}
+          {(profile.websiteUrl || profile.instagramHandle || profile.youtubeHandle || profile.region || profile.gender) && (
+            <div className="flex flex-wrap items-center gap-4 text-[14px] text-text-secondary">
+              {profile.websiteUrl && (
+                <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-text-primary transition-colors hover:underline">
+                  <LinkIcon className="w-4 h-4" />
+                  <span className="truncate max-w-[200px]">{profile.websiteUrl.replace(/^https?:\/\//, '')}</span>
+                </a>
+              )}
+              {profile.region && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" />
+                  <span>{profile.region}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -247,27 +286,38 @@ export default function ProfilePage() {
 
       {/* Content Grid */}
       <div className="grid grid-cols-3 lg:grid-cols-4 gap-1 lg:gap-4">
-        {/* Mock Videos */}
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="relative aspect-[3/4] bg-elevated rounded-sm lg:rounded-lg overflow-hidden group cursor-pointer">
-            <div className="w-full h-full bg-gradient-to-b from-transparent to-black/40 absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1 text-white text-[12px] lg:text-[14px] font-bold opacity-90">
-              <Play className="w-3 h-3 lg:w-4 lg:h-4 fill-white" />
-              1.2K
+        {isDisplayedLoading ? (
+          [1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="relative aspect-[3/4] bg-elevated rounded-sm lg:rounded-lg overflow-hidden animate-pulse" />
+          ))
+        ) : displayedVideos.length > 0 ? (
+          displayedVideos.map((video) => (
+            <div key={video.id} className="relative aspect-[3/4] bg-elevated rounded-xl lg:rounded-2xl overflow-hidden group cursor-pointer">
+              <div className="w-full h-full bg-gradient-to-b from-transparent to-black/40 absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1 text-white text-[12px] lg:text-[14px] font-bold opacity-90">
+                <Play className="w-3 h-3 lg:w-4 lg:h-4 fill-white" />
+                {video.viewCount || 0}
+              </div>
+              <video 
+                src={video.fileUrl} 
+                className="w-full h-full object-cover"
+                muted
+                onMouseOver={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                onMouseOut={(e) => {
+                  (e.target as HTMLVideoElement).pause();
+                  (e.target as HTMLVideoElement).currentTime = 0;
+                }}
+              />
             </div>
-            {/* Placeholder for video thumbnail */}
-            <div className="w-full h-full bg-surface-secondary animate-pulse" />
+          ))
+        ) : (
+          <div className="col-span-3 lg:col-span-4 flex flex-col items-center justify-center py-20 text-text-secondary">
+            <Lock className="w-16 h-16 mb-4 opacity-20" />
+            <p className="text-xl font-bold">{t('empty')}</p>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Empty State / Private State */}
-      {activeTab === "video" && profile.videoCount === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-text-secondary">
-          <Lock className="w-16 h-16 mb-4 opacity-20" />
-          <p className="text-xl font-bold">{t('empty')}</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -39,7 +39,7 @@ export const Avatar = ({
       className={`
         relative rounded-full overflow-hidden flex-shrink-0 bg-surface flex items-center justify-center
         ${sizes[size]} 
-        ${showBorder ? "border-2 border-white/20 shadow-sm" : ""}
+        ${showBorder ? "border-2 border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.15)]" : ""}
         ${className}
       `}
     >

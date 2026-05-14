@@ -19,17 +19,26 @@ import { setAutoScroll } from '@/store/slices/mediaSlice';
 interface VideoOptionsMenuProps {
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoId?: number;
+  onReportClick?: () => void;
 }
 
 type MenuMode = 'main' | 'quality';
 
-export function VideoOptionsMenu({ onClose, videoRef }: VideoOptionsMenuProps) {
+export function VideoOptionsMenu({ onClose, videoRef, onReportClick }: VideoOptionsMenuProps) {
   const t = useTranslations('video');
   const dispatch = useDispatch();
   const autoScroll = useSelector((state: RootState) => state.media.autoScroll);
   
   const [mode, setMode] = useState<MenuMode>('main');
   const [quality, setQuality] = useState('1080P');
+
+  const handleReport = () => {
+    if (onReportClick) {
+      onReportClick();
+    }
+    onClose();
+  };
 
   const togglePip = React.useCallback(async () => {
     try {
@@ -65,7 +74,7 @@ export function VideoOptionsMenu({ onClose, videoRef }: VideoOptionsMenuProps) {
     },
     { icon: <PictureInPicture size={20} />, label: t('pip'), action: 'pip' },
     { icon: <HeartOff size={20} />, label: t('notInterested') },
-    { icon: <Flag size={20} />, label: t('report') },
+    { icon: <Flag size={20} />, label: t('report'), action: 'report' },
   ], [t, quality, autoScroll, dispatch]);
 
   if (mode === 'quality') {
@@ -114,6 +123,8 @@ export function VideoOptionsMenu({ onClose, videoRef }: VideoOptionsMenuProps) {
               e.stopPropagation();
               if (item.action === 'pip') {
                 togglePip();
+              } else if (item.action === 'report') {
+                handleReport();
               } else if (item.onToggle) {
                 item.onToggle();
               } else if (item.onClick) {

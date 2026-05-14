@@ -1,17 +1,20 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { useState, useRef, useEffect } from "react";
 import {
   Search,
   Users, Video, X, TrendingUp,
-  Compass, MessageSquare, Bell, MoreHorizontal, PlusSquare,
+  Compass, MessageSquare, MoreHorizontal, PlusSquare,
   User, Clock, UserCheck,
-  Upload
+  Upload,
+  Bell
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { openAuthModal } from "@/store/slices/authSlice";
 import { useLogoutMutation } from "@/hooks/auth-hooks";
+import { useFollowingList } from "@/hooks/user-hooks";
 import { useTranslations } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
 import Image from "next/image";
@@ -26,10 +29,7 @@ import {
 } from "@/components/layout/LayoutHelpers";
 import { SettingsMenu } from "@/components/layout/SettingsMenu";
 import { Avatar, Button } from "@repo/ui";
-
-const FAKE_FOLLOWING = [
-  { name: "Hải Ly Manga Review", username: "hailymangareview", color: "#60a5fa", isLive: true },
-];
+import { useUnreadCount } from "@/hooks/notification-hooks";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('Main');
@@ -43,9 +43,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const logoutMutation = useLogoutMutation();
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = unreadData?.data || 0;
+  
+  const { data: followingData } = useFollowingList();
+  const followingList = followingData?.data || [];
+  
+  function useIsMounted() {
+    return useSyncExternalStore(
+      () => () => { },
+      () => true,
+      () => false
+    );
+  }
+
+  const mounted = useIsMounted(); 
   
   useEffect(() => {
     const handleResize = () => {
@@ -117,17 +131,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <aside
-          className="hidden sm:flex flex-col flex-shrink-0 bg-background custom-scrollbar"
+          className="hidden sm:flex flex-col flex-shrink-0 bg-background no-scrollbar select-none h-full overflow-y-auto"
           style={{
             width: collapsed ? 72 : 240,
             transition: "width 300ms cubic-bezier(0.4,0,0.2,1)",
             overflowX: "hidden",
-            overflowY: "scroll",
-            height: "100%",
+            position: "relative"
           }}
         >
           {/* Logo - sticky at top */}
-          <div className="sticky top-0 bg-background flex-shrink-0">
+          <div className="sticky top-0 bg-background flex-shrink-0 z-20">
             <div className="flex items-center px-5 pt-6 pb-3">
               <Logo size="md" />
               <span className="text-xl font-bold tracking-tight whitespace-nowrap" style={labelStyle(collapsed, 180, 4)}>TopTop</span>
@@ -181,17 +194,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   />
                 </Link>
                 <Link href="/activity">
-                  <TikNavItem 
+                <TikNavItem 
                     icon={
                       <div className="relative">
                         <Bell size={24} />
-                        <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">2</span>
+                        { unreadCount > 0 && <span className="absolute -top-1 -right-1 bg-brand text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-[1.5px] border-background">{unreadCount}</span> }
                       </div>
                     } 
                     label={t('sidebar.activity')} 
                     active={pathname === "/activity"}
                     collapsed={collapsed} 
                   />
+                  
                 </Link>
               </>
             )}
@@ -225,11 +239,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           <div
-            className="mt-4 border-t border-elevated overflow-hidden"
+            className="mt-4 border-t border-elevated"
             style={{
               opacity: collapsed ? 0 : 1,
-              maxHeight: collapsed ? 0 : 2000,
-              transition: "opacity 200ms ease, max-height 300ms cubic-bezier(0.4,0,0.2,1)",
+              transition: "opacity 200ms ease",
               pointerEvents: collapsed ? "none" : "auto",
             }}
           >
@@ -237,32 +250,42 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <>
                 <p className="text-text-muted text-[13px] font-bold px-4 pt-5 pb-2 uppercase tracking-tight opacity-70">{t('sidebar.followingAccounts')}</p>
                 <ul className="flex flex-col px-1 pb-4">
-                  {FAKE_FOLLOWING.map(u => (
+                  {followingList.map(u => (
                     <li key={u.username}>
-                      <button className="flex items-center gap-3 w-full px-3 py-1.5 rounded-[8px] hover:bg-hover transition-colors text-left group">
-                        <div className={`relative w-8 h-8 rounded-full p-[1.5px] ${u.isLive ? "bg-gradient-to-tr from-brand to-[#ff0050]" : ""}`}>
-                          <div className="w-full h-full rounded-full flex items-center justify-center text-white text-[12px] font-bold shadow-sm" style={{ backgroundColor: u.color }}>
-                            {u.name[0].toUpperCase()}
-                          </div>
-                          {u.isLive && (
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-brand text-white text-[8px] font-extrabold px-1 rounded-sm border-white border-[1px]">LIVE</div>
-                          )}
+                      <button 
+                        onClick={() => router.push(`/@${u.username}`)}
+                        className="flex items-center gap-3 w-full px-3 py-1.5 rounded-[8px] hover:bg-hover transition-colors text-left group"
+                      >
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                          <Avatar 
+                            src={u.avatarUrl} 
+                            alt={u.nickname || u.username || ""} 
+                            size="sm"
+                            showBorder={false}
+                          />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-[15px] font-bold text-text-primary truncate leading-tight">{u.name}</span>
+                          <span className="text-[15px] font-bold text-text-primary truncate leading-tight">{u.nickname ?? u.username}</span>
                           <span className="text-[12px] text-text-muted truncate leading-tight group-hover:text-text-secondary transition-colors">{u.username}</span>
                         </div>
                       </button>
                     </li>
                   ))}
-                  <li>
-                    <button className="flex items-center gap-3 w-full px-3 py-2 rounded-[8px] hover:bg-hover transition-colors text-brand text-[14px] font-bold mt-1 group">
-                      <span className="w-8 h-8 flex items-center justify-center text-brand">
-                        <MoreHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform" strokeWidth={3} />
-                      </span>
-                      {t('sidebar.seeAll')}
-                    </button>
-                  </li>
+                  {followingList.length === 0 && (
+                    <li className="px-5 py-2 text-[13px] text-text-muted italic">
+                      {t('sidebar.noFollowing')}
+                    </li>
+                  )}
+                  {followingList.length > 5 && (
+                    <li>
+                      <button className="flex items-center gap-3 w-full px-3 py-2 rounded-[8px] hover:bg-hover transition-colors text-brand text-[14px] font-bold mt-1 group">
+                        <span className="w-8 h-8 flex items-center justify-center text-brand">
+                          <MoreHorizontal className="w-4 h-4 group-hover:scale-110 transition-transform" strokeWidth={3} />
+                        </span>
+                        {t('sidebar.seeAll')}
+                      </button>
+                    </li>
+                  )}
                 </ul>
               </>
             ) : (

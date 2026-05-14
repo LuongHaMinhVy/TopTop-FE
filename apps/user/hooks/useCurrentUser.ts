@@ -7,15 +7,16 @@ import { useEffect } from "react";
 import type { AppDispatch } from "@/store/store";
 import { useDispatch } from "react-redux";
 
-export function useCurrentUser() {
+export function useCurrentUser(enabled: boolean = true) {
   const dispatch = useDispatch<AppDispatch>();
 
   const query = useQuery({
     queryKey: ["currentUser"],
     queryFn: getCurrentUser,
     retry: false,
-    refetchOnWindowFocus: true,
-    staleTime: 5 * 60 * 1000
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000,
+    enabled
   });
 
   useEffect(() => {
@@ -25,10 +26,11 @@ export function useCurrentUser() {
           user: query.data.data,
         })
       );
-    } else if (query.isError) {
+    } else if (query.isError && !query.isFetching) {
+      // Only clear if we're certain it's a hard error and not a background refetch
       dispatch(clearCredentials());
     }
-  }, [query.isSuccess, query.isError, query.data, dispatch]);
+  }, [query.isSuccess, query.isError, query.isFetching, query.data, dispatch]);
 
   return query;
 }

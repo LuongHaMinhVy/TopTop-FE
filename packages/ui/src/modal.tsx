@@ -44,7 +44,7 @@ export const Modal = ({ isOpen, onClose, children, title, className = "" }: Moda
       >
         <button 
           onClick={onClose} 
-          className="absolute top-6 right-6 p-2 rounded-full text-text-muted hover:bg-hover hover:text-text-primary transition-colors z-10"
+          className="absolute top-6 right-2 p-2 rounded-full text-text-muted hover:bg-hover hover:text-text-primary transition-colors z-10"
         >
           <X size={24} />
         </button>

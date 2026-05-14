@@ -17,6 +17,9 @@ export const useLoginMutation = (onSuccessCallback?: () => void) => {
     onSuccess: (response: ApiResponse<AuthResponse>) => {
       if (response.data) {
         dispatch(setCredentials(response.data));
+        if (response.data.user) {
+          queryClient.setQueryData(["currentUser"], { data: response.data.user });
+        }
         queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       }
       if (onSuccessCallback) {
@@ -69,7 +72,7 @@ export const useOAuth = () => {
 
     const urls = {
       google: `${process.env.NEXT_PUBLIC_BACK_END_URL}/oauth2/authorization/google?X-App-Id=toptopuser`,
-      facebook: `${process.env.NEXT_PUBLIC_BACK_END_URL}/login/oauth2/code/facebook?X-App-Id=toptopuser`
+      facebook: `${process.env.NEXT_PUBLIC_BACK_END_URL}/oauth2/authorization/facebook?X-App-Id=toptopuser`
     };
 
     const width = 500;

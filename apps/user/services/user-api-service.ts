@@ -42,3 +42,26 @@ export const unfollowUser = async (username: string): Promise<ApiResponse<void>>
     throw error;
   }
 };
+
+export const getFollowingList = async (): Promise<ApiResponse<UserInfo[]>> => {
+  try {
+    const response = await api.get<ApiResponse<UserInfo[]>>("/follow/following");
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+import type { MentionSuggestion } from "@/types/mention";
+
+export const getMentionSuggestions = async (keyword?: string): Promise<ApiResponse<MentionSuggestion[]>> => {
+  try {
+    const params = keyword ? { keyword } : {};
+    const response = await api.get<ApiResponse<MentionSuggestion[]>>("/users/mentions", { params });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

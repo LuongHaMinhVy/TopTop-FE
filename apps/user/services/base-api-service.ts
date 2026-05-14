@@ -1,5 +1,5 @@
+import { ApiResponse } from "@/types/api";
 import api from "@/utils/axios-instance";
-import type { ApiResponse } from "@/utils/interfaces";
 
 export const get = async <T>(url: string): Promise<ApiResponse<T>> => {
     const response = await api.get<ApiResponse<T>>(url);

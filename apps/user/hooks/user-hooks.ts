@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserProfile, followUser, unfollowUser } from "@/services/user-api-service";
+import { getUserProfile, followUser, unfollowUser, getFollowingList } from "@/services/user-api-service";
 
 export function useUserProfile(username: string) {
   return useQuery({
@@ -9,7 +9,8 @@ export function useUserProfile(username: string) {
     queryFn: () => getUserProfile(username),
     enabled: !!username,
     retry: false,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -30,5 +31,14 @@ export function useUnfollowMutation(username: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
     }
+  });
+}
+
+export function useFollowingList() {
+  return useQuery({
+    queryKey: ["following-list"],
+    queryFn: () => getFollowingList(),
+    staleTime: 10 * 60 * 1000, // 10 phút
+    refetchOnWindowFocus: false,
   });
 }

@@ -4,6 +4,12 @@
     "searchPlaceholder": "Tài khoản và video",
     "login": "Đăng nhập",
     "logout": "Đăng xuất",
+    "notifications": {
+      "empty": "Chưa có thông báo nào",
+      "liked": "đã thích video của bạn",
+      "commented": "đã bình luận về video của bạn",
+      "followed": "đã bắt đầu follow bạn"
+    },
     "sidebar": {
         "forYou": "Đề xuất",
         "explore": "Khám phá",
@@ -17,6 +23,7 @@
         "more": "Thêm",
         "followingAccounts": "Các tài khoản Đã follow",
         "seeAll": "Xem tất cả",
+        "noFollowing": "Các tài khoản bạn follow sẽ xuất hiện tại đây",
         "loginPrompt": "Đăng nhập để follow các tác giả, thích video và xem bình luận."
     },
     "footer": {
@@ -89,20 +96,20 @@
     "upload": {
         "title": "Tải video lên",
         "subtitle": "Đăng video vào tài khoản của bạn",
-        "previewLabel": "Xem trước video của bạn",
+        "previewLabel": "Xem trước sẽ hiển thị ở đây",
         "compressing": "Đang nén...",
         "uploading": "Đang tải lên...",
         "compressingHint": "Tối ưu hóa cho web",
         "uploadingHint": "Đang gửi đến TopTop",
         "pleaseWait": "Vui lòng chờ",
         "selectFile": "Chọn video để tải lên",
-        "dragHint": "Hoặc kéo và thả tệp",
-        "selectBtn": "Chọn tệp",
+        "dragHint": "Hoặc kéo và thả vào đây",
+        "selectBtn": "Chọn video",
         "editInfo": "Chỉnh sửa thông tin video",
-        "postBtn": "Đăng lên TopTop",
+        "postBtn": "Đăng",
         "titlePlaceholder": "Thu hút sự chú ý của người xem",
         "description": "Mô tả",
-        "descriptionPlaceholder": "Cho người xem biết thêm về video này",
+        "descriptionPlaceholder": "Chia sẻ thêm về video của bạn...",
         "category": "Danh mục",
         "selectCat": "Chọn danh mục",
         "status": "Trạng thái video",
@@ -110,8 +117,43 @@
         "ready": "SẴN SÀNG",
         "successTitle": "Tải lên hoàn tất!",
         "successMsg": "Video của bạn đang được xử lý và sẽ sớm xuất hiện.",
-        "uploadNext": "Tải lên video tiếp theo",
-        "errorVideo": "Vui lòng chọn một tệp video"
+        "uploadNext": "Tải lên video khác",
+        "errorVideo": "Vui lòng chọn một tệp video",
+        "replace": "Thay thế",
+        "uploaded": "Đã tải lên",
+        "details": "Chi tiết",
+        "hashtag": "Hashtag",
+        "mention": "Nhắc đến",
+        "history": "Lịch sử",
+        "cover": "Ảnh bìa",
+        "editCover": "Sửa ảnh bìa",
+        "settings": "Cài đặt",
+        "whenToPost": "Thời điểm đăng",
+        "postNow": "Bây giờ",
+        "schedule": "Lên lịch",
+        "whoCanWatch": "Người có thể nhìn thấy bài đăng này",
+        "everyone": "Mọi người",
+        "friends": "Bạn bè",
+        "onlyMe": "Chỉ mình tôi",
+        "allowComments": "Cho phép bình luận",
+        "allowDuet": "Cho phép Duet",
+        "allowStitch": "Cho phép Stitch",
+        "saveDraft": "Lưu bản nháp",
+        "cancel": "Hủy bỏ",
+        "discard": "Bỏ",
+        "infoSize": "Dung lượng và thời lượng",
+        "infoSizeDesc": "Dung lượng tối đa: 10 GB, thời lượng video: 60 phút.",
+        "infoFormat": "Định dạng tập tin",
+        "infoFormatDesc": "Đề xuất: .mp4. Có hỗ trợ các định dạng khác.",
+        "infoResolution": "Độ phân giải video",
+        "infoResolutionDesc": "Độ phân giải cao khuyến nghị: 1080p, 1440p, 4K.",
+        "infoAspect": "Tỷ lệ khung hình",
+        "infoAspectDesc": "Đề xuất: 16:9 cho chế độ ngang, 9:16 cho chế độ dọc.",
+        "feed": "Bảng tin",
+        "profile": "Hồ sơ",
+        "web": "Web",
+        "duration": "Thời lượng",
+        "remaining": "còn lại"
     }
   },
   "video": {
@@ -123,7 +165,13 @@
     "report": "Báo cáo",
     "pipActive": "Đang phát trong trình phát nổi",
     "back": "Quay lại",
-    "seeTranslation": "Xem bản dịch"
+    "seeTranslation": "Xem bản dịch",
+    "originalSound": "Âm thanh gốc - @{username}",
+    "comments": "Bình luận",
+    "noComments": "Hãy là người đầu tiên bình luận!",
+    "reply": "Trả lời",
+    "commentPlaceholder": "Thêm bình luận...",
+    "loginToComment": "Đăng nhập để bình luận"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -137,6 +185,9 @@
     "email": "Email",
     "password": "Mật khẩu",
     "dob": "Ngày sinh",
+    "Month": "Tháng",
+    "Day": "Ngày",
+    "Year": "Năm",
     "forgotPassword": "Quên mật khẩu?",
     "termsPrompt": "Bằng cách tiếp tục, bạn đồng ý với Điều khoản Dịch vụ và Chính sách Quyền riêng tư của TopTop.",
     "terms": "Điều khoản Dịch vụ",
@@ -152,5 +203,23 @@
     "subtitle": "Có vẻ như bạn đã đi lạc vào một không gian không có video nào ở đây. Đừng lo, hãy quay lại trang chủ để tiếp tục khám phá nhé!",
     "back": "Quay lại",
     "goHome": "Về Trang Chủ"
+  },
+  "Report": {
+    "title": "Báo cáo",
+    "chooseSituation": "Vui lòng chọn tình huống",
+    "submit": "Gửi",
+    "loading": "Đang tải...",
+    "loadError": "Không thể tải lý do báo cáo.",
+    "successTitle": "Đã gửi báo cáo",
+    "successDescription": "Cảm ơn bạn đã giúp cộng đồng an toàn hơn.",
+    "done": "Xong",
+    "policyIntro": "Chúng tôi không cho phép đăng nội dung:"
+  },
+  "report": {
+    "reason": {
+      "nudity_sexual_content": "Hình ảnh khỏa thân hoặc nội dung tình dục",
+      "violence_abuse_exploitation": "Bạo lực, lạm dụng và bóc lột để phạm tội",
+      "minor_sexual_exploitation": "Bóc lột hoặc lạm dụng người dưới 18 tuổi"
+    }
   }
 }

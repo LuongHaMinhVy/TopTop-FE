@@ -23,6 +23,12 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user) {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setSettingsOpen(false);

@@ -1,11 +1,24 @@
+"use client";
+
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { setNotFound } from "@/store/slices/authSlice";
 import Link from "next/link";
 import { Home, ArrowLeft } from "lucide-react";
 import { Button } from "@repo/ui";
 
-export default function RootNotFound() {  
+export default function RootNotFound() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(setNotFound(true));
+    return () => {
+      dispatch(setNotFound(false));
+    };
+  }, [dispatch]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center is-not-found-page">
       <div className="relative mb-8">
         <h1 className="text-[120px] sm:text-[180px] font-black leading-none tracking-tighter text-elevated animate-pulse">
           404

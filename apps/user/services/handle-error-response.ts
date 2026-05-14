@@ -1,5 +1,5 @@
+import { ApiResponse } from "@/types/api";
 import { AxiosError } from "axios";
-import type { ApiResponse } from "@/utils/interfaces";
 
 export const handleErrorResponse = (error: AxiosError): never => {
   const data = error.response?.data as ApiResponse | undefined;

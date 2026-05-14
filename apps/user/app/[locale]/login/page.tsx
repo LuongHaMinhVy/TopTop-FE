@@ -4,19 +4,17 @@ import { useEffect, useState } from "react";
 import { 
   User, 
   ChevronLeft,
-  X,
   Loader2,
   Eye,
   EyeOff
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Facebook from "@/components/shared/icons/FaceBookIcon";
-import Google from "@/components/shared/icons/GoogleIcon";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLoginMutation, useOAuth } from "@/hooks/auth-hooks";
+import { useLoginMutation } from "@/hooks/auth-hooks";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import type { AuthMessageData } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
@@ -40,7 +38,13 @@ export default function LoginPage() {
 
       if (authEvent.type === "AUTH_SUCCESS") {
         setSuccessMsg("Đăng nhập thành công");
-        if (authEvent.data) dispatch(setCredentials(authEvent.data));
+        if (authEvent.data) {
+          dispatch(setCredentials(authEvent.data));
+          const user = 'user' in authEvent.data ? authEvent.data.user : authEvent.data;
+          if (user) {
+            queryClient.setQueryData(["currentUser"], { data: user });
+          }
+        }
         setTimeout(() => {
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         }, 300);
@@ -58,16 +62,12 @@ export default function LoginPage() {
   return () => channel.close();
 }, [dispatch, router, queryClient]);
 
-  const { openAuthPopup } = useOAuth();
   const loginMutation = useLoginMutation(() => {
     setSuccessMsg("Đăng nhập thành công");
     setTimeout(() => {
       router.push("/");
     }, 1000);
   });
-
-  const handleFacebookLogin = () => openAuthPopup('facebook');
-  const handleGoogleLogin = () => openAuthPopup('google');
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -99,21 +99,7 @@ export default function LoginPage() {
           <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng email</span>
         </button>
 
-        <button
-          onClick={handleGoogleLogin}
-          className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface"
-        >
-          <Google className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Tiếp tục với Google</span>
-        </button>
-
-        <button
-          onClick={handleFacebookLogin}
-          className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface"
-        >
-          <Facebook className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Tiếp tục với Facebook</span>
-        </button>
+        <SocialLoginButtons />
       </div>
     </div>
   );
@@ -202,12 +188,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[rgba(0,0,0,0.7)] px-4">
       <div className="w-full max-w-[480px] bg-transparent rounded-[12px] p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
-        <Link
-          href="/"
-          className="absolute top-4 right-4 p-2 rounded-full text-text-secondary hover:bg-[rgba(255,255,255,0.1)] hover:text-text-primary transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </Link>
 
         <div className="flex-1 mt-6">
           {authMethod === "options" ? renderOptions() : renderForm()}

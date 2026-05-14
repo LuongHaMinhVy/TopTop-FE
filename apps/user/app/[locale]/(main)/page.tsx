@@ -1,8 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import VideoCard from "@/components/video/VideoCard";
-import { useAllVideos } from "@/hooks/video-hooks";
+import { useInfiniteVideos } from "@/hooks/video-hooks";
+import { useCallback, useRef } from "react";
+import { Video } from "@/types/video";
 
 function VideoSkeleton() {
   return (
@@ -23,18 +26,54 @@ function VideoSkeleton() {
 }
 
 export default function FeedPage() {
-  const { data, isLoading, isError } = useAllVideos();
-  const videos = data?.data ?? [];
+  const t = useTranslations('Main');
+  const { 
+    data, 
+    isLoading, 
+    isError, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useInfiniteVideos(3);
+
+  const observer = useRef<IntersectionObserver>(null);
+  const lastVideoRef = useCallback((node: HTMLDivElement) => {
+    if (isLoading || isFetchingNextPage) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
+
+  const allVideos = data?.pages.flatMap((page) => page.data ?? []) ?? [];
   return (
     <>
       <div
-        className="h-full overflow-y-auto custom-scrollbar"
+        className="h-full overflow-y-auto custom-scrollbar relative"
         style={{
           scrollSnapType: "y mandatory",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
         } as React.CSSProperties}
       >
+        {/* TikTok Style Tabs */}
+        <div className="absolute top-0 left-0 right-0 z-50 flex justify-center items-center h-16 pointer-events-none">
+          <div className="flex items-center gap-6 pointer-events-auto">
+            <button className="text-white text-[17px] font-bold drop-shadow-lg relative group">
+              {t('sidebar.forYou')}
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-white rounded-full" />
+            </button>
+            <button className="text-white/60 text-[17px] font-bold drop-shadow-lg hover:text-white/80 transition-colors">
+              {t('sidebar.following')}
+            </button>
+          </div>
+        </div>
+
         {isLoading && (
           <>
             <VideoSkeleton />
@@ -53,7 +92,7 @@ export default function FeedPage() {
           </div>
         )}
 
-        {!isLoading && !isError && videos.length === 0 && (
+        {!isLoading && !isError && allVideos.length === 0 && (
           <div
             className="h-full flex items-center justify-center"
             style={{ scrollSnapAlign: "center" }}
@@ -62,9 +101,19 @@ export default function FeedPage() {
           </div>
         )}
 
-        {videos.map((video) => (
-          <VideoCard key={video.id} video={video} />
+        {allVideos.map((video: Video, index: number) => (
+          <VideoCard 
+            key={video.id} 
+            video={video} 
+            ref={allVideos.length === index + 1 ? lastVideoRef : undefined} 
+          />
         ))}
+
+        {isFetchingNextPage && (
+          <div className="h-full flex items-center justify-center" style={{ scrollSnapAlign: "center" }}>
+            <VideoSkeleton />
+          </div>
+        )}
       </div>
 
       {/* Navigation Arrows */}
