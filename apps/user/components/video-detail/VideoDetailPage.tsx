@@ -8,29 +8,31 @@ import { VideoPlayerContainer } from "./VideoPlayerContainer";
 import { VideoActionRail } from "./VideoActionRail";
 import CommentSection from "@/components/video/CommentSection";
 import { ChevronLeft, Play, X } from "lucide-react";
-import { Skeleton } from "@repo/ui/skeleton";
 import Link from "next/link";
+import Image from "next/image";
 import { formatCount } from "@/utils/format-count";
 
 export default function VideoDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const t = useTranslations();
+  
   
   const rawUsername = params.username as string;
   const videoIdStr = params.videoId as string;
   const videoId = parseInt(videoIdStr);
 
-  // Decode and strip '@' or '%40'
   const decodedUsername = decodeURIComponent(rawUsername);
   const username = decodedUsername.startsWith("@") ? decodedUsername.substring(1) : decodedUsername;
   
   const { data: videoRes, isLoading, isError } = useVideoDetail(username, videoId);
   const video = videoRes?.data;
+  const { data: moreVideosRes } = useUserVideos(video?.userId);
+  const likeMutation = useLikeVideoMutation();
+  const unlikeMutation = useUnlikeVideoMutation();
 
   const [activeTab, setActiveTab] = useState<"comments" | "videos">("comments");
+  const moreVideos = moreVideosRes?.data?.filter(v => v.id !== videoId) || [];
 
-  // Add a safety check for invalid ID
   if (isNaN(videoId)) {
     return (
       <div className="flex items-center justify-center h-screen text-white">
@@ -38,12 +40,6 @@ export default function VideoDetailPage() {
       </div>
     );
   }
-
-  const { data: moreVideosRes } = useUserVideos(video?.userId);
-  const moreVideos = moreVideosRes?.data?.filter(v => v.id !== videoId) || [];
-
-  const likeMutation = useLikeVideoMutation();
-  const unlikeMutation = useUnlikeVideoMutation();
 
   if (isLoading) {
     return <VideoDetailSkeleton />;
@@ -104,11 +100,14 @@ export default function VideoDetailPage() {
         <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <img 
-                        src={video.userAvatarUrl || "/images/default-avatar.png"} 
-                        alt={video.username}
-                        className="w-10 h-10 rounded-full object-cover"
-                    />
+                    <div className="relative w-10 h-10 overflow-hidden rounded-full">
+                        <Image 
+                            src={video.userAvatarUrl || "/images/default-avatar.png"} 
+                            alt={video.username}
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
                     <div>
                         <h3 className="font-bold text-[17px] hover:underline cursor-pointer">@{video.username}</h3>
                         <p className="text-[14px] text-text-muted">{video.userNickname || video.username}</p>
@@ -161,12 +160,13 @@ export default function VideoDetailPage() {
                             href={`/@${v.username}/${v.id}`}
                             className="relative aspect-[3/4] bg-neutral-900 overflow-hidden group"
                         >
-                            <img 
+                            <Image 
                                 src={v.thumbnailUrl || "/images/default-video-cover.png"} 
                                 alt={v.title}
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                fill
+                                className="object-cover transition-transform group-hover:scale-105"
                             />
-                            <div className="absolute bottom-1 left-1 flex items-center text-white text-[10px] font-bold">
+                            <div className="absolute bottom-1 left-1 flex items-center text-white text-[10px] font-bold z-10">
                                 <Play size={10} className="mr-0.5 fill-current" />
                                 {formatCount(v.viewCount)}
                             </div>

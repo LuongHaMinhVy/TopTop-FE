@@ -1,6 +1,7 @@
 "use client";
 
 import { Bookmark, Heart, MessageCircle, Share2 } from "lucide-react";
+import Image from "next/image";
 import type { Video } from "@/types/video";
 import { formatCount } from "@/utils/format-count";
 
@@ -31,10 +32,11 @@ export function VideoActionRail({
         className="relative size-14 overflow-hidden rounded-full border border-white/20"
         aria-label={`Xem hồ sơ ${video.username}`}
       >
-        <img
+        <Image
           src={video.userAvatarUrl ?? "/images/default-avatar.png"}
           alt={video.username}
-          className="h-full w-full object-cover"
+          fill
+          className="object-cover"
         />
       </button>
 
