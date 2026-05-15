@@ -1,5 +1,15 @@
-import VideoDetailPage from "@/components/video-detail/VideoDetailPage";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <VideoDetailPage />;
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string; videoId: string }>;
+}) {
+  const { username: rawUsername, videoId } = await params;
+  const decodedUsername = decodeURIComponent(rawUsername);
+  const username = decodedUsername.startsWith("@")
+    ? decodedUsername.substring(1)
+    : decodedUsername;
+
+  redirect(`/@${username}/video/${videoId}`);
 }

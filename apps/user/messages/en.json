@@ -67,7 +67,11 @@
     "notFoundTitle": "User not found",
     "notFoundSubtitle": "The account you're looking for doesn't exist.",
     "friends": "Friends",
-    "followBack": "Follow back"
+    "followBack": "Follow back",
+    "blockUser": "Block",
+    "unblockUser": "Unblock",
+    "blockedState": "You blocked this user",
+    "reportUser": "Report"
   },
   "Studio": {
     "title": "TopTop Studio",
@@ -171,7 +175,9 @@
     "noComments": "Be the first to comment!",
     "reply": "Reply",
     "commentPlaceholder": "Add a comment...",
-    "loginToComment": "Log in to comment"
+    "loginToComment": "Log in to comment",
+    "videoUnavailable": "Video is unavailable",
+    "blockUser": "Block"
   },
   "auth": {
     "login": "Log in",
@@ -221,5 +227,37 @@
       "violence_abuse_exploitation": "Violence, abuse, and criminal exploitation",
       "minor_sexual_exploitation": "Minor sexual exploitation"
     }
+  },
+  "Chat": {
+    "messages": "Messages",
+    "noConversations": "No messages yet",
+    "emptyTitle": "No message selected",
+    "emptyDescription": "Send messages to your friends or share videos with them.",
+    "inputPlaceholder": "Send a message...",
+    "loadMore": "Load previous messages",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "Collection": {
+    "addToCollection": "Add to collection",
+    "collections": "Collections",
+    "allFavorites": "All favorites",
+    "create": "Create",
+    "delete": "Delete",
+    "rename": "Rename",
+    "close": "Close",
+    "newCollectionPlaceholder": "New collection name",
+    "emptyCollections": "No collections yet",
+    "emptyFavorites": "No favorite videos yet",
+    "privateFavorites": "This user's favorites are private",
+    "savedToFavorites": "Added to Favorites",
+    "manage": "Manage",
+    "createNewCollection": "Create new collection",
+    "newCollectionTitle": "New collection",
+    "name": "Name",
+    "makePublic": "Make public",
+    "makePublicDescription": "Public collections will appear on your profile and can be shared with friends.",
+    "save": "Save",
+    "videoCount": "{count, plural, =0 {No videos} =1 {# video} other {# videos}}"
   }
 }

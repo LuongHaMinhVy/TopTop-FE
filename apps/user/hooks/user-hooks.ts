@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserProfile, followUser, unfollowUser, getFollowingList } from "@/services/user-api-service";
+import { getUserProfile, followUser, unfollowUser, getFollowingList, blockUser, unblockUser } from "@/services/user-api-service";
 
 export function useUserProfile(username: string) {
   return useQuery({
@@ -31,6 +31,31 @@ export function useUnfollowMutation(username: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
     }
+  });
+}
+
+function invalidateRelationshipQueries(queryClient: ReturnType<typeof useQueryClient>, username: string) {
+  queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
+  queryClient.invalidateQueries({ queryKey: ["following-list"] });
+  queryClient.invalidateQueries({ queryKey: ["user-videos"] });
+  queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+  queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+  queryClient.invalidateQueries({ queryKey: ["video-detail"] });
+}
+
+export function useBlockUserMutation(username: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => blockUser(username),
+    onSuccess: () => invalidateRelationshipQueries(queryClient, username),
+  });
+}
+
+export function useUnblockUserMutation(username: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => unblockUser(username),
+    onSuccess: () => invalidateRelationshipQueries(queryClient, username),
   });
 }
 

@@ -67,7 +67,11 @@
     "notFoundTitle": "Không tìm thấy người dùng",
     "notFoundSubtitle": "Tài khoản bạn đang tìm kiếm không tồn tại.",
     "friends": "Bạn bè",
-    "followBack": "Follow lại"
+    "followBack": "Follow lại",
+    "blockUser": "Chặn",
+    "unblockUser": "Bỏ chặn",
+    "blockedState": "Bạn đã chặn người dùng này",
+    "reportUser": "Báo cáo"
   },
   "Studio": {
     "title": "TopTop Studio",
@@ -171,7 +175,9 @@
     "noComments": "Hãy là người đầu tiên bình luận!",
     "reply": "Trả lời",
     "commentPlaceholder": "Thêm bình luận...",
-    "loginToComment": "Đăng nhập để bình luận"
+    "loginToComment": "Đăng nhập để bình luận",
+    "videoUnavailable": "Video không khả dụng",
+    "blockUser": "Chặn"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -221,5 +227,37 @@
       "violence_abuse_exploitation": "Bạo lực, lạm dụng và bóc lột để phạm tội",
       "minor_sexual_exploitation": "Bóc lột hoặc lạm dụng người dưới 18 tuổi"
     }
+  },
+  "Chat": {
+    "messages": "Tin nhắn",
+    "noConversations": "Chưa có tin nhắn nào",
+    "emptyTitle": "Chưa chọn cuộc hội thoại nào",
+    "emptyDescription": "Gửi tin nhắn cho bạn bè hoặc chia sẻ video với họ.",
+    "inputPlaceholder": "Gửi tin nhắn...",
+    "loadMore": "Tải thêm tin nhắn",
+    "online": "Đang hoạt động",
+    "offline": "Không hoạt động"
+  },
+  "Collection": {
+    "addToCollection": "Thêm vào bộ sưu tập",
+    "collections": "Bộ sưu tập",
+    "allFavorites": "Tất cả yêu thích",
+    "create": "Tạo",
+    "delete": "Xóa",
+    "rename": "Đổi tên",
+    "close": "Đóng",
+    "newCollectionPlaceholder": "Tên bộ sưu tập mới",
+    "emptyCollections": "Chưa có bộ sưu tập nào",
+    "emptyFavorites": "Chưa có video yêu thích nào",
+    "privateFavorites": "Danh sách yêu thích của người dùng này ở chế độ riêng tư",
+    "savedToFavorites": "Đã thêm vào mục Yêu thích",
+    "manage": "Quản lý",
+    "createNewCollection": "Tạo bộ sưu tập mới",
+    "newCollectionTitle": "Bộ sưu tập mới",
+    "name": "Tên",
+    "makePublic": "Đặt ở chế độ công khai",
+    "makePublicDescription": "Những bộ sưu tập ở chế độ công khai sẽ hiển thị trên hồ sơ của bạn và có thể được chia sẻ với bạn bè.",
+    "save": "Lưu",
+    "videoCount": "{count, plural, =0 {Chưa có video} other {# video}}"
   }
 }

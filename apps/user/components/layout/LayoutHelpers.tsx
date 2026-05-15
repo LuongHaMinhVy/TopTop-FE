@@ -51,7 +51,7 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
         flex items-center rounded-2xl w-full py-2.5 my-0.5 transition-all duration-300 group relative overflow-hidden
         ${active 
           ? "text-brand bg-brand/5 font-black" 
-          : "text-text-secondary hover:bg-hover hover:text-text-primary font-bold"}
+          : "hover:bg-hover text-text-primary font-bold"}
       `}
       style={{ 
         paddingLeft: collapsed ? 0 : 12, 

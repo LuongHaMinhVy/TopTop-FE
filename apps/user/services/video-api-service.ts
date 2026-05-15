@@ -81,16 +81,6 @@ export const unlikeVideo = async (videoId: number): Promise<ApiResponse<void>> =
   }
 };
 
-export const getFavoriteVideos = async (): Promise<ApiResponse<Video[]>> => {
-  try {
-    const response = await api.get<ApiResponse<Video[]>>("/collections/favorites/videos");
-    return response.data;
-  } catch (error) {
-    handleErrorResponse(error as AxiosError);
-    throw error;
-  }
-};
-
 export const getVideoByUsernameAndId = async (username: string, videoId: number): Promise<ApiResponse<Video>> => {
   try {
     const response = await api.get<ApiResponse<Video>>(`/videos/@${username}/${videoId}`);

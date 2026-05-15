@@ -13,12 +13,15 @@ import {
   Pause,
   MoreHorizontal,
   PictureInPicture,
+  Check,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store/store";
 import { ReportModal } from "@/components/report/ReportModal";
+import { CollectionManagePanel } from "@/components/collection/CollectionManagePanel";
 import { setMuted, setVolume, toggleMuted } from "@/store/slices/mediaSlice";
+import { openAuthModal } from "@/store/slices/authSlice";
 import { VideoOptionsMenu } from "./VideoOptionsMenu";
 import { IconButton } from "@repo/ui/icon-button";
 import { useTranslations } from "next-intl";
@@ -28,8 +31,15 @@ import { Avatar } from "@repo/ui/avatar";
 import { Button } from "@repo/ui/button";
 import Image from "next/image";
 import type { Video } from "@/types/video";
+import CommentSection from "@/components/video/CommentSection";
 import { useLikeVideoMutation, useUnlikeVideoMutation } from "@/hooks/video-hooks";
+import { useBlockUserMutation } from "@/hooks/user-hooks";
+import { useSaveVideoMutation, useUnsaveVideoMutation } from "@/hooks/collection-hooks";
 import { useRouter } from "@/i18n/routing";
+import { videoPath } from "@/utils/video-url";
+
+const FEED_VIDEO_MAX_WIDTH = "60vw";
+const FEED_VIDEO_MAX_HEIGHT = "calc(100dvh - 32px)";
 
 interface InteractionSidebarProps {
   overlay?: boolean;
@@ -129,6 +139,12 @@ function formatCount(n?: number): string {
   return String(n);
 }
 
+function parseAspectRatio(value: string): number {
+  const [width, height] = value.split("/").map((part) => Number(part));
+  if (!width || !height) return 9 / 16;
+  return width / height;
+}
+
 // ─────────────────────────────────────────────
 // VideoCard Props
 // ─────────────────────────────────────────────
@@ -171,15 +187,20 @@ export default function VideoCard({
   const avatarUrl = (video ? video.userAvatarUrl                  : avatarUrlProp) || "";
   const likes     = video ? formatCount(video.likeCount)         : (likesProp || "0");
   const comments  = video ? formatCount(video.commentCount)      : (commentsProp || "0");
-  const saves     = video ? formatCount(video.saveCount ?? 0)    : (savesProp || "0");
+  const savesFromProps = video ? video.saveCount ?? 0 : Number(savesProp || 0) || 0;
   const shares    = video ? formatCount(video.shareCount ?? 0)   : (sharesProp || "0");
 
   const t        = useTranslations("video");
+  const tCollection = useTranslations("Collection");
   const sound     = video ? t('originalSound', { username: video.username }) : (soundProp || t('originalSound', { username }));
   const dispatch = useDispatch();
   const router   = useRouter();
   
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [showFavoriteToast, setShowFavoriteToast] = useState(false);
+  const [isFavoriteToastLeaving, setIsFavoriteToastLeaving] = useState(false);
+  const [isCollectionPanelOpen, setIsCollectionPanelOpen] = useState(false);
+  const [isCommentPanelOpen, setIsCommentPanelOpen] = useState(false);
 
   // Redux state
   const isMuted  = useSelector((state: RootState) => state.media.isMuted);
@@ -191,10 +212,14 @@ export default function VideoCard({
 
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
+  const saveMutation = useSaveVideoMutation();
+  const unsaveMutation = useUnsaveVideoMutation();
+  const blockMutation = useBlockUserMutation(username);
 
   // ── State ──
   const [isLiked,         setIsLiked]         = useState(false);
-  const [isSaved,         setIsSaved]         = useState(false);
+  const [isSaved,         setIsSaved]         = useState(video?.isSaved ?? false);
+  const [saveCount,       setSaveCount]       = useState(savesFromProps);
   const [isPlaying,       setIsPlaying]       = useState(true);
   const [showControlIcon, setShowControlIcon] = useState(false);
   const [iconType,        setIconType]        = useState<"play" | "pause">("play");
@@ -203,11 +228,13 @@ export default function VideoCard({
   const [isPipActive,     setIsPipActive]     = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isNearViewport,  setIsNearViewport]  = useState(false);
+  const [detectedAspectRatio, setDetectedAspectRatio] = useState<number | null>(null);
 
   // ── Refs ──
   const internalRef       = useRef<HTMLDivElement>(null);
   const videoRef          = useRef<HTMLVideoElement>(null);
   const menuRef           = useRef<HTMLDivElement>(null);
+  const favoriteToastRef  = useRef<HTMLDivElement>(null);
   const isIntersectingRef = useRef(false);
   const isPlayingRef      = useRef(isPlaying);
 
@@ -227,9 +254,17 @@ export default function VideoCard({
   // Context Menu Logic
   const { isOpen: isCtxOpen, position: ctxPos, openMenu, closeMenu } = useVideoContextMenu();
 
+  const hideFavoriteToast = useCallback(() => {
+    setIsFavoriteToastLeaving(true);
+    window.setTimeout(() => {
+      setShowFavoriteToast(false);
+      setIsFavoriteToastLeaving(false);
+    }, 220);
+  }, []);
+
   const handleCopyLink = () => {
     if (video) {
-        const url = `${window.location.origin}/@${video.username}/${video.id}`;
+        const url = `${window.location.origin}${videoPath(video.username, video.id)}`;
         navigator.clipboard.writeText(url);
         closeMenu();
     }
@@ -253,10 +288,23 @@ export default function VideoCard({
   /** FIX 3 — control-icon timeout id for proper cleanup */
   const controlIconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const ratioParts = (aspectRatio || "9/16").split("/");
-  const isWide =
-    ratioParts.length === 2 &&
-    parseInt(ratioParts[0]) / parseInt(ratioParts[1]) > 1;
+  const videoAspectRatio = detectedAspectRatio ?? parseAspectRatio(aspectRatio || "9/16");
+  const videoFrameStyle = {
+    "--feed-video-ratio": String(videoAspectRatio),
+    aspectRatio: String(videoAspectRatio),
+    width: `min(${FEED_VIDEO_MAX_WIDTH}, calc(${FEED_VIDEO_MAX_HEIGHT} * var(--feed-video-ratio)))`,
+    height: `min(${FEED_VIDEO_MAX_HEIGHT}, calc(${FEED_VIDEO_MAX_WIDTH} / var(--feed-video-ratio)))`,
+    maxWidth: FEED_VIDEO_MAX_WIDTH,
+    maxHeight: FEED_VIDEO_MAX_HEIGHT,
+  } as React.CSSProperties;
+  const actionRailStyle = {
+    left: `calc(50% + min(calc(${FEED_VIDEO_MAX_WIDTH} / 2), calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio} / 2)) + 24px)`,
+  } as React.CSSProperties;
+  const collectionPanelStyle = {
+    left: `min(calc(100vw - 300px), calc(50% + min(calc(${FEED_VIDEO_MAX_WIDTH} / 2), calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio} / 2)) + 86px))`,
+    top: "50%",
+    transform: "translateY(-50%)",
+  } as React.CSSProperties;
 
   // keep ref in sync
   useEffect(() => {
@@ -357,6 +405,26 @@ export default function VideoCard({
     };
   }, []);
 
+  useEffect(() => {
+    if (!showFavoriteToast) return;
+
+    const hideTimer = window.setTimeout(hideFavoriteToast, 5000);
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!favoriteToastRef.current?.contains(target)) {
+        hideFavoriteToast();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      window.clearTimeout(hideTimer);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [hideFavoriteToast, showFavoriteToast]);
+
   // ──────────────────────────────────────────
   // Handlers
   // ──────────────────────────────────────────
@@ -394,6 +462,55 @@ export default function VideoCard({
       router.push(`/@${username}`);
     }
   }, [router, username]);
+
+  const handleSave = () => {
+    if (!video?.id) return;
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      return;
+    }
+
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    setSaveCount((current) => Math.max(0, current + (nextSaved ? 1 : -1)));
+
+    if (nextSaved) {
+      saveMutation.mutate(video.id, {
+        onSuccess: () => {
+          setIsFavoriteToastLeaving(false);
+          setShowFavoriteToast(true);
+        },
+        onError: () => {
+          setIsSaved(false);
+          setSaveCount((current) => Math.max(0, current - 1));
+        },
+      });
+    } else {
+      hideFavoriteToast();
+      setIsCollectionPanelOpen(false);
+      unsaveMutation.mutate(video.id, {
+        onError: () => {
+          setIsSaved(true);
+          setSaveCount((current) => current + 1);
+        },
+      });
+    }
+  };
+
+  const handleBlockUser = () => {
+    if (!video || isOwnVideo) return;
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      return;
+    }
+
+    blockMutation.mutate(undefined, {
+      onSuccess: () => {
+        setShowOptionsMenu(false);
+        closeMenu();
+      },
+    });
+  };
 
   const exitPip = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -466,24 +583,23 @@ export default function VideoCard({
   return (
     <div
       ref={setRefs}
-      className="flex items-center justify-center h-full w-full"
+      className="flex h-full w-full items-center justify-center px-4 py-4"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >
-      <div className="flex flex-row items-end gap-4 w-full sm:w-auto h-full sm:h-auto justify-center">
+      <div className="relative flex h-full w-full items-center justify-center">
 
         {/* ── Video wrapper ── */}
         <div
           className={`
             relative group flex-shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-black
-            w-full h-full rounded-none
-            sm:w-auto sm:h-auto sm:rounded-[32px]
-            ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(680px,75vh)]"}
+            overflow-hidden rounded-[24px] sm:rounded-[32px]
           `}
+          style={videoFrameStyle}
         >
           {videoUrl ? (
             <>
               <div
-                className="relative w-full h-full overflow-hidden rounded-none sm:rounded-[32px] cursor-pointer shadow-inner"
+                className="relative w-full h-full overflow-hidden rounded-[24px] sm:rounded-[32px] cursor-pointer shadow-inner"
                 onClick={togglePlay}
                 onContextMenu={openMenu}
               >
@@ -491,18 +607,18 @@ export default function VideoCard({
                   <video
                     ref={videoRef}
                     src={videoUrl}
-                    className={`
-                      block w-full h-full object-cover
-                      sm:w-auto sm:h-auto sm:object-contain
-                      ${isWide ? "sm:max-h-[60vh]" : "sm:max-h-[min(680px,75vh)]"}
-                      sm:max-w-full
-                    `}
+                    className="block h-full w-full object-contain"
                     loop={!autoScroll}
                     onEnded={handleEnded}
                     muted={isMuted}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={() => {}}
+                    onLoadedMetadata={(event) => {
+                      const player = event.currentTarget;
+                      if (player.videoWidth > 0 && player.videoHeight > 0) {
+                        setDetectedAspectRatio(player.videoWidth / player.videoHeight);
+                      }
+                    }}
                     preload="metadata"
                     poster={video?.thumbnailUrl}
                     style={{ willChange: "transform" }}
@@ -514,7 +630,7 @@ export default function VideoCard({
                         src={video.thumbnailUrl} 
                         alt={caption} 
                         fill 
-                        className="object-cover sm:object-contain"
+                        className="object-contain"
                       />
                     ) : (
                       <div className="w-full h-full bg-[#121212]" />
@@ -597,7 +713,7 @@ export default function VideoCard({
                     isSaved={isSaved}
                     likes={likes}
                     comments={comments}
-                    saves={saves}
+                    saves={formatCount(saveCount)}
                     shares={shares}
                     onLike={() => {
                       setIsLiked((p) => {
@@ -612,7 +728,7 @@ export default function VideoCard({
                         return newLiked;
                       });
                     }}
-                    onSave={() => setIsSaved((p) => !p)}
+                    onSave={handleSave}
                     onAvatarClick={handleProfileClick}
                     showFollowButton={!isOwnVideo}
                     videoRef={videoRef}
@@ -681,15 +797,17 @@ export default function VideoCard({
                     onClose={() => setShowOptionsMenu(false)}
                     videoRef={videoRef}
                     videoId={video?.id}
+                    username={username}
+                    canBlock={Boolean(video && !isOwnVideo)}
                     onReportClick={() => setIsReportOpen(true)}
+                    onBlockClick={handleBlockUser}
                   />
                 )}
               </div>
             </>
           ) : (
             <div
-              className="bg-[#121212] w-full h-full sm:rounded-[32px] flex items-center justify-center"
-              style={{ aspectRatio, minHeight: 300 }}
+              className="bg-[#121212] w-full h-full rounded-[24px] sm:rounded-[32px] flex items-center justify-center"
             >
               <div className="w-12 h-12 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
             </div>
@@ -720,7 +838,7 @@ export default function VideoCard({
         </div>
 
         {/* Tablet/Desktop interaction sidebar */}
-        <div className="hidden sm:block flex-shrink-0 pb-4">
+        <div className="absolute bottom-4 hidden sm:block" style={actionRailStyle}>
           <InteractionSidebar
             avatarUrl={avatarUrl}
             username={username}
@@ -728,7 +846,7 @@ export default function VideoCard({
             isSaved={isSaved}
             likes={likes}
             comments={comments}
-            saves={saves}
+            saves={formatCount(saveCount)}
             shares={shares}
             onLike={() => {
               setIsLiked((p) => {
@@ -743,15 +861,63 @@ export default function VideoCard({
                 return newLiked;
               });
             }}
-            onSave={() => setIsSaved((p) => !p)}
+            onSave={handleSave}
             onAvatarClick={handleProfileClick}
             onCommentsClick={() => {
-              if (video) router.push(`/@${video.username}/${video.id}`);
+              if (video) setIsCommentPanelOpen((value) => !value);
             }}
             showFollowButton={!isOwnVideo}
             videoRef={videoRef}
           />
         </div>
+
+        {video?.id && (
+          <CollectionManagePanel
+            isOpen={isCollectionPanelOpen}
+            videoId={video.id}
+            panelStyle={collectionPanelStyle}
+            onClose={() => setIsCollectionPanelOpen(false)}
+          />
+        )}
+
+        {video?.id && isCommentPanelOpen && (
+          <div
+            className="absolute top-1/2 z-[205] hidden h-[min(720px,calc(100dvh-48px))] w-[420px] -translate-y-1/2 overflow-hidden rounded-xl border border-white/10 bg-background shadow-2xl xl:block"
+            style={{
+              left: `min(calc(100vw - 452px), calc(50% + min(calc(${FEED_VIDEO_MAX_WIDTH} / 2), calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio} / 2)) + 96px))`,
+            }}
+          >
+            <CommentSection
+              videoId={video.id}
+              onClose={() => setIsCommentPanelOpen(false)}
+              embedded
+            />
+          </div>
+        )}
+
+        {showFavoriteToast && isSaved && (
+          <div
+            ref={favoriteToastRef}
+            className={`absolute bottom-3 left-1/2 z-[210] flex h-14 items-center gap-3 rounded-lg bg-[#3b3b3b] px-5 text-white shadow-xl transition-all duration-200 ease-out ${
+              isFavoriteToastLeaving
+                ? "-translate-x-1/2 translate-y-8 opacity-0"
+                : "-translate-x-1/2 translate-y-0 opacity-100"
+            }`}
+          >
+            <Check className="size-5 rounded-full bg-white text-[#3b3b3b]" />
+            <span className="text-[15px] font-bold">{tCollection("savedToFavorites")}</span>
+            <button
+              type="button"
+              onClick={() => {
+                hideFavoriteToast();
+                setIsCollectionPanelOpen(true);
+              }}
+              className="ml-3 text-[15px] font-bold text-[#8ab4ff] hover:underline"
+            >
+              {tCollection("manage")} &gt;
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Report Modal */}
@@ -773,8 +939,10 @@ export default function VideoCard({
         onSendToFriends={() => closeMenu()}
         onViewDetails={() => {
             closeMenu();
-            if (video) router.push(`/@${video.username}/${video.id}`);
+            if (video) router.push(videoPath(video.username, video.id));
         }}
+        onBlockUser={video && !isOwnVideo ? handleBlockUser : undefined}
+        blockLabel={`${t("blockUser")} @${username}`}
       />
     </div>
   );

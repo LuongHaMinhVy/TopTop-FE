@@ -8,6 +8,7 @@ import {
   PictureInPicture, 
   HeartOff, 
   Flag,
+  Ban,
   ChevronLeft,
   Check
 } from 'lucide-react';
@@ -20,12 +21,15 @@ interface VideoOptionsMenuProps {
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   videoId?: number;
+  username?: string;
+  canBlock?: boolean;
   onReportClick?: () => void;
+  onBlockClick?: () => void;
 }
 
 type MenuMode = 'main' | 'quality';
 
-export function VideoOptionsMenu({ onClose, videoRef, onReportClick }: VideoOptionsMenuProps) {
+export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false, onReportClick, onBlockClick }: VideoOptionsMenuProps) {
   const t = useTranslations('video');
   const dispatch = useDispatch();
   const autoScroll = useSelector((state: RootState) => state.media.autoScroll);
@@ -36,6 +40,13 @@ export function VideoOptionsMenu({ onClose, videoRef, onReportClick }: VideoOpti
   const handleReport = () => {
     if (onReportClick) {
       onReportClick();
+    }
+    onClose();
+  };
+
+  const handleBlock = () => {
+    if (onBlockClick) {
+      onBlockClick();
     }
     onClose();
   };
@@ -75,7 +86,8 @@ export function VideoOptionsMenu({ onClose, videoRef, onReportClick }: VideoOpti
     { icon: <PictureInPicture size={20} />, label: t('pip'), action: 'pip' },
     { icon: <HeartOff size={20} />, label: t('notInterested') },
     { icon: <Flag size={20} />, label: t('report'), action: 'report' },
-  ], [t, quality, autoScroll, dispatch]);
+    ...(canBlock ? [{ icon: <Ban size={20} />, label: `${t('blockUser')} @${username}`, action: 'block' }] : []),
+  ], [t, quality, autoScroll, dispatch, canBlock, username]);
 
   if (mode === 'quality') {
     return (
@@ -125,6 +137,8 @@ export function VideoOptionsMenu({ onClose, videoRef, onReportClick }: VideoOpti
                 togglePip();
               } else if (item.action === 'report') {
                 handleReport();
+              } else if (item.action === 'block') {
+                handleBlock();
               } else if (item.onToggle) {
                 item.onToggle();
               } else if (item.onClick) {

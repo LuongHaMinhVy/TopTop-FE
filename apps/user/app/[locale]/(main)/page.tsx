@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import VideoCard from "@/components/video/VideoCard";
 import { useInfiniteVideos } from "@/hooks/video-hooks";
@@ -26,7 +25,6 @@ function VideoSkeleton() {
 }
 
 export default function FeedPage() {
-  const t = useTranslations('Main');
   const { 
     data, 
     isLoading, 
@@ -61,19 +59,6 @@ export default function FeedPage() {
           msOverflowStyle: "none",
         } as React.CSSProperties}
       >
-        {/* TikTok Style Tabs */}
-        <div className="absolute top-0 left-0 right-0 z-50 flex justify-center items-center h-16 pointer-events-none">
-          <div className="flex items-center gap-6 pointer-events-auto">
-            <button className="text-white text-[17px] font-bold drop-shadow-lg relative group">
-              {t('sidebar.forYou')}
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-white rounded-full" />
-            </button>
-            <button className="text-white/60 text-[17px] font-bold drop-shadow-lg hover:text-white/80 transition-colors">
-              {t('sidebar.following')}
-            </button>
-          </div>
-        </div>
-
         {isLoading && (
           <>
             <VideoSkeleton />

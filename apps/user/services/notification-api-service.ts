@@ -2,19 +2,7 @@ import api from "@/utils/axios-instance";
 import { handleErrorResponse } from "./handle-error-response";
 import { AxiosError } from "axios";
 import type { ApiResponse } from "@/types/api";
-
-export interface Notification {
-  id: number;
-  type: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
-  actorId: number;
-  actorUsername: string;
-  actorAvatarUrl?: string;
-  videoId?: number;
-  videoThumbnailUrl?: string;
-}
+import type { Notification } from "@/types/notification";
 
 export const getNotifications = async (): Promise<ApiResponse<Notification[]>> => {
   try {

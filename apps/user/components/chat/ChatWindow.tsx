@@ -1,0 +1,91 @@
+"use client";
+
+import { useMessages, useMarkAsRead } from "@/hooks/chat-hooks";
+import { MessageItem } from "./MessageItem";
+import { ChatInput } from "./ChatInput";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
+import { MessageSquare } from "lucide-react";
+import { Avatar, Spinner } from "@repo/ui";
+import type { ConversationResponseDTO } from "@/types/chat";
+
+interface ChatWindowProps {
+  conversation: ConversationResponseDTO | null;
+}
+
+export const ChatWindow = ({ conversation }: ChatWindowProps) => {
+  const t = useTranslations('Chat');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const markAsRead = useMarkAsRead();
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMessages(conversation?.id || null);
+
+  const messages = data?.pages.flatMap((page) => page.data || []).reverse() || [];
+
+  useEffect(() => {
+    if (conversation?.id && conversation.unreadCount > 0) {
+      markAsRead.mutate(conversation.id);
+    }
+  }, [conversation?.id, conversation?.unreadCount, markAsRead]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages.length]);
+
+  if (!conversation) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-text-muted bg-[#121212]">
+        <MessageSquare size={64} className="mb-4 opacity-20" strokeWidth={1} />
+        <h2 className="text-xl font-bold text-text-primary">{t('emptyTitle')}</h2>
+        <p className="max-w-[300px] text-center mt-2">{t('emptyDescription')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-background relative">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-3 border-b border-elevated sticky top-0 bg-background/80 backdrop-blur-md z-10">
+        <Avatar src={conversation.targetUser?.avatarUrl} alt={conversation.targetUser?.displayName || ""} size="sm" />
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold truncate">{conversation.targetUser?.displayName}</span>
+          <span className="text-[12px] text-text-muted">
+            {conversation.targetUser?.online ? t('online') : t('offline')}
+          </span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar"
+      >
+        {hasNextPage && (
+          <button 
+            onClick={() => fetchNextPage()} 
+            disabled={isFetchingNextPage}
+            className="text-xs text-brand hover:underline self-center py-2"
+          >
+            {isFetchingNextPage ? <Spinner size="sm" /> : t('loadMore')}
+          </button>
+        )}
+        
+        {messages.map((msg) => (
+          <MessageItem key={msg.id} message={msg} />
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-elevated">
+        <ChatInput conversationId={conversation.id} />
+      </div>
+    </div>
+  );
+};

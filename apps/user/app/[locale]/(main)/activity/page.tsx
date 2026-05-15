@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import * as locales from "date-fns/locale";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Notification } from "@/services/notification-api-service";
+import type { Notification } from "@/types/notification";
 
 export default function ActivityPage() {
   const t = useTranslations('Main');

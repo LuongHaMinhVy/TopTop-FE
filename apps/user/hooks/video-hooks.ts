@@ -6,7 +6,7 @@ import { AxiosProgressEvent } from "axios";
 export const useAllVideos = () => {
   return useQuery({
     queryKey: ["all-videos"],
-    queryFn: () => videoService.getAllVideos(),
+    queryFn: () => videoService.getAllVideos(0, 60),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -82,15 +82,6 @@ export const useUnlikeVideoMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["user-videos"] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
     },
-  });
-};
-
-export const useFavoriteVideos = () => {
-  return useQuery({
-    queryKey: ["favorite-videos"],
-    queryFn: () => videoService.getFavoriteVideos(),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 };
 

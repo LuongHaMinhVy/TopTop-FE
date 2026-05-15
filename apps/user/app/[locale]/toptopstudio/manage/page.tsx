@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { Trash2, ExternalLink, Video } from 'lucide-react';
+import { Trash2, ExternalLink, Video as VideoIcon } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
@@ -72,7 +72,7 @@ export default function ContentManagementPage() {
                               <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover" />
                           ) : (
                               <div className="w-full h-full flex items-center justify-center bg-surface">
-                                  <Video className="text-text-muted" size={20} />
+                                  <VideoIcon className="text-text-muted" size={20} />
                               </div>
                           )}
                         </div>

@@ -1,14 +1,24 @@
-import axios from "axios";
+import api from "@/utils/axios-instance";
 import type { ApiResponse } from "@/types/api";
-
-const API_URL = process.env.NEXT_PUBLIC_BACK_END_URL + "/api/v1/videos";
+import { AxiosError } from "axios";
+import { handleErrorResponse } from "./handle-error-response";
 
 export const likeVideo = async (videoId: number) => {
-  const response = await axios.post<ApiResponse<void>>(`${API_URL}/${videoId}/like`);
-  return response.data;
+  try {
+    const response = await api.post<ApiResponse<void>>(`/videos/${videoId}/like`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
 };
 
 export const unlikeVideo = async (videoId: number) => {
-  const response = await axios.post<ApiResponse<void>>(`${API_URL}/${videoId}/unlike`);
-  return response.data;
+  try {
+    const response = await api.delete<ApiResponse<void>>(`/videos/${videoId}/like`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
 };

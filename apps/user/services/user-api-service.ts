@@ -43,6 +43,26 @@ export const unfollowUser = async (username: string): Promise<ApiResponse<void>>
   }
 };
 
+export const blockUser = async (username: string): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.post<ApiResponse<void>>(`/blocks/${username}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const unblockUser = async (username: string): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.delete<ApiResponse<void>>(`/blocks/${username}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
 export const getFollowingList = async (): Promise<ApiResponse<UserInfo[]>> => {
   try {
     const response = await api.get<ApiResponse<UserInfo[]>>("/follow/following");

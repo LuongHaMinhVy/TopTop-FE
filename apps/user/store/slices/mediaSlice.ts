@@ -20,7 +20,7 @@ const loadMediaState = (): MediaState => {
   if (saved) {
     const parsed = JSON.parse(saved);
     return {
-      isMuted: parsed.isMuted ?? true,
+      isMuted: true,
       volume: parsed.volume ?? 1,
       autoScroll: parsed.autoScroll ?? false,
     };

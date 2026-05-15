@@ -8,16 +8,22 @@ import { VideoContextMenu } from "./VideoContextMenu";
 
 interface VideoPlayerContainerProps {
   video: Video;
-  onCopyLink: () => void;
+  className?: string;
+  onCopyLink: () => void | Promise<void>;
   onOpenSendModal: () => void;
   onOpenVideoInfo: () => void;
+  onBlockUser?: () => void;
+  blockLabel?: string;
 }
 
 export function VideoPlayerContainer({
   video,
+  className = "",
   onCopyLink,
   onOpenSendModal,
   onOpenVideoInfo,
+  onBlockUser,
+  blockLabel,
 }: VideoPlayerContainerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -61,16 +67,17 @@ export function VideoPlayerContainer({
 
   return (
     <section
-      className="
-        relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden
+      className={`
+        relative flex h-full w-full flex-1 items-center justify-center overflow-hidden
         bg-black px-4 py-6
-      "
+        ${className}
+      `}
       onContextMenu={openMenu}
     >
       <div
         className="
-          relative flex aspect-[9/16] h-[calc(100dvh-72px)] max-h-[860px]
-          min-h-[520px] overflow-hidden rounded-xl bg-neutral-950 shadow-2xl
+          relative flex h-full w-full items-center justify-center
+          overflow-hidden rounded-xl bg-neutral-950 shadow-2xl
         "
       >
         <video
@@ -105,6 +112,11 @@ export function VideoPlayerContainer({
         onSendToFriends={handleSendToFriends}
         onCopyLink={handleCopyLink}
         onViewDetails={handleViewDetails}
+        onBlockUser={onBlockUser ? () => {
+          closeMenu();
+          onBlockUser();
+        } : undefined}
+        blockLabel={blockLabel}
       />
     </section>
   );

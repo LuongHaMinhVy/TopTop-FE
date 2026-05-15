@@ -13,9 +13,18 @@ import { RootState } from "@/store/store";
 interface Props {
   videoId: number;
   onClose?: () => void;
+  embedded?: boolean;
+  showHeader?: boolean;
+  className?: string;
 }
 
-export default function CommentSection({ videoId, onClose }: Props) {
+export default function CommentSection({
+  videoId,
+  onClose,
+  embedded = false,
+  showHeader = true,
+  className = "",
+}: Props) {
   const t = useTranslations();
   const { data: commentsData, isLoading } = useComments(videoId);
   const addComment = useAddCommentMutation();
@@ -33,8 +42,13 @@ export default function CommentSection({ videoId, onClose }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-elevated/30 w-full sm:w-[400px] animate-in slide-in-from-right duration-300">
-      <div className="flex items-center justify-between p-4 border-b border-elevated/30">
+    <div
+      className={`flex h-full flex-col bg-background ${
+        embedded ? "w-full" : "w-full border-l border-elevated/30 sm:w-[400px] animate-in slide-in-from-right duration-300"
+      } ${className}`}
+    >
+      {showHeader && (
+      <div className="flex items-center justify-between border-b border-elevated/30 p-4">
         <h2 className="font-bold text-[16px]">{comments.length} {t('video.comments')}</h2>
         {onClose && (
           <button onClick={onClose} className="p-1 hover:bg-elevated rounded-full transition-colors">
@@ -42,6 +56,7 @@ export default function CommentSection({ videoId, onClose }: Props) {
           </button>
         )}
       </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
         {isLoading ? (

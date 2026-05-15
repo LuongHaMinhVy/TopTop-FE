@@ -5,6 +5,7 @@ import { useAllVideos } from "@/hooks/video-hooks";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { videoPath } from "@/utils/video-url";
 
 export default function ExplorePage() {
   const t = useTranslations('Main');
@@ -40,7 +41,7 @@ export default function ExplorePage() {
             <div 
               key={video.id}
               className="relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer group bg-black"
-              onClick={() => router.push(`/?v=${video.id}`)}
+              onClick={() => router.push(videoPath(video.username, video.id))}
             >
               <Image 
                 src={video.thumbnailUrl || video.fileUrl} 

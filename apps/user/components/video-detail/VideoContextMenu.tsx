@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Info, Link2, Send } from "lucide-react";
+import { Ban, Download, Info, Link2, Send } from "lucide-react";
 
 export interface ContextMenuPosition {
   x: number;
@@ -15,6 +15,8 @@ interface VideoContextMenuProps {
   onSendToFriends: () => void;
   onCopyLink: () => void;
   onViewDetails: () => void;
+  onBlockUser?: () => void;
+  blockLabel?: string;
 }
 
 export function VideoContextMenu({
@@ -25,6 +27,8 @@ export function VideoContextMenu({
   onSendToFriends,
   onCopyLink,
   onViewDetails,
+  onBlockUser,
+  blockLabel = "Chặn",
 }: VideoContextMenuProps) {
   if (!isOpen) return null;
 
@@ -53,6 +57,16 @@ export function VideoContextMenu({
       onClick: onViewDetails,
       disabled: false,
     },
+    ...(onBlockUser
+      ? [
+          {
+            label: blockLabel,
+            icon: Ban,
+            onClick: onBlockUser,
+            disabled: false,
+          },
+        ]
+      : []),
   ];
 
   return (

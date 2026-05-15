@@ -12,6 +12,7 @@ export interface RelationshipStatus {
   isFollowing?: boolean;
   isFollower?: boolean;
   isBlocked?: boolean;
+  isBlockedBy?: boolean;
   isFriend?: boolean;
 }
 
