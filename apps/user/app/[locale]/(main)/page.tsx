@@ -102,14 +102,14 @@ export default function FeedPage() {
       </div>
 
       {/* Navigation Arrows */}
-      <div className="absolute right-5 bottom-32 flex flex-col gap-2 z-40 hidden xl:flex">
+      {/* <div className="absolute right-5 bottom-32 flex flex-col gap-2 z-40 hidden xl:flex">
         <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
           <ChevronUp className="w-6 h-6 text-white" />
         </button>
         <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
           <ChevronDown className="w-6 h-6 text-white" />
         </button>
-      </div>
+      </div> */}
     </>
   );
 }
