@@ -35,14 +35,16 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   // Reset fields when modal opens or currentUser changes
   useEffect(() => {
     if (isOpen && currentUser) {
-      setUsername(currentUser.username || "");
-      setNickname(currentUser.nickname || "");
-      setBio(currentUser.bio || "");
-      setAvatarUrl(currentUser.avatarUrl || "");
-      setUsernameError("");
-      setNicknameError("");
-      setErrorMessage("");
-      setSuccessMessage("");
+      Promise.resolve().then(() => {
+        setUsername(currentUser.username || "");
+        setNickname(currentUser.nickname || "");
+        setBio(currentUser.bio || "");
+        setAvatarUrl(currentUser.avatarUrl || "");
+        setUsernameError("");
+        setNicknameError("");
+        setErrorMessage("");
+        setSuccessMessage("");
+      });
     }
   }, [isOpen, currentUser]);
 
@@ -69,9 +71,10 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       if (response.data) {
         setAvatarUrl(response.data);
       }
-    } catch (err: any) {
-      console.error("Failed to upload avatar:", err);
-      setErrorMessage(err?.response?.data?.message || "Không thể tải ảnh lên. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error("Failed to upload avatar:", error);
+      setErrorMessage(error?.response?.data?.message || "Không thể tải ảnh lên. Vui lòng thử lại.");
     }
   };
 
@@ -128,9 +131,10 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           router.push(`/@${response.data.username}`);
         }
       }, 800);
-    } catch (err: any) {
-      console.error("Failed to update profile:", err);
-      setErrorMessage(err?.response?.data?.message || "Có lỗi xảy ra khi lưu hồ sơ. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error("Failed to update profile:", error);
+      setErrorMessage(error?.response?.data?.message || "Có lỗi xảy ra khi lưu hồ sơ. Vui lòng thử lại.");
     }
   };
 

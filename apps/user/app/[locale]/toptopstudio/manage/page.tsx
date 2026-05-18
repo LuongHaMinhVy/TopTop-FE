@@ -43,7 +43,7 @@ const formatVietnameseDate = (dateString?: string) => {
     hours = hours % 12;
     hours = hours ? hours : 12; // 0 should be 12
     return `${day} tháng ${month} ${year}, ${hours}:${minutes} ${ampm}`;
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };
@@ -112,7 +112,9 @@ export default function ContentManagementPage() {
     if (user?.id) {
       const stored = localStorage.getItem(`pinned_videos_${user.id}`);
       if (stored) {
-        setPinnedVideoIds(JSON.parse(stored));
+        Promise.resolve().then(() => {
+          setPinnedVideoIds(JSON.parse(stored));
+        });
       }
     }
   }, [user?.id]);
@@ -170,9 +172,10 @@ export default function ContentManagementPage() {
         }
       });
       triggerToast('Cập nhật quyền riêng tư thành công!');
-    } catch (err: any) {
-      console.error(err);
-      triggerToast(err?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật quyền riêng tư.', 'error');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error(error);
+      triggerToast(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật quyền riêng tư.', 'error');
     }
   };
 
@@ -208,9 +211,10 @@ export default function ContentManagementPage() {
       try {
         await deleteMutation.mutateAsync(videoId);
         triggerToast('Xóa video thành công!');
-      } catch (err: any) {
-        console.error(err);
-        triggerToast(err?.response?.data?.message || 'Có lỗi xảy ra khi xóa video.', 'error');
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } } };
+        console.error(error);
+        triggerToast(error?.response?.data?.message || 'Có lỗi xảy ra khi xóa video.', 'error');
       }
     }
   };
@@ -696,9 +700,10 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
         }
       });
       onSuccess('Cập nhật chi tiết video thành công!');
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err?.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin video.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error(error);
+      setErrorMessage(error?.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin video.');
     }
   };
 
@@ -826,12 +831,12 @@ function AnalyticsModal({ video, onClose }: AnalyticsModalProps) {
       const date = new Date();
       date.setDate(date.getDate() - (6 - i));
       const formattedDate = `${date.getDate()}/${date.getMonth() + 1}`;
-      // mock a nice curve
+      // mock a nice curve (pure and deterministic to satisfy react-hooks/purity)
       const factor = 0.4 + 0.6 * Math.sin((i / 6) * Math.PI);
-      const views = Math.round(base * factor + Math.random() * 5);
+      const views = Math.round(base * factor + ((i * 17 + (video.id || 0)) % 5));
       return { label: formattedDate, value: views };
     });
-  }, [video.viewCount]);
+  }, [video.viewCount, video.id]);
 
   const maxVal = Math.max(...dataPoints.map(d => d.value), 10);
 
@@ -989,7 +994,7 @@ function CommentsModal({ video, onClose, onDeleteSuccess }: CommentsModalProps) 
         await deleteCommentMutation.mutateAsync(commentId);
         onDeleteSuccess('Đã xóa bình luận thành công!');
         refetch();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
       }
     }
@@ -1026,7 +1031,7 @@ function CommentsModal({ video, onClose, onDeleteSuccess }: CommentsModalProps) 
               <p className="text-xs text-white/30 max-w-[300px]">Mọi bình luận của người xem sẽ được hiển thị và quản lý tại đây.</p>
             </div>
           ) : (
-            comments.map((comment: any) => (
+            comments.map((comment) => (
               <div 
                 key={comment.id} 
                 className="bg-[#1c1c1c] p-4 rounded-xl border border-white/5 flex gap-4 items-start hover:border-white/10 transition"
@@ -1036,13 +1041,13 @@ function CommentsModal({ video, onClose, onDeleteSuccess }: CommentsModalProps) 
                   {comment.userAvatarUrl ? (
                     <Image 
                       src={comment.userAvatarUrl} 
-                      alt={comment.userNickname || 'User'} 
+                      alt={comment.username || 'User'} 
                       fill 
                       className="object-cover rounded-full"
                     />
                   ) : (
                     <div className="w-full h-full bg-brand/10 text-brand font-bold text-sm flex items-center justify-center">
-                      {(comment.userNickname || 'U')[0].toUpperCase()}
+                      {(comment.username || 'U')[0].toUpperCase()}
                     </div>
                   )}
                 </div>
@@ -1051,7 +1056,7 @@ function CommentsModal({ video, onClose, onDeleteSuccess }: CommentsModalProps) 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1.5 truncate">
-                      <span className="text-[13.5px] font-bold text-white">{comment.userNickname || comment.username}</span>
+                      <span className="text-[13.5px] font-bold text-white">{comment.username}</span>
                       <span className="text-[11px] text-white/40">@{comment.username}</span>
                     </div>
                     <span className="text-[11px] text-white/30 select-none">

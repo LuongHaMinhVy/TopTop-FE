@@ -4,19 +4,13 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { 
-  Eye, 
   Heart, 
   MessageSquare, 
-  Share2, 
-  Award, 
   ChevronDown, 
   Check, 
-  TrendingUp, 
-  Users, 
   Play, 
   Video, 
   ArrowRight,
-  MessageCircle,
   FileText
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -581,7 +575,7 @@ export default function StudioDashboard() {
                   </div>
 
                   <p className="text-xs text-text-secondary leading-relaxed pl-8 pr-1 font-medium">
-                    "{comment.text}"
+                    &quot;{comment.text}&quot;
                   </p>
 
                   <div className="mt-1 flex items-center gap-1 text-[10px] text-brand pl-8">
