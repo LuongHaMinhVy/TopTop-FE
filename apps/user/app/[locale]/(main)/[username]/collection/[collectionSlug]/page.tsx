@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreHorizontal, PlusCircle, Share2, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -26,6 +26,8 @@ import { formatCount } from "@/utils/format-count";
 import { collectionIdFromSlug } from "@/utils/collection-url";
 import { videoPath } from "@/utils/video-url";
 
+const COLLECTION_VIDEO_BATCH_SIZE = 18;
+
 export default function CollectionDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -35,9 +37,16 @@ export default function CollectionDetailPage() {
   const decodedUsername = decodeURIComponent(rawUsername);
   const username = decodedUsername.startsWith("@") ? decodedUsername.substring(1) : decodedUsername;
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const [visibleVideoCount, setVisibleVideoCount] = useState(COLLECTION_VIDEO_BATCH_SIZE);
 
   const { data: collectionRes, isLoading: isLoadingCollection, isError } = useCollectionDetail(username, collectionId);
-  const { data: videosRes, isLoading: isLoadingVideos } = usePublicCollectionVideos(username, collectionId);
+  const { data: videosRes, isFetching: isFetchingVideos, isLoading: isLoadingVideos } = usePublicCollectionVideos(
+    username,
+    collectionId,
+    true,
+    0,
+    visibleVideoCount,
+  );
   const { data: favoriteVideosRes } = useFavoriteVideos(currentUser?.username === username);
   const updateCollectionMutation = useUpdateCollectionMutation();
   const deleteCollectionMutation = useDeleteCollectionMutation();
@@ -50,13 +59,32 @@ export default function CollectionDetailPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const collection = collectionRes?.data;
   const videos = useMemo(() => videosRes?.data ?? [], [videosRes?.data]);
+  const totalVideos = videosRes?.meta?.totalElements ?? videos.length;
+  const canLoadMoreVideos = videos.length < totalVideos;
   const favoriteVideos = favoriteVideosRes?.data ?? [];
   const isOwner = currentUser?.username === username;
   const existingVideoIds = useMemo(() => videos.map((video) => video.id), [videos]);
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !canLoadMoreVideos || isFetchingVideos) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setVisibleVideoCount((count) => Math.min(count + COLLECTION_VIDEO_BATCH_SIZE, totalVideos));
+      },
+      { rootMargin: "480px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [canLoadMoreVideos, isFetchingVideos, totalVideos]);
 
   const toggleVideo = (videoId: number) => {
     setSelectedVideoIds((current) =>
@@ -164,7 +192,7 @@ export default function CollectionDetailPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {videos.map((video) => (
             <FavoriteVideoTile
               key={video.id}
@@ -251,12 +279,20 @@ export default function CollectionDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {isLoadingVideos ? (
-          [1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />)
+          Array.from({ length: COLLECTION_VIDEO_BATCH_SIZE }).map((_, i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />)
         ) : videos.length > 0 ? (
           videos.map((video) => (
-            <FavoriteVideoTile key={video.id} video={video} href={videoPath(video.username, video.id, { from: "collection" })} />
+            <FavoriteVideoTile
+              key={video.id}
+              video={video}
+              href={videoPath(video.username, video.id, {
+                from: "collection",
+                collectionId,
+                collectionOwner: username,
+              })}
+            />
           ))
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
@@ -265,6 +301,15 @@ export default function CollectionDetailPage() {
           </div>
         )}
       </div>
+
+      <div ref={loadMoreRef} className="h-12" />
+      {isFetchingVideos && !isLoadingVideos && (
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {Array.from({ length: Math.min(6, Math.max(totalVideos - videos.length, 0)) }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />
+          ))}
+        </div>
+      )}
 
       <SelectVideosModal
         isOpen={isAddModalOpen}

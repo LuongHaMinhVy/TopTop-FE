@@ -5,7 +5,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import axios from 'axios';
 import { useUploadVideoMutation } from '@/hooks/video-hooks';
-import { RefreshCw, Hash, AtSign, CheckCircle2, AlertCircle, ChevronDown, X, Upload } from 'lucide-react';
+import { RefreshCw, Hash, AtSign, CheckCircle2, AlertCircle, ChevronDown, X, Upload, Film, ImagePlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useHashtagSuggestions, useMentionSuggestions } from '@/hooks/suggestion-hooks';
@@ -19,6 +19,36 @@ import VideoPreviewPhone from '@/components/upload/VideoPreviewPhone';
 import { useRouter } from 'next/navigation';
 
 type UploadStatus = 'idle' | 'compressing' | 'uploading' | 'uploaded' | 'success' | 'error';
+type CoverSourceTab = 'video' | 'upload';
+
+interface VideoFrameOption {
+  dataUrl: string;
+  timestamp: number;
+}
+
+const COVER_OUTPUT_WIDTH = 1080;
+const COVER_OUTPUT_HEIGHT = 1920;
+
+const getClampedImagePosition = ({
+  current,
+  frameEnd,
+  frameStart,
+  imageSize,
+}: {
+  current: number;
+  frameEnd: number;
+  frameStart: number;
+  imageSize: number;
+}) => {
+  const min = frameEnd - imageSize;
+  const max = frameStart;
+
+  if (imageSize <= frameEnd - frameStart) {
+    return frameStart + (frameEnd - frameStart - imageSize) / 2;
+  }
+
+  return Math.min(max, Math.max(min, current));
+};
 
 export default function UploadVideo() {
   const t = useTranslations('Studio.upload');
@@ -40,6 +70,35 @@ export default function UploadVideo() {
   // Cover
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false);
+  const [coverTab, setCoverTab] = useState<CoverSourceTab>('video');
+  const [videoFrames, setVideoFrames] = useState<VideoFrameOption[]>([]);
+  const [selectedCoverTime, setSelectedCoverTime] = useState(0);
+  const [selectedVideoFramePreview, setSelectedVideoFramePreview] = useState<string | null>(null);
+  const [importedCoverSource, setImportedCoverSource] = useState<string | null>(null);
+  const [importedCoverName, setImportedCoverName] = useState('cover.jpg');
+  const [coverCropZoom, setCoverCropZoom] = useState(1);
+  const [coverImageX, setCoverImageX] = useState(0);
+  const [coverImageY, setCoverImageY] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [framesLoading, setFramesLoading] = useState(false);
+  const coverVideoRef = useRef<HTMLVideoElement>(null);
+  const coverWorkspaceRef = useRef<HTMLDivElement>(null);
+  const coverCropFrameRef = useRef<HTMLDivElement>(null);
+  const coverImageRef = useRef<HTMLImageElement>(null);
+  const coverDragRef = useRef<{
+    frameBottom: number;
+    frameLeft: number;
+    frameRight: number;
+    frameTop: number;
+    imageHeight: number;
+    imageWidth: number;
+    startImageX: number;
+    startImageY: number;
+    startPointerX: number;
+    startPointerY: number;
+  } | null>(null);
+  const coverObjectUrlRef = useRef<string | null>(null);
 
   // Settings
   const [visibility, setVisibility] = useState('PUBLIC');
@@ -63,13 +122,393 @@ export default function UploadVideo() {
   const mentions = mentionRes?.data || [];
 
   const ffmpegRef = useRef<FFmpeg | null>(null);
-  if (ffmpegRef.current == null) ffmpegRef.current = new FFmpeg();
   const uploadMutation = useUploadVideoMutation();
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
     return `${(bytes / (1024 * 1024)).toFixed(2)}MB`;
   };
+
+  const formatTimestamp = (seconds: number) => {
+    const safeSeconds = Math.max(0, Math.floor(seconds));
+    return `${Math.floor(safeSeconds / 60)}:${String(safeSeconds % 60).padStart(2, '0')}`;
+  };
+
+  const revokeCoverObjectUrl = useCallback(() => {
+    if (coverObjectUrlRef.current) {
+      URL.revokeObjectURL(coverObjectUrlRef.current);
+      coverObjectUrlRef.current = null;
+    }
+  }, []);
+
+  const dataUrlToFile = (dataUrl: string, name: string) => {
+    const [meta, base64] = dataUrl.split(',');
+    const mime = meta.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new File([bytes], name, { type: mime });
+  };
+
+  const resetCoverCrop = useCallback(() => {
+    setCoverCropZoom(1);
+    setCoverImageX(0);
+    setCoverImageY(0);
+  }, []);
+
+  const createCroppedCover = useCallback((imageSource: string, name: string) => {
+    return new Promise<{ dataUrl: string; file: File }>((resolve, reject) => {
+      const image = new window.Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = COVER_OUTPUT_WIDTH;
+        canvas.height = COVER_OUTPUT_HEIGHT;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Canvas is not available'));
+          return;
+        }
+
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        const workspaceRect = coverWorkspaceRef.current?.getBoundingClientRect();
+        const frameRect = coverCropFrameRef.current?.getBoundingClientRect();
+
+        if (workspaceRect && frameRect) {
+          const workspaceScale = Math.max(1, COVER_OUTPUT_HEIGHT / frameRect.height);
+          const workspaceWidth = Math.round(workspaceRect.width * workspaceScale);
+          const workspaceHeight = Math.round(workspaceRect.height * workspaceScale);
+          const frameX = Math.round((frameRect.left - workspaceRect.left) * workspaceScale);
+          const frameY = Math.round((frameRect.top - workspaceRect.top) * workspaceScale);
+          const frameWidth = Math.round(frameRect.width * workspaceScale);
+          const frameHeight = Math.round(frameRect.height * workspaceScale);
+
+          const workspaceCanvas = document.createElement('canvas');
+          workspaceCanvas.width = workspaceWidth;
+          workspaceCanvas.height = workspaceHeight;
+          const workspaceContext = workspaceCanvas.getContext('2d');
+
+          if (!workspaceContext) {
+            reject(new Error('Canvas is not available'));
+            return;
+          }
+
+          workspaceContext.fillStyle = '#000';
+          workspaceContext.fillRect(0, 0, workspaceWidth, workspaceHeight);
+
+          const baseHeight = workspaceHeight * coverCropZoom;
+          const baseWidth = image.naturalWidth * (baseHeight / image.naturalHeight);
+
+          workspaceContext.drawImage(
+            image,
+            coverImageX * workspaceScale,
+            coverImageY * workspaceScale,
+            baseWidth,
+            baseHeight,
+          );
+          context.drawImage(
+            workspaceCanvas,
+            frameX,
+            frameY,
+            frameWidth,
+            frameHeight,
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+          );
+        } else {
+          const drawHeight = canvas.height * coverCropZoom;
+          const drawWidth = image.naturalWidth * (drawHeight / image.naturalHeight);
+          const drawX = (canvas.width - drawWidth) / 2;
+          const drawY = (canvas.height - drawHeight) / 2;
+
+          context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+        }
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        resolve({
+          dataUrl,
+          file: dataUrlToFile(dataUrl, name),
+        });
+      };
+      image.onerror = () => reject(new Error('Could not load cover image'));
+      image.src = imageSource;
+    });
+  }, [coverCropZoom, coverImageX, coverImageY]);
+
+  const applyCroppedCover = useCallback(async (imageSource: string | null, name: string) => {
+    if (!imageSource) return;
+
+    const croppedCover = await createCroppedCover(imageSource, name);
+    revokeCoverObjectUrl();
+    setCoverFile(croppedCover.file);
+    setCoverPreview(croppedCover.dataUrl);
+    setCoverPickerOpen(false);
+  }, [createCroppedCover, revokeCoverObjectUrl]);
+
+  const captureVideoFrame = useCallback((video: HTMLVideoElement, timestamp: number) => {
+    if (!video.videoWidth || !video.videoHeight) return null;
+
+    const canvas = document.createElement('canvas');
+    const maxSide = 1200;
+    const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+    const context = canvas.getContext('2d');
+
+    if (!context) return null;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    return {
+      dataUrl: canvas.toDataURL('image/jpeg', 0.9),
+      timestamp,
+    };
+  }, []);
+
+  const setCurrentVideoFrameCover = useCallback(() => {
+    if (!selectedVideoFramePreview) return;
+
+    void applyCroppedCover(
+      selectedVideoFramePreview,
+      `cover-${Math.round(selectedCoverTime * 1000)}.jpg`,
+    );
+  }, [applyCroppedCover, selectedCoverTime, selectedVideoFramePreview]);
+
+  const setImportedCoverForCrop = useCallback((selectedFile: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return;
+      setImportedCoverName(selectedFile.name || 'cover.jpg');
+      setImportedCoverSource(reader.result);
+      resetCoverCrop();
+    };
+    reader.readAsDataURL(selectedFile);
+  }, [resetCoverCrop]);
+
+  const setCurrentImportedCover = useCallback(() => {
+    void applyCroppedCover(importedCoverSource, importedCoverName);
+  }, [applyCroppedCover, importedCoverName, importedCoverSource]);
+
+  const seekCoverPreview = useCallback((timestamp: number) => {
+    const nextTime = Math.min(Math.max(timestamp, 0), Math.max(videoDuration, timestamp));
+    setSelectedCoverTime(nextTime);
+
+    const video = coverVideoRef.current;
+    if (video) {
+      video.currentTime = nextTime;
+    }
+  }, [videoDuration]);
+
+  const getCoverCropMetrics = useCallback((zoom: number) => {
+    const workspace = coverWorkspaceRef.current;
+    const frame = coverCropFrameRef.current;
+    const image = coverImageRef.current;
+    if (!workspace || !frame || !image || !image.naturalWidth || !image.naturalHeight) return null;
+
+    const workspaceRect = workspace.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const imageHeight = workspaceRect.height * zoom;
+    const imageWidth = image.naturalWidth * (imageHeight / image.naturalHeight);
+    const frameLeft = frameRect.left - workspaceRect.left;
+    const frameTop = frameRect.top - workspaceRect.top;
+    const frameRight = frameRect.right - workspaceRect.left;
+    const frameBottom = frameRect.bottom - workspaceRect.top;
+
+    return {
+      frameBottom,
+      frameLeft,
+      frameRight,
+      frameTop,
+      imageHeight,
+      imageWidth,
+    };
+  }, []);
+
+  const centerCoverImage = useCallback((zoom = coverCropZoom) => {
+    const metrics = getCoverCropMetrics(zoom);
+    if (!metrics) return;
+
+    setCoverImageX(getClampedImagePosition({
+      current: metrics.frameLeft + (metrics.frameRight - metrics.frameLeft - metrics.imageWidth) / 2,
+      frameEnd: metrics.frameRight,
+      frameStart: metrics.frameLeft,
+      imageSize: metrics.imageWidth,
+    }));
+    setCoverImageY(getClampedImagePosition({
+      current: metrics.frameTop + (metrics.frameBottom - metrics.frameTop - metrics.imageHeight) / 2,
+      frameEnd: metrics.frameBottom,
+      frameStart: metrics.frameTop,
+      imageSize: metrics.imageHeight,
+    }));
+  }, [coverCropZoom, getCoverCropMetrics]);
+
+  const handleCoverZoomChange = useCallback((nextZoom: number) => {
+    const currentMetrics = getCoverCropMetrics(coverCropZoom);
+    const nextMetrics = getCoverCropMetrics(nextZoom);
+
+    setCoverCropZoom(nextZoom);
+    if (!currentMetrics || !nextMetrics) return;
+
+    const frameCenterX = (currentMetrics.frameLeft + currentMetrics.frameRight) / 2;
+    const frameCenterY = (currentMetrics.frameTop + currentMetrics.frameBottom) / 2;
+    const focalX = (frameCenterX - coverImageX) / currentMetrics.imageWidth;
+    const focalY = (frameCenterY - coverImageY) / currentMetrics.imageHeight;
+    const nextImageX = frameCenterX - focalX * nextMetrics.imageWidth;
+    const nextImageY = frameCenterY - focalY * nextMetrics.imageHeight;
+
+    setCoverImageX(getClampedImagePosition({
+      current: nextImageX,
+      frameEnd: nextMetrics.frameRight,
+      frameStart: nextMetrics.frameLeft,
+      imageSize: nextMetrics.imageWidth,
+    }));
+    setCoverImageY(getClampedImagePosition({
+      current: nextZoom > 1 ? nextImageY : (nextMetrics.frameTop + nextMetrics.frameBottom - nextMetrics.imageHeight) / 2,
+      frameEnd: nextMetrics.frameBottom,
+      frameStart: nextMetrics.frameTop,
+      imageSize: nextMetrics.imageHeight,
+    }));
+  }, [coverCropZoom, coverImageX, coverImageY, getCoverCropMetrics]);
+
+  const beginCoverDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const metrics = getCoverCropMetrics(coverCropZoom);
+    if (!metrics) return;
+
+    coverDragRef.current = {
+      ...metrics,
+      startImageX: coverImageX,
+      startImageY: coverImageY,
+      startPointerX: event.clientX,
+      startPointerY: event.clientY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, [coverCropZoom, coverImageX, coverImageY, getCoverCropMetrics]);
+
+  const updateCoverDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = coverDragRef.current;
+    if (!drag) return;
+
+    const nextImageX = drag.startImageX + event.clientX - drag.startPointerX;
+    setCoverImageX(getClampedImagePosition({
+      current: nextImageX,
+      frameEnd: drag.frameRight,
+      frameStart: drag.frameLeft,
+      imageSize: drag.imageWidth,
+    }));
+
+    if (coverCropZoom > 1) {
+      const nextImageY = drag.startImageY + event.clientY - drag.startPointerY;
+      setCoverImageY(getClampedImagePosition({
+        current: nextImageY,
+        frameEnd: drag.frameBottom,
+        frameStart: drag.frameTop,
+        imageSize: drag.imageHeight,
+      }));
+    }
+  }, [coverCropZoom]);
+
+  const endCoverDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    coverDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const clearCover = useCallback(() => {
+    revokeCoverObjectUrl();
+    setCoverFile(null);
+    setCoverPreview(null);
+  }, [revokeCoverObjectUrl]);
+
+  const extractVideoFrames = useCallback(async () => {
+    if (!preview || framesLoading || videoFrames.length > 0) return;
+
+    setFramesLoading(true);
+    try {
+      const video = document.createElement('video');
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.crossOrigin = 'anonymous';
+
+      await new Promise<void>((resolve, reject) => {
+        video.onloadedmetadata = () => resolve();
+        video.onerror = () => reject(new Error('Could not load video metadata'));
+        video.src = preview;
+        video.load();
+      });
+
+      const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 1;
+      const sampleCount = 8;
+      const times = Array.from({ length: sampleCount }, (_, index) => {
+        const offset = (index + 1) / (sampleCount + 1);
+        return Math.min(Math.max(duration * offset, 0.1), Math.max(duration - 0.1, 0));
+      });
+
+      const canvas = document.createElement('canvas');
+      const sourceWidth = video.videoWidth || 720;
+      const sourceHeight = video.videoHeight || 1280;
+      const maxSide = 900;
+      const scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
+      canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+      canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+      const context = canvas.getContext('2d');
+
+      if (!context) throw new Error('Canvas is not available');
+
+      const frames: VideoFrameOption[] = [];
+
+      for (const timestamp of times) {
+        await new Promise<void>((resolve, reject) => {
+          video.onseeked = () => resolve();
+          video.onerror = () => reject(new Error('Could not seek video'));
+          video.currentTime = timestamp;
+        });
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        frames.push({
+          dataUrl: canvas.toDataURL('image/jpeg', 0.88),
+          timestamp,
+        });
+      }
+
+      setVideoFrames(frames);
+      if (!selectedVideoFramePreview && frames[0]) {
+        setSelectedCoverTime(frames[0].timestamp);
+        setSelectedVideoFramePreview(frames[0].dataUrl);
+      }
+    } catch (error) {
+      console.error(error);
+      setVideoFrames([]);
+    } finally {
+      setFramesLoading(false);
+    }
+  }, [framesLoading, preview, selectedVideoFramePreview, videoFrames.length]);
+
+  useEffect(() => {
+    return () => revokeCoverObjectUrl();
+  }, [revokeCoverObjectUrl]);
+
+  const openCoverPicker = useCallback(() => {
+    setCoverPickerOpen(true);
+    setCoverTab('video');
+    void extractVideoFrames();
+  }, [extractVideoFrames]);
+
+  const handleCoverTabChange = useCallback((nextTab: CoverSourceTab) => {
+    setCoverTab(nextTab);
+    if (nextTab === 'video') {
+      void extractVideoFrames();
+    }
+  }, [extractVideoFrames]);
 
   // Warn before leaving if there are unsaved changes
   useEffect(() => {
@@ -115,6 +554,9 @@ export default function UploadVideo() {
       if (fileToProcess.size > 10 * 1024 * 1024) {
         setStatus('compressing');
         setProgress(0);
+        if (!ffmpegRef.current) {
+          ffmpegRef.current = new FFmpeg();
+        }
         const ffmpeg = ffmpegRef.current;
         if (ffmpeg && !ffmpeg.loaded) {
           const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
@@ -172,8 +614,15 @@ export default function UploadVideo() {
       setErrorMessage(t('errorVideo'));
       return;
     }
+    clearCover();
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
+    setVideoFrames([]);
+    setSelectedCoverTime(0);
+    setSelectedVideoFramePreview(null);
+    setImportedCoverSource(null);
+    resetCoverCrop();
+    setVideoDuration(0);
     setErrorMessage('');
     // Auto-upload is now disabled as requested
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,8 +637,15 @@ export default function UploadVideo() {
     const newFile = e.target.files?.[0];
     if (newFile && newFile.type.startsWith('video/')) {
       if (preview) URL.revokeObjectURL(preview);
+      clearCover();
       setFile(newFile);
       setPreview(URL.createObjectURL(newFile));
+      setVideoFrames([]);
+      setSelectedCoverTime(0);
+      setSelectedVideoFramePreview(null);
+      setImportedCoverSource(null);
+      resetCoverCrop();
+      setVideoDuration(0);
       setStatus('idle');
       setProgress(0);
       // Auto-upload is now disabled as requested
@@ -255,9 +711,11 @@ export default function UploadVideo() {
 
   const resetAll = () => {
     if (preview) URL.revokeObjectURL(preview);
-    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    revokeCoverObjectUrl();
     setFile(null); setPreview(null); setDescription(''); setStatus('idle');
     setProgress(0); setErrorMessage(''); setCoverFile(null); setCoverPreview(null);
+    setCoverPickerOpen(false); setCoverTab('video'); setVideoFrames([]);
+    setSelectedCoverTime(0); setSelectedVideoFramePreview(null); setImportedCoverSource(null); resetCoverCrop(); setVideoDuration(0);
     setVisibility('PUBLIC'); setAllowComments(true); setAllowDuet(true); setAllowStitch(true);
   };
 
@@ -268,6 +726,64 @@ export default function UploadVideo() {
 
   // ============= PHASE 2: EDIT FORM (TikTok-style) =============
   const isUploading = status === 'uploading' || status === 'compressing';
+  const coverImageStyle = {
+    left: `${coverImageX}px`,
+    top: `${coverImageY}px`,
+    height: `${coverCropZoom * 100}%`,
+  } as React.CSSProperties;
+
+  const renderCoverCropWorkspace = (imageSource: string | null) => (
+    <div
+      ref={coverWorkspaceRef}
+      onPointerDown={beginCoverDrag}
+      onPointerMove={updateCoverDrag}
+      onPointerUp={endCoverDrag}
+      onPointerCancel={endCoverDrag}
+      className="relative flex h-[min(72dvh,760px)] min-h-[480px] cursor-grab touch-none items-center justify-center overflow-hidden rounded-xl border border-elevated bg-black active:cursor-grabbing"
+    >
+      {imageSource ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={coverImageRef}
+            src={imageSource}
+            alt={t('coverSelectedPreview')}
+            className="absolute max-w-none select-none"
+            style={coverImageStyle}
+            draggable={false}
+            onLoad={() => centerCoverImage()}
+          />
+          <div
+            ref={coverCropFrameRef}
+            className="pointer-events-none absolute left-1/2 top-1/2 aspect-[9/16] h-full -translate-x-1/2 -translate-y-1/2 border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.48)]"
+          >
+            <div className="absolute inset-y-0 left-1/3 w-px bg-white/70" />
+            <div className="absolute inset-y-0 left-2/3 w-px bg-white/70" />
+            <div className="absolute inset-x-0 top-1/3 h-px bg-white/70" />
+            <div className="absolute inset-x-0 top-2/3 h-px bg-white/70" />
+          </div>
+          <span className="absolute right-3 top-3 rounded bg-black/65 px-2 py-1 text-xs font-bold text-white">
+            9:16
+          </span>
+          <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-lg bg-background/90 px-3 py-2 text-xs font-semibold text-text-primary shadow-lg backdrop-blur">
+            <span>{t('coverZoom')}</span>
+            <input
+              type="range"
+              min={1}
+              max={2.5}
+              step={0.01}
+              value={coverCropZoom}
+              onChange={(event) => handleCoverZoomChange(Number(event.target.value))}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="w-28 accent-brand"
+            />
+          </div>
+        </>
+      ) : (
+        <div className="h-24 w-16 animate-pulse rounded bg-elevated" />
+      )}
+    </div>
+  );
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -412,17 +928,28 @@ export default function UploadVideo() {
                 <label className="text-sm font-semibold text-text-primary mb-2 block">{t('cover')}</label>
                 <div className="flex gap-3">
                   {coverPreview ? (
-                    <div className="relative w-[120px] h-[160px] rounded-lg overflow-hidden border border-elevated">
-                      <Image src={coverPreview} alt="Cover" fill className="object-cover" unoptimized />
-                      <button type="button" onClick={() => { setCoverFile(null); setCoverPreview(null); }} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1">
+                    <div className="relative aspect-[9/16] w-[120px] rounded-lg overflow-hidden border border-elevated group">
+                      <button
+                        type="button"
+                        onClick={openCoverPicker}
+                        className="absolute inset-0 text-left"
+                      >
+                        <Image src={coverPreview} alt="Cover" fill className="object-cover" unoptimized />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 font-medium">
+                          {t('editCover')}
+                        </div>
+                      </button>
+                      <button type="button" onClick={clearCover} className="absolute top-1 right-1 z-10 bg-black/50 text-white rounded-full p-1 hover:bg-black/70">
                         <X size={12} />
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 font-medium">
-                        {t('editCover')}
-                      </div>
                     </div>
                   ) : preview ? (
-                    <label className="relative w-[120px] h-[160px] rounded-lg overflow-hidden border border-elevated cursor-pointer group">
+                    <button
+                      type="button"
+                      onClick={openCoverPicker}
+                      className="relative aspect-[9/16] w-[120px] rounded-lg overflow-hidden border border-elevated cursor-pointer group"
+                    >
                       <video src={preview} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload size={20} className="text-white" />
@@ -430,11 +957,7 @@ export default function UploadVideo() {
                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 font-medium">
                         {t('editCover')}
                       </div>
-                      <input type="file" accept="image/jpg,image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) { setCoverFile(f); setCoverPreview(URL.createObjectURL(f)); }
-                      }} />
-                    </label>
+                    </button>
                   ) : null}
                 </div>
               </div>
@@ -520,6 +1043,231 @@ export default function UploadVideo() {
             </div>
           </div>
         </>
+      )}
+
+      {coverPickerOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 px-4 py-6 backdrop-blur-sm">
+          <div className="flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-elevated bg-background shadow-2xl">
+            <div className="flex items-center justify-between border-b border-elevated px-5 py-4">
+              <div>
+                <h3 className="text-lg font-bold text-text-primary">{t('editCover')}</h3>
+                <p className="mt-0.5 text-sm text-text-muted">{t('coverPickerSubtitle')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCoverPickerOpen(false)}
+                className="rounded-full p-2 text-text-muted transition-colors hover:bg-hover hover:text-text-primary"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="border-b border-elevated px-5 pt-4">
+              <div className="inline-flex rounded-lg bg-elevated/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => handleCoverTabChange('video')}
+                  className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                    coverTab === 'video'
+                      ? 'bg-background text-text-primary shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <Film size={16} />
+                  {t('coverFromVideo')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCoverTabChange('upload')}
+                  className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                    coverTab === 'upload'
+                      ? 'bg-background text-text-primary shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <ImagePlus size={16} />
+                  {t('coverFromDevice')}
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              {coverTab === 'video' ? (
+                <div className="space-y-5">
+                  <video
+                    ref={coverVideoRef}
+                    src={preview ?? undefined}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="hidden"
+                    onLoadedMetadata={(event) => {
+                      const video = event.currentTarget;
+                      const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+                      setVideoDuration(duration);
+
+                      const initialTime = selectedCoverTime || Math.min(duration * 0.25, Math.max(duration - 0.1, 0));
+                      setSelectedCoverTime(initialTime);
+                      video.currentTime = initialTime;
+                    }}
+                    onSeeked={(event) => {
+                      const frame = captureVideoFrame(event.currentTarget, event.currentTarget.currentTime);
+                      if (frame) {
+                        setSelectedCoverTime(frame.timestamp);
+                        setSelectedVideoFramePreview(frame.dataUrl);
+                      }
+                    }}
+                  />
+
+                  {renderCoverCropWorkspace(selectedVideoFramePreview)}
+
+                  <div className="rounded-xl border border-elevated bg-elevated/20 p-4">
+                    <div className="mb-3 flex items-center justify-between text-sm">
+                      <span className="font-semibold text-text-primary">{t('coverDragHint')}</span>
+                      <span className="font-mono text-xs text-text-muted">
+                        {formatTimestamp(selectedCoverTime)} / {formatTimestamp(videoDuration)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(videoDuration, 0.1)}
+                      step={0.05}
+                      value={Math.min(selectedCoverTime, Math.max(videoDuration, 0.1))}
+                      onChange={(event) => seekCoverPreview(Number(event.target.value))}
+                      className="w-full accent-brand"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {framesLoading && videoFrames.length === 0 && (
+                      Array.from({ length: 8 }).map((_, index) => (
+                        <div key={index} className="h-20 w-14 flex-shrink-0 animate-pulse rounded-md bg-elevated" />
+                      ))
+                    )}
+
+                    {!framesLoading && videoFrames.length === 0 && (
+                      <div className="w-full rounded-lg border border-dashed border-elevated p-8 text-center">
+                        <p className="text-sm font-medium text-text-secondary">{t('coverFramesEmpty')}</p>
+                        <button
+                          type="button"
+                          onClick={() => void extractVideoFrames()}
+                          className="mt-4 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+                        >
+                          {t('coverGenerateFrames')}
+                        </button>
+                      </div>
+                    )}
+
+                    {videoFrames.map((frame, index) => (
+                      <button
+                        type="button"
+                        key={`${frame.timestamp}-${index}`}
+                        onClick={() => seekCoverPreview(frame.timestamp)}
+                        className={`group relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-md border bg-elevated transition-all ${
+                          Math.abs(selectedCoverTime - frame.timestamp) < 0.1
+                            ? 'border-brand ring-2 ring-brand/40'
+                            : 'border-elevated hover:border-text-muted'
+                        }`}
+                      >
+                        <Image
+                          src={frame.dataUrl}
+                          alt={`${t('coverFromVideo')} ${index + 1}`}
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                          unoptimized
+                        />
+                        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                          {formatTimestamp(frame.timestamp)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end gap-3 border-t border-elevated pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setCoverPickerOpen(false)}
+                      className="rounded-md border border-elevated px-5 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                    >
+                      {t('cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={setCurrentVideoFrameCover}
+                      disabled={!selectedVideoFramePreview}
+                      className="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark disabled:bg-elevated disabled:text-text-muted"
+                    >
+                      {t('coverUseCropped')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {!importedCoverSource ? (
+                    <label className="flex min-h-[320px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-elevated bg-elevated/20 p-8 text-center transition-colors hover:border-text-muted hover:bg-hover">
+                      <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-background text-text-secondary">
+                        <Upload size={24} />
+                      </div>
+                      <span className="text-sm font-bold text-text-primary">{t('coverImportTitle')}</span>
+                      <span className="mt-1 text-sm text-text-muted">{t('coverImportHint')}</span>
+                      <input
+                        type="file"
+                        accept="image/jpg,image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => {
+                          const selectedCover = event.target.files?.[0];
+                          if (selectedCover) {
+                            setImportedCoverForCrop(selectedCover);
+                          }
+                          event.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <>
+                      {renderCoverCropWorkspace(importedCoverSource)}
+
+                      <div className="flex flex-wrap justify-between gap-3 border-t border-elevated pt-4">
+                        <label className="cursor-pointer rounded-md border border-elevated px-5 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary">
+                          {t('coverChooseAnother')}
+                          <input
+                            type="file"
+                            accept="image/jpg,image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(event) => {
+                              const selectedCover = event.target.files?.[0];
+                              if (selectedCover) {
+                                setImportedCoverForCrop(selectedCover);
+                              }
+                              event.currentTarget.value = '';
+                            }}
+                          />
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setCoverPickerOpen(false)}
+                            className="rounded-md border border-elevated px-5 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                          >
+                            {t('cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={setCurrentImportedCover}
+                            className="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+                          >
+                            {t('coverUseCropped')}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Leave Confirmation Modal */}

@@ -85,3 +85,36 @@ export const getMentionSuggestions = async (keyword?: string): Promise<ApiRespon
     throw error;
   }
 };
+
+export interface UpdateProfilePayload {
+  username: string;
+  nickname: string;
+  bio?: string;
+  avatarUrl?: string;
+}
+
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<ApiResponse<UserInfo>> => {
+  try {
+    const response = await api.put<ApiResponse<UserInfo>>("/users/profile", payload);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const uploadAvatar = async (file: File): Promise<ApiResponse<string>> => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post<ApiResponse<string>>("/users/avatar", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

@@ -90,3 +90,22 @@ export const getVideoByUsernameAndId = async (username: string, videoId: number)
     throw error;
   }
 };
+
+export interface UpdateVideoPayload {
+  title: string;
+  description?: string;
+  category?: string;
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  allowComments?: boolean;
+  allowEdit?: boolean;
+}
+
+export const updateVideo = async (videoId: number, payload: UpdateVideoPayload): Promise<ApiResponse<Video>> => {
+  try {
+    const response = await api.put<ApiResponse<Video>>(`/videos/${videoId}`, payload);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

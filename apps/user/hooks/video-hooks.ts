@@ -93,3 +93,16 @@ export const useVideoDetail = (username: string, videoId: number) => {
     staleTime: 30_000,
   });
 };
+
+export const useUpdateVideoMutation = (userId?: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ videoId, payload }: { videoId: number; payload: videoService.UpdateVideoPayload }) => 
+      videoService.updateVideo(videoId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-videos", userId] });
+      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+    },
+  });
+};

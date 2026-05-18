@@ -41,7 +41,7 @@ export default function ExplorePage() {
             <div 
               key={video.id}
               className="relative aspect-[3/4] rounded-lg overflow-hidden cursor-pointer group bg-black"
-              onClick={() => router.push(videoPath(video.username, video.id))}
+              onClick={() => router.push(videoPath(video.username, video.id, { from: "explore" }))}
             >
               <Image 
                 src={video.thumbnailUrl || video.fileUrl} 

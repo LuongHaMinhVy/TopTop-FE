@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   useLikeVideoMutation,
+  useAllVideos,
   useUnlikeVideoMutation,
   useUserVideos,
   useVideoDetail,
 } from "@/hooks/video-hooks";
 import { useBlockUserMutation } from "@/hooks/user-hooks";
 import {
+  usePublicCollectionVideos,
   useSaveVideoMutation,
   useUnsaveVideoMutation,
 } from "@/hooks/collection-hooks";
@@ -42,6 +44,7 @@ import Facebook from "@/components/shared/icons/FaceBookIcon";
 
 type DetailMode = "direct" | "internal";
 type DetailTab = "comments" | "videos";
+const SCROLLABLE_DETAIL_SOURCES = new Set(["feed", "explore", "friends", "following", "profile", "collection"]);
 
 export default function VideoDetailPage() {
   const params = useParams();
@@ -58,32 +61,83 @@ export default function VideoDetailPage() {
     ? decodedUsername.substring(1)
     : decodedUsername;
 
-  const detailMode: DetailMode = searchParams.get("from") ? "internal" : "direct";
+  const source = searchParams.get("from");
+  const collectionIdParam = searchParams.get("collectionId");
+  const collectionId = collectionIdParam ? Number(collectionIdParam) : undefined;
+  const collectionOwner = searchParams.get("collectionOwner") ?? username;
+  const detailMode: DetailMode = source ? "internal" : "direct";
+  const isProfileDetail = source === "profile";
+  const isCollectionDetail = source === "collection" && Number.isFinite(collectionId) && Number(collectionId) > 0;
+  const usesProfileDetailLayout = isProfileDetail || source === "collection";
+  const isScrollableDetail = source ? SCROLLABLE_DETAIL_SOURCES.has(source) : false;
   const commentsRequested = searchParams.get("comments") === "1";
   const defaultTab: DetailTab = commentsRequested ? "comments" : detailMode === "direct" ? "videos" : "comments";
 
   const { data: videoRes, isLoading, isError } = useVideoDetail(username, videoId);
   const video = videoRes?.data;
+  const { data: allVideosRes } = useAllVideos();
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  const { data: moreVideosRes } = useUserVideos(video?.userId);
+  const [activeTab, setActiveTab] = useState<DetailTab>(defaultTab);
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [optimisticVideo, setOptimisticVideo] = useState<Video | null>(null);
+  const [activeScrollableVideo, setActiveScrollableVideo] = useState<Video | null>(null);
+  const [isUnavailable, setIsUnavailable] = useState(false);
+  const initializedScrollableVideoIdRef = useRef<number | null>(null);
+  const displayedVideo = optimisticVideo ?? activeScrollableVideo ?? video;
+  const { data: moreVideosRes } = useUserVideos(displayedVideo?.userId);
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
-  const blockMutation = useBlockUserMutation(username);
-
-  const [activeTab, setActiveTab] = useState<DetailTab>(defaultTab);
-  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
-  const [optimisticVideo, setOptimisticVideo] = useState<Video | null>(null);
-  const [isUnavailable, setIsUnavailable] = useState(false);
-  const displayedVideo = optimisticVideo ?? video;
-  const moreVideos = useMemo(
-    () => moreVideosRes?.data?.filter((item) => item.id !== videoId) ?? [],
-    [moreVideosRes?.data, videoId],
+  const blockMutation = useBlockUserMutation(displayedVideo?.username ?? username);
+  const { data: collectionVideosRes } = usePublicCollectionVideos(
+    collectionOwner,
+    collectionId,
+    isCollectionDetail,
+    0,
+    18,
   );
+  const moreVideos = useMemo(
+    () => moreVideosRes?.data?.filter((item) => item.id !== displayedVideo?.id) ?? [],
+    [displayedVideo?.id, moreVideosRes?.data],
+  );
+  const detailScopeParams = useMemo(() => {
+    if (source !== "collection") return { from: source ?? "feed" };
+
+    return {
+      from: "collection",
+      collectionId: isCollectionDetail ? collectionId : undefined,
+      collectionOwner,
+    };
+  }, [collectionId, collectionOwner, isCollectionDetail, source]);
+  const scrollableVideos = useMemo(() => {
+    let videos: Video[] = [];
+
+    if (source === "profile") {
+      videos = moreVideosRes?.data ?? [];
+    } else if (source === "collection") {
+      videos = collectionVideosRes?.data ?? [];
+    } else {
+      videos = allVideosRes?.data ?? [];
+    }
+
+    if (!video) return videos;
+
+    if (videos.some((item) => item.id === video.id)) return videos;
+    return [video, ...videos];
+  }, [allVideosRes?.data, collectionVideosRes?.data, moreVideosRes?.data, source, video]);
   const canBlockAuthor = Boolean(currentUser && displayedVideo && currentUser.id !== displayedVideo.userId);
   const canonicalPath = displayedVideo ? videoPath(displayedVideo.username, displayedVideo.id) : "";
   const shareUrl = typeof window !== "undefined" && canonicalPath ? `${window.location.origin}${canonicalPath}` : "";
+
+  useEffect(() => {
+    if (!isScrollableDetail || !video) return;
+    if (initializedScrollableVideoIdRef.current === video.id) return;
+
+    initializedScrollableVideoIdRef.current = video.id;
+    setActiveScrollableVideo(video);
+    setOptimisticVideo(null);
+  }, [isScrollableDetail, video]);
 
   const requireLogin = () => {
     if (currentUser) return true;
@@ -93,19 +147,46 @@ export default function VideoDetailPage() {
 
   const handleLike = () => {
     if (!displayedVideo || !requireLogin()) return;
+    const previousVideo = displayedVideo;
     if (displayedVideo.isLiked) {
-      unlikeMutation.mutate(displayedVideo.id);
       setOptimisticVideo({
         ...displayedVideo,
         isLiked: false,
         likeCount: Math.max(0, displayedVideo.likeCount - 1),
       });
+      unlikeMutation.mutate(displayedVideo.id, {
+        onSuccess: (response) => {
+          if (!response.data) return;
+          setOptimisticVideo({
+            ...previousVideo,
+            isLiked: response.data.liked,
+            likeCount: response.data.likeCount,
+            commentCount: response.data.commentCount,
+            saveCount: response.data.saveCount,
+            shareCount: response.data.shareCount,
+          });
+        },
+        onError: () => setOptimisticVideo(previousVideo),
+      });
     } else {
-      likeMutation.mutate(displayedVideo.id);
       setOptimisticVideo({
         ...displayedVideo,
         isLiked: true,
         likeCount: displayedVideo.likeCount + 1,
+      });
+      likeMutation.mutate(displayedVideo.id, {
+        onSuccess: (response) => {
+          if (!response.data) return;
+          setOptimisticVideo({
+            ...previousVideo,
+            isLiked: response.data.liked,
+            likeCount: response.data.likeCount,
+            commentCount: response.data.commentCount,
+            saveCount: response.data.saveCount,
+            shareCount: response.data.shareCount,
+          });
+        },
+        onError: () => setOptimisticVideo(previousVideo),
       });
     }
   };
@@ -149,6 +230,27 @@ export default function VideoDetailPage() {
     if (!shareUrl) return;
     await navigator.clipboard.writeText(shareUrl);
   };
+
+  const handleCopyVideoLink = async (targetVideo: Video) => {
+    const targetUrl = `${window.location.origin}${videoPath(targetVideo.username, targetVideo.id)}`;
+    await navigator.clipboard.writeText(targetUrl);
+  };
+
+  const handleScrollableVideoActive = useCallback((nextVideo: Video) => {
+    setActiveScrollableVideo((current) => {
+      if (current?.id === nextVideo.id) return current;
+      return nextVideo;
+    });
+    setOptimisticVideo(null);
+
+    if (typeof window !== "undefined") {
+      window.history.replaceState(
+        window.history.state,
+        "",
+        videoPath(nextVideo.username, nextVideo.id, detailScopeParams),
+      );
+    }
+  }, [detailScopeParams]);
 
   if (Number.isNaN(videoId)) {
     return (
@@ -196,7 +298,7 @@ export default function VideoDetailPage() {
             onLike={handleLike}
             onSave={handleSave}
             onShare={handleCopyLink}
-            onFocusComments={() => {}}
+            onFocusComments={() => setActiveTab("comments")}
           />
         </div>
 
@@ -209,7 +311,7 @@ export default function VideoDetailPage() {
                 onClick={() => router.back()}
                 className="grid size-9 place-items-center rounded-full bg-elevated hover:bg-hover"
               >
-                <X className="size-5" />
+                <X className="size-5" /> 
               </button>
             </div>
           ) : (
@@ -234,7 +336,9 @@ export default function VideoDetailPage() {
           <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
             {activeTab === "comments" || commentsRequested ? (
               <CommentSection
+                key={displayedVideo.id}
                 videoId={displayedVideo.id}
+                allowComments={displayedVideo.allowComments ?? true}
                 embedded
                 showHeader={false}
                 className="border-0"
@@ -263,11 +367,48 @@ export default function VideoDetailPage() {
         <X size={30} />
       </button>
 
-      <div className="relative min-w-0 flex-1 bg-[#161616]">
-        <VideoPlayerContainer {...commonPlayerProps} className="h-full w-full px-8 py-0" />
+      <div className={`relative min-w-0 flex-1 ${usesProfileDetailLayout ? "bg-black" : "bg-[#161616]"}`}>
+        {isScrollableDetail && scrollableVideos.length > 0 ? (
+          <div
+            className="h-full overflow-y-auto custom-scrollbar"
+            style={{
+              scrollSnapType: "y mandatory",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {scrollableVideos.map((scrollVideo) => (
+              <ScrollableDetailVideo
+                key={scrollVideo.id}
+                video={scrollVideo}
+                isActive={displayedVideo?.id === scrollVideo.id}
+                controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
+                className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
+                onActive={handleScrollableVideoActive}
+                onCopyLink={() => handleCopyVideoLink(scrollVideo)}
+                onBlockUser={
+                  currentUser?.id && currentUser.id !== scrollVideo.userId
+                    ? handleBlockUser
+                    : undefined
+                }
+                blockLabel={`${t("blockUser")} @${scrollVideo.username}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <VideoPlayerContainer
+            {...commonPlayerProps}
+            controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
+            className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
+          />
+        )}
       </div>
 
-      <aside className="hidden w-[680px] flex-shrink-0 flex-col border-l border-white/10 bg-background xl:flex">
+      <aside
+        className={`hidden flex-shrink-0 flex-col border-l border-white/10 bg-background xl:flex ${
+          usesProfileDetailLayout ? "w-[38vw] min-w-[480px] max-w-[680px]" : "w-[680px]"
+        }`}
+      >
         <div className="border-b border-white/10 p-6">
           <div className="mb-5 rounded-xl bg-elevated/70 p-5">
             <div className="mb-3 flex items-start justify-between gap-4">
@@ -308,7 +449,7 @@ export default function VideoDetailPage() {
             <CompactMetric
               icon={<MessageCircle size={22} />}
               label={formatCount(displayedVideo.commentCount)}
-              onClick={() => {}}
+              onClick={() => setActiveTab("comments")}
             />
             <CompactMetric
               icon={<Share2 size={22} />}
@@ -352,7 +493,13 @@ export default function VideoDetailPage() {
 
         <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
           {activeTab === "comments" ? (
-            <CommentSection videoId={displayedVideo.id} embedded showHeader={false} />
+            <CommentSection
+              key={displayedVideo.id}
+              videoId={displayedVideo.id}
+              allowComments={displayedVideo.allowComments ?? true}
+              embedded
+              showHeader={false}
+            />
           ) : (
             <RecommendedVideoGrid videos={moreVideos} source="profile" />
           )}
@@ -388,6 +535,63 @@ function DetailTabButton({
       {label}
       {active && <span className="absolute bottom-0 left-0 h-[2px] w-full bg-white" />}
     </button>
+  );
+}
+
+function ScrollableDetailVideo({
+  video,
+  isActive,
+  className,
+  controlsVariant,
+  onActive,
+  onCopyLink,
+  onBlockUser,
+  blockLabel,
+}: {
+  video: Video;
+  isActive: boolean;
+  className?: string;
+  controlsVariant?: "default" | "profile-detail";
+  onActive: (video: Video) => void;
+  onCopyLink: () => void | Promise<void>;
+  onBlockUser?: () => void;
+  blockLabel?: string;
+}) {
+  const itemRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const item = itemRef.current;
+    if (!item) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onActive(video);
+      },
+      { threshold: 0.65 },
+    );
+
+    observer.observe(item);
+    return () => observer.disconnect();
+  }, [onActive, video]);
+
+  return (
+    <div
+      ref={itemRef}
+      className="flex h-full w-full items-center justify-center"
+      style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
+    >
+      <VideoPlayerContainer
+        video={video}
+        isActive={isActive}
+        controlsVariant={controlsVariant}
+        className={className ?? "h-full w-full px-8 py-0"}
+        onCopyLink={onCopyLink}
+        onOpenSendModal={() => {}}
+        onOpenVideoInfo={() => {}}
+        onBlockUser={onBlockUser}
+        blockLabel={blockLabel}
+      />
+    </div>
   );
 }
 

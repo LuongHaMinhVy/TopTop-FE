@@ -48,9 +48,9 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
     <button
       onClick={onClick}
       className={`
-        flex items-center rounded-2xl w-full py-2.5 my-0.5 transition-all duration-300 group relative overflow-hidden
+        flex items-center rounded-2xl w-full py-2.5 my-0.5 transition-all gap-2 duration-300 group relative overflow-hidden
         ${active 
-          ? "text-brand bg-brand/5 font-black" 
+          ? "text-brand font-black" 
           : "hover:bg-hover text-text-primary font-bold"}
       `}
       style={{ 

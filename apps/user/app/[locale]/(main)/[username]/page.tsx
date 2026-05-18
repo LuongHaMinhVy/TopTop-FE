@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { ReportModal } from "@/components/report/ReportModal";
+import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { useUserProfile, useFollowMutation, useUnfollowMutation, useBlockUserMutation, useUnblockUserMutation } from "@/hooks/user-hooks";
 import { useUserVideos } from "@/hooks/video-hooks";
 import {
@@ -55,6 +56,7 @@ export default function ProfilePage() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profile = profileData?.data;
   const isOwnProfileForQueries = !!currentUser && currentUser.username === profile?.username;
 
@@ -209,7 +211,10 @@ export default function ProfilePage() {
             <div className="flex flex-wrap items-center gap-3 mb-5">
               {isOwnProfile ? (
                 <>
-                  <button className="flex h-12 items-center gap-2 rounded-full bg-elevated px-7 text-[17px] font-bold transition-colors hover:bg-hover">
+                  <button 
+                    onClick={() => setIsEditProfileOpen(true)}
+                    className="flex h-12 items-center gap-2 rounded-full bg-elevated px-7 text-[17px] font-bold transition-colors hover:bg-hover"
+                  >
                     <Settings className="w-5 h-5" />
                     {t('editProfile')}
                   </button>
@@ -446,6 +451,7 @@ export default function ProfilePage() {
                     key={collection.id}
                     collection={collection}
                     href={collectionPath(profile.username, collection)}
+                    ownerUsername={profile.username}
                   />
                 ))
               ) : (
@@ -492,6 +498,11 @@ export default function ProfilePage() {
           targetId={profile.id}
         />
       )}
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      />
     </div>
   );
 }

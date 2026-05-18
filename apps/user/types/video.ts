@@ -18,6 +18,8 @@ export interface Video {
   isSaved?: boolean;
   saveCount?: number;
   shareCount?: number;
+  allowComments?: boolean;
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
 }
 
 export interface VideoUploadData {

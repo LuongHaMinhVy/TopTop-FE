@@ -52,11 +52,19 @@ export const useCollectionVideos = (collectionId?: number) => {
   });
 };
 
-export const usePublicCollectionVideos = (username?: string, collectionId?: number) => {
+export const usePublicCollectionVideos = (
+  username?: string,
+  collectionId?: number,
+  enabled = true,
+  page = 0,
+  size = 18,
+) => {
   return useQuery({
-    queryKey: ["public-collection-videos", username, collectionId],
-    queryFn: () => collectionService.getUserCollectionVideos(username!, collectionId!),
-    enabled: !!username && !!collectionId,
+    queryKey: ["public-collection-videos", username, collectionId, page, size],
+    queryFn: () =>
+      collectionService.getUserCollectionVideos(username!, collectionId!, page, size),
+    enabled: enabled && !!username && !!collectionId,
+    placeholderData: (previousData) => previousData,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

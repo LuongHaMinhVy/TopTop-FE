@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronUp, ChevronDown } from "lucide-react";
 import VideoCard from "@/components/video/VideoCard";
 import { useInfiniteVideos } from "@/hooks/video-hooks";
 import { useCallback, useRef } from "react";

@@ -1,7 +1,15 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserProfile, followUser, unfollowUser, getFollowingList, blockUser, unblockUser } from "@/services/user-api-service";
+import { getUserProfile, followUser, unfollowUser, getFollowingList, blockUser, unblockUser, updateProfile, uploadAvatar } from "@/services/user-api-service";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "@/store/slices/authSlice";
+
+export function useUploadAvatarMutation() {
+  return useMutation({
+    mutationFn: uploadAvatar,
+  });
+}
 
 export function useUserProfile(username: string) {
   return useQuery({
@@ -11,6 +19,21 @@ export function useUserProfile(username: string) {
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useUpdateProfileMutation() {
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  return useMutation({
+    mutationFn: updateProfile,
+    onSuccess: (response) => {
+      const updatedUser = response.data;
+      if (updatedUser) {
+        dispatch(setCredentials(updatedUser));
+        queryClient.invalidateQueries({ queryKey: ["userProfile", updatedUser.username] });
+      }
+    }
   });
 }
 

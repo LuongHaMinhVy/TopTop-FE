@@ -20,6 +20,26 @@ export const useAddCommentMutation = () => {
   });
 };
 
+export const useReplies = (commentId?: number) => {
+  return useQuery({
+    queryKey: ["comment-replies", commentId],
+    queryFn: () => commentService.getReplies(commentId!),
+    enabled: !!commentId,
+  });
+};
+
+export const useAddReplyMutation = (videoId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: commentService.addReply,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["comment-replies", variables.commentId] });
+      queryClient.invalidateQueries({ queryKey: ["comments", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+    },
+  });
+};
+
 export const useDeleteCommentMutation = (videoId: number) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -27,6 +47,17 @@ export const useDeleteCommentMutation = (videoId: number) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", videoId] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+    },
+  });
+};
+
+export const useLikeCommentMutation = (videoId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ commentId, liked }: { commentId: number; liked: boolean }) =>
+      liked ? commentService.unlikeComment(commentId) : commentService.likeComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", videoId] });
     },
   });
 };

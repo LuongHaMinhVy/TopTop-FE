@@ -16,6 +16,7 @@ import {
 import Facebook from "@/components/shared/icons/FaceBookIcon";
 import Image from "next/image";
 import Link from "next/link";
+import { usePublicCollectionVideos } from "@/hooks/collection-hooks";
 import type { VideoCollection } from "@/types/collection";
 import type { Video } from "@/types/video";
 import { formatCount } from "@/utils/format-count";
@@ -77,19 +78,41 @@ export function FavoriteVideoTile({
 export function CollectionCard({
   collection,
   href,
+  ownerUsername,
 }: {
   collection: VideoCollection;
   href: string;
+  ownerUsername?: string;
 }) {
+  const collectionOwner = collection.ownerUsername ?? ownerUsername;
+  const shouldLoadTopVideo =
+    !collection.coverUrl && collection.videoCount > 0 && !!collectionOwner;
+  const { data: topVideosRes } = usePublicCollectionVideos(
+    collectionOwner,
+    collection.id,
+    shouldLoadTopVideo,
+    0,
+    1,
+  );
+  const topVideo = topVideosRes?.data?.[0];
+  const coverUrl = collection.coverUrl ?? topVideo?.thumbnailUrl;
+
   return (
     <Link href={href} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-[#303030]">
-        {collection.coverUrl ? (
+        {coverUrl ? (
           <Image
-            src={collection.coverUrl}
+            src={coverUrl}
             alt={collection.name}
             fill
             className="object-cover transition-transform group-hover:scale-105"
+          />
+        ) : topVideo?.fileUrl ? (
+          <video
+            src={topVideo.fileUrl}
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            muted
+            preload="metadata"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-b from-[#333] to-[#242424] text-white/75">
