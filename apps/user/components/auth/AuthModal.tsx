@@ -11,20 +11,26 @@ import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useLoginMutation, useRegisterMutation, useOAuth } from "@/hooks/auth-hooks";
-import type { AuthType, AuthMethod, AuthModalProps, AuthMessageData } from "@/types/auth";
+import { useLoginMutation, useRegisterMutation, useOAuth, useOAuth2OnboardMutation } from "@/hooks/auth-hooks";
+import type { AuthType, AuthMethod, AuthModalProps, AuthMessageData, AuthResponse } from "@/types/auth";
 
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Modal } from "@repo/ui/modal";
 
-export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthModalProps, 'isOpen'>) {
+export default function AuthModal({ 
+  onClose, 
+  initialType = "login",
+  initialMethod = "options",
+  tempAuthData: propTempAuthData = undefined
+}: Omit<AuthModalProps, 'isOpen'>) {
   const t = useTranslations('auth');
   const router = useRouter();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const [type, setType] = useState<AuthType>(initialType);
-  const [method, setMethod] = useState<AuthMethod>("options");
+  const [method, setMethod] = useState<AuthMethod>(initialMethod);
+  const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(propTempAuthData || null);
   
   const [formData, setFormData] = useState({
     email: "",
@@ -40,6 +46,23 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  const onboardMutation = useOAuth2OnboardMutation(() => {
+    setSuccessMsg(t('successLogin'));
+    setTimeout(() => {
+      onClose();
+      window.location.reload();
+    }, 1000);
+  });
+
+  useEffect(() => {
+    if (tempAuthData) {
+      const user = 'user' in tempAuthData ? tempAuthData.user : tempAuthData;
+      if (user && user.username) {
+        setFormData(prev => ({ ...prev, username: user.username }));
+      }
+    }
+  }, [tempAuthData]);
+
   useEffect(() => {
     const channel = new BroadcastChannel("oauth_channel");
 
@@ -47,6 +70,17 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
       const authEvent = event.data as AuthMessageData;
       if (authEvent.type === "AUTH_SUCCESS") {
         const { data } = authEvent;
+        const responseData = data as AuthResponse;
+        const user = responseData && 'user' in responseData ? responseData.user : responseData;
+        if (user && user.onboarded === false) {
+          setTempAuthData(responseData);
+          if (user.username) {
+            setFormData(prev => ({ ...prev, username: user.username }));
+          }
+          setMethod("onboard_dob");
+          return;
+        }
+
         setSuccessMsg(t('successLogin'));
         if (data) {
           dispatch(setCredentials(data));
@@ -60,7 +94,7 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
         }, 300);
         setTimeout(() => {
           onClose();
-          router.refresh();
+          window.location.reload();
         }, 1000);
       } else if (authEvent.type === "AUTH_ERROR") {
         setErrorMsg(authEvent.error || t('errorAuth'));
@@ -75,12 +109,13 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
     setDob({ month: "", day: "", year: "" });
     setErrorMsg("");
     setSuccessMsg("");
+    setTempAuthData(null);
   };
 
   const { openAuthPopup } = useOAuth();
   const loginMutation = useLoginMutation(() => {
     setSuccessMsg(t('successLogin'));
-    setTimeout(() => { onClose(); router.refresh(); }, 1000);
+    setTimeout(() => { onClose(); window.location.reload(); }, 1000);
   });
 
   const registerMutation = useRegisterMutation(() => {
@@ -93,12 +128,47 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
   };
 
   const validateSignup = () => {
-    const { username, email, password, dateOfBirth } = formData;
+    const { username, email, password } = formData;
     if (username.length < 2 || username.length > 24) return t('username') + " phải từ 2-24 ký tự.";
     if (!/^[a-zA-Z0-9._]+$/.test(username)) return t('username') + " chứa ký tự không hợp lệ.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Định dạng " + t('email') + " không hợp lệ.";
     if (password.length < 8) return t('password') + " phải có ít nhất 8 ký tự.";
-    if (!dateOfBirth) return "Vui lòng chọn " + t('dob').toLowerCase() + ".";
+    
+    if (!dob.month || !dob.day || !dob.year) {
+      return "Vui lòng chọn ngày sinh.";
+    }
+
+    const yearNum = Number(dob.year);
+    const monthNum = Number(dob.month);
+    const dayNum = Number(dob.day);
+
+    const today = new Date();
+    const birthDate = new Date(yearNum, monthNum - 1, dayNum);
+
+    // Leap year / day count check
+    if (
+      birthDate.getFullYear() !== yearNum ||
+      birthDate.getMonth() !== monthNum - 1 ||
+      birthDate.getDate() !== dayNum
+    ) {
+      return "Ngày sinh không hợp lệ.";
+    }
+
+    // Min 13 years old check
+    let age = today.getFullYear() - yearNum;
+    const monthDiff = today.getMonth() - (monthNum - 1);
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
+      age--;
+    }
+
+    if (age < 13) {
+      return "Bạn phải từ 13 tuổi trở lên để đăng ký.";
+    }
+
+    if (birthDate > today) {
+      return "Ngày sinh không thể ở tương lai.";
+    }
+
     return null;
   };
 
@@ -151,6 +221,145 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
               <OptionBtn icon={<User size={20} />} text={t('useEmail')} onClick={() => setMethod("form")} />
               <OptionBtn icon={<Google size={20} />} text={t('continueWithGoogle')} onClick={() => handleOAuth('google')} />
               <OptionBtn icon={<Facebook size={20} />} text={t('continueWithFacebook')} onClick={() => handleOAuth('facebook')} />
+            </div>
+          ) : method === "onboard_dob" ? (
+            <div className="flex flex-col">
+              <div className="flex items-center mb-8">
+                <h2 className="text-2xl font-bold mx-auto text-text-primary">
+                  {t('chooseDob')}
+                </h2>
+              </div>
+
+              {(errorMsg || successMsg) && (
+                <div className={`p-4 rounded-2xl mb-6 text-sm font-medium border animate-in slide-in-from-top-2 ${errorMsg ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400" : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 text-green-600 dark:text-green-400"}`}>
+                  {errorMsg || successMsg}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-1.5 w-full">
+                  <label className="text-xs font-bold text-text-muted uppercase tracking-wider ml-1">
+                    {t('dobLabel')}
+                  </label>
+                  <div className="flex gap-2">
+                    <CustomDropdown 
+                      value={dob.month} 
+                      options={months} 
+                      placeholder={t('Month')} 
+                      onChange={(val) => updateDob({ month: val })} 
+                    />
+                    <CustomDropdown 
+                      value={dob.day} 
+                      options={days} 
+                      placeholder={t('Day')} 
+                      onChange={(val) => updateDob({ day: val })} 
+                    />
+                    <CustomDropdown 
+                      value={dob.year} 
+                      options={years} 
+                      placeholder={t('Year')} 
+                      onChange={(val) => updateDob({ year: val })} 
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    setErrorMsg("");
+                    if (!dob.month || !dob.day || !dob.year) {
+                      setErrorMsg(t('errSelectDob'));
+                      return;
+                    }
+                    const yearNum = Number(dob.year);
+                    const monthNum = Number(dob.month);
+                    const dayNum = Number(dob.day);
+                    const today = new Date();
+                    const birthDate = new Date(yearNum, monthNum - 1, dayNum);
+
+                    if (
+                      birthDate.getFullYear() !== yearNum ||
+                      birthDate.getMonth() !== monthNum - 1 ||
+                      birthDate.getDate() !== dayNum
+                    ) {
+                      setErrorMsg(t('errInvalidDob'));
+                      return;
+                    }
+
+                    let age = today.getFullYear() - yearNum;
+                    const monthDiff = today.getMonth() - (monthNum - 1);
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
+                      age--;
+                    }
+                    if (age < 13) {
+                      setErrorMsg(t('errAgeRestriction'));
+                      return;
+                    }
+                    if (birthDate > today) {
+                      setErrorMsg(t('errFutureDob'));
+                      return;
+                    }
+                    setMethod("onboard_username");
+                  }}
+                  size="xl"
+                  className="mt-4"
+                >
+                  {t('btnContinue')}
+                </Button>
+              </div>
+            </div>
+          ) : method === "onboard_username" ? (
+            <div className="flex flex-col">
+              <div className="flex items-center mb-8">
+                <h2 className="text-2xl font-bold mx-auto text-text-primary">
+                  {t('chooseUsername')}
+                </h2>
+              </div>
+
+              {(errorMsg || successMsg) && (
+                <div className={`p-4 rounded-2xl mb-6 text-sm font-medium border animate-in slide-in-from-top-2 ${errorMsg ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400" : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 text-green-600 dark:text-green-400"}`}>
+                  {errorMsg || successMsg}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-6">
+                <Input 
+                  label={t('username')} 
+                  placeholder={t('username')} 
+                  value={formData.username} 
+                  onChange={(e) => setFormData({...formData, username: e.target.value})} 
+                />
+                <Button 
+                  onClick={async () => {
+                    setErrorMsg("");
+                    setSuccessMsg("");
+                    const username = formData.username.trim();
+                    if (username.length < 2 || username.length > 24) {
+                      setErrorMsg(t('username') + " phải từ 2-24 ký tự.");
+                      return;
+                    }
+                    if (!/^[a-zA-Z0-9._]+$/.test(username)) {
+                      setErrorMsg(t('username') + " chứa ký tự không hợp lệ.");
+                      return;
+                    }
+                    onboardMutation.mutate({
+                      payload: {
+                        username,
+                        dateOfBirth: formData.dateOfBirth
+                      },
+                      accessToken: tempAuthData?.accessToken
+                    }, {
+                      onError: (err: any) => {
+                        setErrorMsg(err.response?.data?.message || err.message || t('errGeneric'));
+                      }
+                    });
+                  }}
+                  size="xl"
+                  isLoading={onboardMutation.isPending}
+                  className="mt-4"
+                >
+                  {t('btnFinishRegister')}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -243,22 +452,24 @@ export default function AuthModal({ onClose, initialType = "login" }: Omit<AuthM
           )}
         </div>
 
-        <div className="mt-10 pt-8 border-t border-elevated flex flex-col items-center gap-6">
-          <p className="text-[11px] text-text-muted text-center leading-relaxed max-w-[320px]">
-            {t('termsPrompt')}
-          </p>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary">
-              {type === "login" ? t('noAccount') : t('hasAccount')}
-            </span>
-            <button 
-              onClick={() => { setType(type === "login" ? "signup" : "login"); setMethod("options"); resetForm(); }} 
-              className="text-brand font-bold hover:underline transition-all"
-            >
-              {type === "login" ? t('signup') : t('login')}
-            </button>
+        {method !== "onboard_dob" && method !== "onboard_username" && (
+          <div className="mt-10 pt-8 border-t border-elevated flex flex-col items-center gap-6">
+            <p className="text-[11px] text-text-muted text-center leading-relaxed max-w-[320px]">
+              {t('termsPrompt')}
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-text-secondary">
+                {type === "login" ? t('noAccount') : t('hasAccount')}
+              </span>
+              <button 
+                onClick={() => { setType(type === "login" ? "signup" : "login"); setMethod("options"); resetForm(); }} 
+                className="text-brand font-bold hover:underline transition-all"
+              >
+                {type === "login" ? t('signup') : t('login')}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Modal>
   );

@@ -1,10 +1,15 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import * as chatService from "@/services/chat-api-service";
+import type { ConversationStatus } from "@/types/chat";
 
-export const useConversations = (page = 0, size = 20) => {
+export const useConversations = (
+  page = 0,
+  size = 20,
+  status: ConversationStatus = 'ACTIVE',
+) => {
   return useQuery({
-    queryKey: ['chat', 'conversations', page, size],
-    queryFn: () => chatService.getConversations(page, size),
+    queryKey: ['chat', 'conversations', status, page, size],
+    queryFn: () => chatService.getConversations(page, size, status),
   });
 };
 
@@ -57,9 +62,10 @@ export const useMarkAsRead = () => {
   });
 };
 
-export const useChatUnreadCount = () => {
+export const useChatUnreadCount = (enabled = true) => {
   return useQuery({
     queryKey: ['chat', 'unread-count'],
     queryFn: () => chatService.getUnreadCount(),
+    enabled,
   });
 };

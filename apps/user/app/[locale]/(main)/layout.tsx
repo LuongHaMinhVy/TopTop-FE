@@ -7,17 +7,14 @@ import {
   Users,
   Video,
   X,
-  TrendingUp,
   Compass,
   MessageSquare,
   MoreHorizontal,
   PlusSquare,
   User,
-  Clock,
   UserCheck,
   Upload,
   Bell,
-  Play,
   Heart,
   UserPlus,
   Circle,
@@ -28,16 +25,13 @@ import type { AppDispatch, RootState } from "@/store/store";
 import { openAuthModal } from "@/store/slices/authSlice";
 import { useLogoutMutation } from "@/hooks/auth-hooks";
 import { useFollowingList } from "@/hooks/user-hooks";
-import { useAllVideos } from "@/hooks/video-hooks";
 import { useTranslations } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useMemo } from "react";
-import { videoPath } from "@/utils/video-url";
 
 import {
-  SearchRow,
   TikNavItem,
   BottomNav,
   HomeIcon,
@@ -53,8 +47,15 @@ import { formatDistanceToNow } from "date-fns";
 import { enUS, vi } from "date-fns/locale";
 import type { Notification } from "@/types/notification";
 import { ConversationList } from "@/components/chat/ConversationList";
+import { useChatUnreadCount } from "@/hooks/chat-hooks";
+import type { ConversationStatus } from "@/types/chat";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
+import { useFriendsCount } from "@/hooks/friend-hooks";
 
-const SIDE_PANEL_WIDTH = 400;
+const SIDE_PANEL_WIDTH = 350;
+const COMMENT_SIDEBAR_WIDTH = 360;
+const SIDEBAR_EXPANDED_WIDTH = 240;
+const FEED_DETAIL_SIDEBAR_EXPANDED_WIDTH = 220;
 
 export default function MainLayout({
   children,
@@ -87,24 +88,63 @@ export default function MainLayout({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const { data: unreadData } = useUnreadCount();
+  const { data: unreadData } = useUnreadCount(isLoggedIn);
   const unreadCount = unreadData?.data || 0;
-  const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications();
+  const { data: chatUnreadData } = useChatUnreadCount(isLoggedIn);
+  const chatUnreadCount = chatUnreadData?.data
+    ? chatUnreadData.data.totalUnread + chatUnreadData.data.requestUnread
+    : 0;
+  const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications(isLoggedIn);
   const markRead = useMarkReadMutation();
   const notifications = notificationsData?.data || [];
   const dateLocale = pathname.startsWith("/en") ? enUS : vi;
 
-  const { data: followingData } = useFollowingList();
-  const followingList = followingData?.data || [];
+  const getGroupedNotifications = (items: Notification[]) => {
+    const today: Notification[] = [];
+    const thisWeek: Notification[] = [];
+    const thisMonth: Notification[] = [];
+    const earlier: Notification[] = [];
 
-  const { data: searchVideosData } = useAllVideos();
-  const normalizedQuery = query.trim().toLowerCase();
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const oneWeekAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+    const oneMonthAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+
+    items.forEach((item) => {
+      const time = new Date(item.createdAt).getTime();
+      if (time >= startOfToday) {
+        today.push(item);
+      } else if (time >= oneWeekAgo) {
+        thisWeek.push(item);
+      } else if (time >= oneMonthAgo) {
+        thisMonth.push(item);
+      } else {
+        earlier.push(item);
+      }
+    });
+
+    return { today, thisWeek, thisMonth, earlier };
+  };
+
+  const groupLabels = {
+    today: t("notifications.today"),
+    thisWeek: t("notifications.thisWeek"),
+    thisMonth: t("notifications.thisMonth"),
+    earlier: t("notifications.earlier")
+  };
+
+  const groupedNotifications = getGroupedNotifications(notifications);
+
+  const { data: followingData } = useFollowingList(isLoggedIn);
+  const followingList = followingData?.data || [];
+  const { data: friendsCountData } = useFriendsCount(isLoggedIn);
+  const hasFriends = (friendsCountData?.data ?? 0) > 0;
 
   const isBaseCommentRoute =
     pathname === "/" ||
     pathname === "/explore" ||
     pathname === "/following" ||
-    pathname === "/friends";
+    (hasFriends && pathname === "/friends");
 
   const isCommentSidebarAvailable = isBaseCommentRoute;
 
@@ -114,31 +154,16 @@ export default function MainLayout({
 
   const shouldShowHeaderOverlay =
     !pathname.includes("/collection/") && !pathname.includes("/video/");
+  const currentSearchQuery = pathname === "/search" ? searchParams.get("q")?.trim() ?? "" : "";
+  const isFeedDirectDetailRoute =
+    pathname.includes("/video/") &&
+    (!searchParams.get("from") || searchParams.get("from") === "feed");
   const isMessagesRoute = pathname === "/messages";
+  const messageView = searchParams.get("view") === "requests" ? "requests" : "inbox";
   const selectedConversationParam = Number(searchParams.get("conversation"));
   const selectedConversationId = Number.isFinite(selectedConversationParam)
     ? selectedConversationParam
     : undefined;
-
-  const videoSearchResults = useMemo(() => {
-    if (!normalizedQuery) return [];
-
-    return (searchVideosData?.data ?? [])
-      .filter((videoItem) => {
-        const haystack = [
-          videoItem.title,
-          videoItem.description,
-          videoItem.username,
-          videoItem.userNickname,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        return haystack.includes(normalizedQuery);
-      })
-      .slice(0, 8);
-  }, [normalizedQuery, searchVideosData?.data]);
 
   const syncCommentUrl = useCallback(
     (detailPath?: string, replace = false) => {
@@ -311,10 +336,47 @@ export default function MainLayout({
 
   const isPanelRoute = isMessagesRoute || pathname === "/activity";
   const sidebarRail = mounted ? isSidebarCollapsed || searchOpen || activityOpen || isPanelRoute : false;
-  const sidebarWidth = sidebarRail ? 72 : 240;
+  const expandedSidebarWidth = isFeedDirectDetailRoute
+    ? FEED_DETAIL_SIDEBAR_EXPANDED_WIDTH
+    : SIDEBAR_EXPANDED_WIDTH;
+  const sidebarWidth = sidebarRail ? 72 : expandedSidebarWidth;
   const collapsed = sidebarRail;
   const overlayPanelOpen = searchOpen || activityOpen;
   const messagePanelOpen = isMessagesRoute && !searchOpen && !activityOpen;
+
+  const getLocalizedNotificationContent = (notification: Notification) => {
+    const { type, content, actorUsername } = notification;
+    
+    let cleanContent = content;
+    if (actorUsername && content.startsWith(actorUsername)) {
+      cleanContent = content.substring(actorUsername.length).trim();
+    }
+
+    switch (type) {
+      case "LIKE": {
+        const colonIndex = cleanContent.indexOf(":");
+        if (colonIndex !== -1) {
+          const videoTitle = cleanContent.substring(colonIndex + 1).trim();
+          return `${t("notifications.liked")}: ${videoTitle}`;
+        }
+        return t("notifications.liked");
+      }
+      case "COMMENT": {
+        const colonIndex = cleanContent.indexOf(":");
+        if (colonIndex !== -1) {
+          const commentContent = cleanContent.substring(colonIndex + 1).trim();
+          return `${t("notifications.commented")}: ${commentContent}`;
+        }
+        return t("notifications.commented");
+      }
+      case "FOLLOW": {
+        return t("notifications.followed");
+      }
+      default:
+        return cleanContent;
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "LIKE":
@@ -327,6 +389,16 @@ export default function MainLayout({
         return <Circle className="h-4 w-4 text-gray-400" />;
     }
   };
+
+  const previousPathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    if (previousPathnameRef.current === pathname) return;
+    previousPathnameRef.current = pathname;
+    setSearchOpen(false);
+    setActivityOpen(false);
+    setSettingsOpen(false);
+  }, [pathname]);
 
   return (
     <CommentSidebarProvider value={commentSidebarValue}>
@@ -404,6 +476,9 @@ export default function MainLayout({
                 <button
                   onClick={() => {
                     setActivityOpen(false);
+                    if (!searchOpen && currentSearchQuery) {
+                      setQuery(currentSearchQuery);
+                    }
                     setSearchOpen(!searchOpen);
                   }}
                   className={`group mb-4 flex items-center rounded-full border transition-all ${
@@ -434,7 +509,7 @@ export default function MainLayout({
                     }`}
                     style={labelStyle(collapsed, 150, 1)}
                   >
-                    {t("search")}
+                    {currentSearchQuery || t("search")}
                   </span>
                 </button>
               </div>
@@ -481,7 +556,7 @@ export default function MainLayout({
                   />
                 </Link>
 
-                {isLoggedIn && (
+                {hasFriends && (
                   <Link
                     href="/friends"
                     className={collapsed ? "w-[72px]" : "w-full"}
@@ -500,11 +575,11 @@ export default function MainLayout({
                   className={collapsed ? "w-[72px]" : "w-full"}
                 >
                   <TikNavItem
-                  icon={<Video size={24} />}
-                  label={t("sidebar.live")}
-                  active={!overlayPanelOpen && pathname === "/live"}
-                  collapsed={collapsed}
-                />
+                    icon={<Video size={24} />}
+                    label={t("sidebar.live")}
+                    active={!overlayPanelOpen && pathname === "/live"}
+                    collapsed={collapsed}
+                  />
                 </Link>
 
                 {isLoggedIn && (
@@ -521,9 +596,11 @@ export default function MainLayout({
                         icon={
                           <div className="relative">
                             <MessageSquare size={24} />
-                            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-background bg-brand text-[9px] font-bold text-white">
-                              1
-                            </span>
+                            {chatUnreadCount > 0 && (
+                              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-background bg-brand px-1 text-[9px] font-bold text-white">
+                                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                              </span>
+                            )}
                           </div>
                         }
                         label={t("sidebar.messages")}
@@ -561,8 +638,8 @@ export default function MainLayout({
                   className={collapsed ? "w-[72px]" : "w-full"}
                 >
                   <TikNavItem
-                        icon={<PlusSquare size={24} />}
-                        label={t("sidebar.upload")}
+                    icon={<PlusSquare size={24} />}
+                    label={t("sidebar.upload")}
                     active={!overlayPanelOpen && pathname === "/toptopstudio/upload"}
                     collapsed={collapsed}
                   />
@@ -599,7 +676,7 @@ export default function MainLayout({
                   opacity: collapsed ? 0 : 1,
                   transition: "opacity 200ms ease",
                   pointerEvents: collapsed ? "none" : "auto",
-                  width: 240,
+                  width: expandedSidebarWidth,
                 }}
               >
                 {isLoggedIn ? (
@@ -710,135 +787,14 @@ export default function MainLayout({
                 "left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease",
             }}
           >
-            <div className="h-full w-[400px] overflow-y-auto custom-scrollbar">
-              <div className="flex h-full flex-col gap-6 p-6">
-                <div className="mt-2 flex items-center gap-2">
-                  <h2 className="flex-1 text-[22px] font-extrabold">
-                    {t("searchPanel.title")}
-                  </h2>
-                  <button
-                    onClick={closeSearch}
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-hover hover:text-text-primary"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="flex h-[48px] items-center gap-3 rounded-full bg-surface px-4 ring-1 ring-transparent transition-all focus-within:ring-brand/40">
-                  <Search className="h-5 w-5 flex-shrink-0 text-text-muted" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t("searchPlaceholder")}
-                    className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none"
-                  />
-                  {query && (
-                    <button
-                      onClick={() => setQuery("")}
-                      className="flex-shrink-0 text-text-muted hover:text-text-primary"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                {normalizedQuery ? (
-                  <section>
-                    <span className="mb-3 block px-1 text-[12px] font-bold uppercase tracking-widest text-text-muted">
-                      Video
-                    </span>
-
-                    <div className="flex flex-col gap-2">
-                      {videoSearchResults.length > 0 ? (
-                        videoSearchResults.map((videoItem) => (
-                          <button
-                            key={videoItem.id}
-                            type="button"
-                            onClick={() => {
-                              closeSearch();
-                              router.push(
-                                videoPath(videoItem.username, videoItem.id, {
-                                  from: "search",
-                                }),
-                              );
-                            }}
-                            className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover"
-                          >
-                            <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded bg-elevated">
-                              <Image
-                                src={videoItem.thumbnailUrl || videoItem.fileUrl}
-                                alt={videoItem.title}
-                                fill
-                                className="object-cover"
-                              />
-                              <div className="absolute bottom-1 left-1 flex items-center gap-0.5 text-[10px] font-bold text-white">
-                                <Play className="size-3 fill-white" />
-                                {videoItem.viewCount}
-                              </div>
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p className="line-clamp-2 text-[14px] font-bold leading-snug">
-                                {videoItem.title}
-                              </p>
-                              <p className="mt-1 truncate text-[12px] font-semibold text-text-muted">
-                                @{videoItem.username}
-                              </p>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <p className="px-2 py-8 text-center text-[14px] font-semibold text-text-muted">
-                          Không tìm thấy video phù hợp.
-                        </p>
-                      )}
-                    </div>
-                  </section>
-                ) : (
-                  <section>
-                    <div className="mb-3 flex items-center justify-between px-1">
-                      <span className="text-[12px] font-bold uppercase tracking-widest text-text-muted">
-                        {t("searchPanel.recent")}
-                      </span>
-                      <button className="text-[13px] font-semibold text-brand hover:underline">
-                        {t("searchPanel.clearAll")}
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <SearchRow
-                        icon={<Clock className="h-4 w-4" />}
-                        label="trending"
-                        removable
-                      />
-                      <SearchRow
-                        icon={<Clock className="h-4 w-4" />}
-                        label="cats"
-                        removable
-                      />
-                    </div>
-                  </section>
-                )}
-
-                <section>
-                  <span className="mb-3 block px-1 text-[12px] font-bold uppercase tracking-widest text-text-muted">
-                    {t("searchPanel.suggestions")}
-                  </span>
-
-                  <div className="flex flex-col gap-1">
-                    <SearchRow
-                      icon={<TrendingUp className="h-4 w-4 text-brand" />}
-                      label="viral"
-                    />
-                    <SearchRow
-                      icon={<TrendingUp className="h-4 w-4 text-brand" />}
-                      label="challenge"
-                    />
-                  </div>
-                </section>
-              </div>
+            <div className="h-full w-[350px] overflow-hidden">
+              <SearchOverlay
+                query={query}
+                setQuery={setQuery}
+                onClose={closeSearch}
+                inputRef={searchInputRef}
+                isLoggedIn={isLoggedIn}
+              />
             </div>
           </div>
 
@@ -855,10 +811,17 @@ export default function MainLayout({
                 "left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease",
             }}
           >
-            <div className="h-full w-[400px] overflow-hidden">
+            <div className="h-full w-[350px] overflow-hidden">
               <ConversationList
                 selectedId={selectedConversationId}
-                onSelect={(id) => router.push(`/messages?conversation=${id}`)}
+                view={messageView}
+                onViewChange={(view) => {
+                  router.push(view === "requests" ? "/messages?view=requests" : "/messages");
+                }}
+                onSelect={(id, status: ConversationStatus) => {
+                  const requestParam = status === "REQUESTED" ? "&view=requests" : "";
+                  router.push(`/messages?conversation=${id}${requestParam}`);
+                }}
               />
             </div>
           </div>
@@ -876,7 +839,7 @@ export default function MainLayout({
                 "left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease",
             }}
           >
-            <div className="h-full w-[400px] overflow-y-auto custom-scrollbar">
+            <div className="h-full w-[350px] overflow-y-auto custom-scrollbar">
               <div className="flex min-h-full flex-col p-6">
                 <div className="mb-5 mt-2 flex items-center gap-2">
                   <h2 className="flex-1 text-[22px] font-extrabold">
@@ -911,58 +874,323 @@ export default function MainLayout({
                       </p>
                     </div>
                   ) : (
-                    notifications.map((notification: Notification) => (
-                      <button
-                        key={notification.id}
-                        type="button"
-                        className={`group flex items-start gap-3 rounded-xl p-3 text-left transition-colors ${
-                          notification.isRead
-                            ? "opacity-70 hover:opacity-100 hover:bg-hover"
-                            : "bg-brand/5 hover:bg-brand/10"
-                        }`}
-                        onClick={() => {
-                          if (!notification.isRead) markRead.mutate(notification.id);
-                        }}
-                      >
-                        <div className="relative flex-shrink-0">
-                          <Avatar
-                            src={notification.actorAvatarUrl}
-                            alt={notification.actorUsername}
-                            size="lg"
-                          />
-                          <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm">
-                            {getNotificationIcon(notification.type)}
-                          </div>
-                        </div>
+                    <>
+                      {((title: string, groupItems: Notification[]) => {
+                        if (groupItems.length === 0) return null;
+                        return (
+                          <div className="mb-6">
+                            <h3 className="text-[13px] font-bold text-text-secondary px-3 py-1 mb-2 mt-4 uppercase tracking-wider opacity-60">
+                              {title}
+                            </h3>
+                            <div className="flex flex-col gap-1">
+                              {groupItems.map((notification: Notification) => (
+                                <div
+                                  key={notification.id}
+                                  className="group flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/8"
+                                  onClick={() => {
+                                    if (!notification.isRead) markRead.mutate(notification.id);
+                                    if (notification.videoId && user?.username) {
+                                      router.push(`/@${user.username}/video/${notification.videoId}`);
+                                    } else {
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }
+                                  }}
+                                >
+                                  <div 
+                                    className="relative flex-shrink-0 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!notification.isRead) markRead.mutate(notification.id);
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }}
+                                  >
+                                    <Avatar
+                                      src={notification.actorAvatarUrl}
+                                      alt={notification.actorUsername}
+                                      size="lg"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm">
+                                      {getNotificationIcon(notification.type)}
+                                    </div>
+                                  </div>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="mb-1 text-[15px] leading-tight">
-                            <span className="font-bold group-hover:underline">
-                              @{notification.actorUsername}
-                            </span>
-                            {" "}
-                            {notification.content}
-                          </p>
-                          <p className="text-[13px] text-text-muted">
-                            {formatDistanceToNow(new Date(notification.createdAt), {
-                              addSuffix: true,
-                              locale: dateLocale,
-                            })}
-                          </p>
-                        </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="mb-1 text-[15px] leading-tight break-words">
+                                      <span 
+                                        className="font-bold group-hover:underline cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!notification.isRead) markRead.mutate(notification.id);
+                                          router.push(`/@${notification.actorUsername}`);
+                                        }}
+                                      >
+                                        @{notification.actorUsername}
+                                      </span>
+                                      {" "}
+                                      {getLocalizedNotificationContent(notification)}
+                                    </p>
+                                    <p className="text-[13px] text-text-muted">
+                                      {formatDistanceToNow(new Date(notification.createdAt), {
+                                        addSuffix: true,
+                                        locale: dateLocale,
+                                      })}
+                                    </p>
+                                  </div>
 
-                        {notification.videoId && notification.videoThumbnailUrl && (
-                          <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md border border-elevated bg-black">
-                            <Image
-                              src={notification.videoThumbnailUrl}
-                              alt="Video thumbnail"
-                              fill
-                              className="object-cover"
-                            />
+                                  {notification.videoId && notification.videoThumbnailUrl && (
+                                    <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md border border-elevated bg-black">
+                                      <Image
+                                        src={notification.videoThumbnailUrl}
+                                        alt="Video thumbnail"
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        )}
-                      </button>
-                    ))
+                        );
+                      })(groupLabels.today, groupedNotifications.today)}
+
+                      {((title: string, groupItems: Notification[]) => {
+                        if (groupItems.length === 0) return null;
+                        return (
+                          <div className="mb-6">
+                            <h3 className="text-[13px] font-bold text-text-secondary px-3 py-1 mb-2 mt-4 uppercase tracking-wider opacity-60">
+                              {title}
+                            </h3>
+                            <div className="flex flex-col gap-1">
+                              {groupItems.map((notification: Notification) => (
+                                <div
+                                  key={notification.id}
+                                  className="group flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/8"
+                                  onClick={() => {
+                                    if (!notification.isRead) markRead.mutate(notification.id);
+                                    if (notification.videoId && user?.username) {
+                                      router.push(`/@${user.username}/video/${notification.videoId}`);
+                                    } else {
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }
+                                  }}
+                                >
+                                  <div 
+                                    className="relative flex-shrink-0 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!notification.isRead) markRead.mutate(notification.id);
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }}
+                                  >
+                                    <Avatar
+                                      src={notification.actorAvatarUrl}
+                                      alt={notification.actorUsername}
+                                      size="lg"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm">
+                                      {getNotificationIcon(notification.type)}
+                                    </div>
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <p className="mb-1 text-[15px] leading-tight break-words">
+                                      <span 
+                                        className="font-bold group-hover:underline cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!notification.isRead) markRead.mutate(notification.id);
+                                          router.push(`/@${notification.actorUsername}`);
+                                        }}
+                                      >
+                                        @{notification.actorUsername}
+                                      </span>
+                                      {" "}
+                                      {getLocalizedNotificationContent(notification)}
+                                    </p>
+                                    <p className="text-[13px] text-text-muted">
+                                      {formatDistanceToNow(new Date(notification.createdAt), {
+                                        addSuffix: true,
+                                        locale: dateLocale,
+                                      })}
+                                    </p>
+                                  </div>
+
+                                  {notification.videoId && notification.videoThumbnailUrl && (
+                                    <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md border border-elevated bg-black">
+                                      <Image
+                                        src={notification.videoThumbnailUrl}
+                                        alt="Video thumbnail"
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })(groupLabels.thisWeek, groupedNotifications.thisWeek)}
+
+                      {((title: string, groupItems: Notification[]) => {
+                        if (groupItems.length === 0) return null;
+                        return (
+                          <div className="mb-6">
+                            <h3 className="text-[13px] font-bold text-text-secondary px-3 py-1 mb-2 mt-4 uppercase tracking-wider opacity-60">
+                              {title}
+                            </h3>
+                            <div className="flex flex-col gap-1">
+                              {groupItems.map((notification: Notification) => (
+                                <div
+                                  key={notification.id}
+                                  className="group flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/8"
+                                  onClick={() => {
+                                    if (!notification.isRead) markRead.mutate(notification.id);
+                                    if (notification.videoId && user?.username) {
+                                      router.push(`/@${user.username}/video/${notification.videoId}`);
+                                    } else {
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }
+                                  }}
+                                >
+                                  <div 
+                                    className="relative flex-shrink-0 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!notification.isRead) markRead.mutate(notification.id);
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }}
+                                  >
+                                    <Avatar
+                                      src={notification.actorAvatarUrl}
+                                      alt={notification.actorUsername}
+                                      size="lg"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm">
+                                      {getNotificationIcon(notification.type)}
+                                    </div>
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <p className="mb-1 text-[15px] leading-tight break-words">
+                                      <span 
+                                        className="font-bold group-hover:underline cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!notification.isRead) markRead.mutate(notification.id);
+                                          router.push(`/@${notification.actorUsername}`);
+                                        }}
+                                      >
+                                        @{notification.actorUsername}
+                                      </span>
+                                      {" "}
+                                      {getLocalizedNotificationContent(notification)}
+                                    </p>
+                                    <p className="text-[13px] text-text-muted">
+                                      {formatDistanceToNow(new Date(notification.createdAt), {
+                                        addSuffix: true,
+                                        locale: dateLocale,
+                                      })}
+                                    </p>
+                                  </div>
+
+                                  {notification.videoId && notification.videoThumbnailUrl && (
+                                    <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md border border-elevated bg-black">
+                                      <Image
+                                        src={notification.videoThumbnailUrl}
+                                        alt="Video thumbnail"
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })(groupLabels.thisMonth, groupedNotifications.thisMonth)}
+
+                      {((title: string, groupItems: Notification[]) => {
+                        if (groupItems.length === 0) return null;
+                        return (
+                          <div className="mb-6">
+                            <h3 className="text-[13px] font-bold text-text-secondary px-3 py-1 mb-2 mt-4 uppercase tracking-wider opacity-60">
+                              {title}
+                            </h3>
+                            <div className="flex flex-col gap-1">
+                              {groupItems.map((notification: Notification) => (
+                                <div
+                                  key={notification.id}
+                                  className="group flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/8"
+                                  onClick={() => {
+                                    if (!notification.isRead) markRead.mutate(notification.id);
+                                    if (notification.videoId && user?.username) {
+                                      router.push(`/@${user.username}/video/${notification.videoId}`);
+                                    } else {
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }
+                                  }}
+                                >
+                                  <div 
+                                    className="relative flex-shrink-0 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!notification.isRead) markRead.mutate(notification.id);
+                                      router.push(`/@${notification.actorUsername}`);
+                                    }}
+                                  >
+                                    <Avatar
+                                      src={notification.actorAvatarUrl}
+                                      alt={notification.actorUsername}
+                                      size="lg"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 rounded-full bg-background p-1 shadow-sm">
+                                      {getNotificationIcon(notification.type)}
+                                    </div>
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <p className="mb-1 text-[15px] leading-tight break-words">
+                                      <span 
+                                        className="font-bold group-hover:underline cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!notification.isRead) markRead.mutate(notification.id);
+                                          router.push(`/@${notification.actorUsername}`);
+                                        }}
+                                      >
+                                        @{notification.actorUsername}
+                                      </span>
+                                      {" "}
+                                      {getLocalizedNotificationContent(notification)}
+                                    </p>
+                                    <p className="text-[13px] text-text-muted">
+                                      {formatDistanceToNow(new Date(notification.createdAt), {
+                                        addSuffix: true,
+                                        locale: dateLocale,
+                                      })}
+                                    </p>
+                                  </div>
+
+                                  {notification.videoId && notification.videoThumbnailUrl && (
+                                    <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded-md border border-elevated bg-black">
+                                      <Image
+                                        src={notification.videoThumbnailUrl}
+                                        alt="Video thumbnail"
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })(groupLabels.earlier, groupedNotifications.earlier)}
+                    </>
                   )}
                 </div>
               </div>
@@ -997,10 +1225,6 @@ export default function MainLayout({
                             </span>
                           )}
                         </div>
-
-                        {/* <span className="hidden text-[14px] font-bold text-text-primary transition-colors group-hover:text-brand sm:block lg:text-[15px]">
-                          {user.nickname ?? user.username}
-                        </span> */}
                       </div>
                     </div>
                   ) : (
@@ -1059,21 +1283,27 @@ export default function MainLayout({
           <aside
             className="relative z-[70] hidden h-full flex-shrink-0 overflow-hidden border-l border-elevated bg-background shadow-2xl transition-all duration-300 md:flex"
             style={{
-              width: visibleCommentVideoId ? 420 : 0,
-              minWidth: visibleCommentVideoId ? 420 : 0,
+              width: visibleCommentVideoId ? COMMENT_SIDEBAR_WIDTH : 0,
+              minWidth: visibleCommentVideoId ? COMMENT_SIDEBAR_WIDTH : 0,
               opacity: visibleCommentVideoId ? 1 : 0,
               pointerEvents: visibleCommentVideoId ? "auto" : "none",
             }}
           >
-            <div className="h-full w-[420px] flex-shrink-0 overflow-hidden">
+            <div
+              className="h-full flex-shrink-0 overflow-hidden"
+              style={{ width: COMMENT_SIDEBAR_WIDTH }}
+            >
               {visibleCommentVideoId && (
-                <CommentSection
-                  key={visibleCommentVideoId}
-                  videoId={visibleCommentVideoId}
-                  allowComments={activeCommentAllowComments}
-                  onClose={closeCommentSidebar}
-                  embedded
-                />
+                <div className="flex h-full flex-col">
+                  <CommentSection
+                    key={visibleCommentVideoId}
+                    videoId={visibleCommentVideoId}
+                    allowComments={activeCommentAllowComments}
+                    onClose={closeCommentSidebar}
+                    embedded
+                    className="border-0"
+                  />
+                </div>
               )}
             </div>
           </aside>
@@ -1085,7 +1315,8 @@ export default function MainLayout({
             onClick={closeCommentSidebar}
           >
             <div
-              className="absolute inset-y-0 right-0 w-[min(420px,100vw)] overflow-hidden border-l border-elevated bg-background shadow-2xl"
+              className="absolute inset-y-0 right-0 overflow-hidden border-l border-elevated bg-background shadow-2xl"
+              style={{ width: `min(${COMMENT_SIDEBAR_WIDTH}px, 100vw)` }}
               onClick={(event) => event.stopPropagation()}
             >
               <CommentSection
@@ -1124,13 +1355,15 @@ export default function MainLayout({
             />
           </Link>
 
-          <Link href="/friends">
-            <BottomNav
-              icon={<Users className="h-[26px] w-[26px]" />}
-              label={t("bottomNav.friends")}
-              active={pathname === "/friends"}
-            />
-          </Link>
+          {hasFriends && (
+            <Link href="/friends">
+              <BottomNav
+                icon={<Users className="h-[26px] w-[26px]" />}
+                label={t("bottomNav.friends")}
+                active={pathname === "/friends"}
+              />
+            </Link>
+          )}
 
           <BottomNav
             active={user ? pathname === `/@${user.username}` : false}

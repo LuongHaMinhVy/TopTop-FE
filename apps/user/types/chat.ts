@@ -8,6 +8,8 @@ export interface ConversationParticipantResponseDTO {
   lastActiveAt?: string;
 }
 
+export type ConversationStatus = 'ACTIVE' | 'REQUESTED' | 'BLOCKED' | 'DELETED';
+
 export interface MessageAttachmentResponseDTO {
   id: number;
   type: string;
@@ -37,7 +39,7 @@ export interface MessageResponseDTO {
 export interface ConversationResponseDTO {
   id: number;
   type: 'DIRECT' | 'GROUP';
-  status: 'ACTIVE' | 'REQUESTED' | 'BLOCKED' | 'DELETED';
+  status: ConversationStatus;
   targetUser?: ConversationParticipantResponseDTO;
   lastMessage?: MessageResponseDTO;
   lastMessagePreview?: string;

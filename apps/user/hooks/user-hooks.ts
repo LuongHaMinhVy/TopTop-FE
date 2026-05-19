@@ -57,6 +57,38 @@ export function useUnfollowMutation(username: string) {
   });
 }
 
+export function useDynamicFollowMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (username: string) => followUser(username),
+    onSuccess: (_, username) => {
+      queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
+      queryClient.invalidateQueries({ queryKey: ["following-list"] });
+      queryClient.invalidateQueries({ queryKey: ["following-suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["following-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-count"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-suggestions"] });
+    }
+  });
+}
+
+export function useDynamicUnfollowMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (username: string) => unfollowUser(username),
+    onSuccess: (_, username) => {
+      queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
+      queryClient.invalidateQueries({ queryKey: ["following-list"] });
+      queryClient.invalidateQueries({ queryKey: ["following-suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["following-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-count"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-suggestions"] });
+    }
+  });
+}
+
 function invalidateRelationshipQueries(queryClient: ReturnType<typeof useQueryClient>, username: string) {
   queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
   queryClient.invalidateQueries({ queryKey: ["following-list"] });
@@ -82,11 +114,12 @@ export function useUnblockUserMutation(username: string) {
   });
 }
 
-export function useFollowingList() {
+export function useFollowingList(enabled = true) {
   return useQuery({
     queryKey: ["following-list"],
     queryFn: () => getFollowingList(),
     staleTime: 10 * 60 * 1000, // 10 phút
     refetchOnWindowFocus: false,
+    enabled,
   });
 }

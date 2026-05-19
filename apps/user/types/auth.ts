@@ -26,7 +26,7 @@ export interface AuthResponse {
 }
 
 export type AuthType = "login" | "signup";
-export type AuthMethod = "options" | "form";
+export type AuthMethod = "options" | "form" | "onboard_dob" | "onboard_username";
 
 export interface AuthMessageData {
   type: "AUTH_SUCCESS" | "AUTH_ERROR";
@@ -38,4 +38,6 @@ export interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialType?: AuthType;
+  initialMethod?: AuthMethod;
+  tempAuthData?: AuthResponse;
 }

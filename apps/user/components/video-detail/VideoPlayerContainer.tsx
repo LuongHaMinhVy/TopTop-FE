@@ -221,6 +221,7 @@ export function VideoPlayerContainer({
           poster={video.thumbnailUrl ?? undefined}
           className="h-full w-full cursor-pointer object-contain"
           muted={isMuted}
+          loop
           playsInline
           preload="metadata"
           onClick={togglePlay}
@@ -273,22 +274,22 @@ export function VideoPlayerContainer({
         {isProfileDetailControls ? (
           <>
             <div
-              className="absolute bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 group/progress"
+              className="absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-5 group/progress"
               style={{
-                width: `max(260px, min(calc(100dvh * ${profileDetailAspectRatio}), calc(100% - 180px)))`,
+                width: `max(390px, min(calc(100dvh * ${profileDetailAspectRatio} * 0.38), calc(100% - 520px)))`,
               }}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="relative h-6 min-w-0 flex-1">
-                <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/30 transition-all duration-150 group-hover/progress:h-1.5">
+              <div className="relative h-5 min-w-0 flex-1">
+                <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/30 transition-all duration-150 group-hover/progress:h-1">
                   <div
                     className="h-full bg-white transition-[width] duration-100"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
                 <div
-                  className="absolute top-1/2 z-[60] size-4 -translate-y-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)]"
-                  style={{ left: `calc(${progress}% - 8px)` }}
+                  className="absolute top-1/2 z-[60] size-3 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]"
+                  style={{ left: `calc(${progress}% - 6px)` }}
                 />
                 <input
                   type="range"
@@ -301,7 +302,7 @@ export function VideoPlayerContainer({
                   aria-label="Video progress"
                 />
               </div>
-              <span className="w-[96px] text-right text-[16px] font-bold tabular-nums text-white">
+              <span className="w-[86px] text-left text-[13px] font-bold tabular-nums text-white">
                 {formatVideoTime(currentTime)}/{formatVideoTime(duration)}
               </span>
             </div>

@@ -70,6 +70,7 @@ export const useLikeVideoMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-videos"] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["liked-videos"] });
     },
   });
 };
@@ -81,6 +82,7 @@ export const useUnlikeVideoMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-videos"] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["liked-videos"] });
     },
   });
 };
@@ -104,5 +106,15 @@ export const useUpdateVideoMutation = (userId?: number) => {
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
       queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
     },
+  });
+};
+
+export const useLikedVideos = (enabled = true) => {
+  return useQuery({
+    queryKey: ["liked-videos"],
+    queryFn: () => videoService.getLikedVideos(0, 100),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };

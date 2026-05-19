@@ -16,10 +16,13 @@ export interface Video {
   createdAt: string;
   isLiked?: boolean;
   isSaved?: boolean;
+  isFollowingAuthor?: boolean;
   saveCount?: number;
   shareCount?: number;
   allowComments?: boolean;
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  deleted?: boolean;
+  unavailable?: boolean;
 }
 
 export interface VideoUploadData {

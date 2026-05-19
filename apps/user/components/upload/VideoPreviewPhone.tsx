@@ -105,7 +105,7 @@ export default function VideoPreviewPhone({ previewUrl, previewMode, onModeChang
 
           {previewUrl ? (
             <div className="w-full h-full relative cursor-pointer" onClick={() => togglePlay(feedVideoRef)}>
-              <video ref={feedVideoRef} src={previewUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+              <video ref={feedVideoRef} src={previewUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-contain" />
               {/* Play/Pause indicator */}
               {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">

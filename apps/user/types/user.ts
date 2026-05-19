@@ -41,5 +41,6 @@ export interface UserInfo {
   privacySettings?: PrivacySettings;
   relationship?: RelationshipStatus;
   roles: string[];
+  onboarded?: boolean;
   createdAt?: string;
 }

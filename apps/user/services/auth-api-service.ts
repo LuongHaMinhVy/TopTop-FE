@@ -105,3 +105,17 @@ export const oauth2Exchange = async (state: string): Promise<ApiResponse<AuthRes
     throw error;
   }
 };
+
+export const oauth2Onboard = async (
+  payload: { username: string; dateOfBirth: string },
+  accessToken?: string
+): Promise<ApiResponse<AuthResponse>> => {
+  try {
+    const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+    const response = await api.post<ApiResponse<AuthResponse>>("/auth/oauth2/onboard", payload, { headers });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

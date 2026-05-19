@@ -15,7 +15,8 @@ import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-import type { AuthMessageData } from "@/types/auth";
+import AuthModal from "@/components/auth/AuthModal";
+import type { AuthMessageData, AuthResponse } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -28,6 +29,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
 
   useEffect(() => {
     const channel = new BroadcastChannel("oauth_channel");
@@ -36,10 +38,17 @@ export default function SignupPage() {
       const authEvent = event.data as AuthMessageData;
 
       if (authEvent.type === "AUTH_SUCCESS") {
+        const { data } = authEvent;
+        const responseData = data as AuthResponse;
+        const user = responseData && 'user' in responseData ? responseData.user : responseData;
+        if (user && user.onboarded === false) {
+          setTempAuthData(responseData);
+          return;
+        }
+
         setSuccessMsg("Đăng ký thành công");
         if (authEvent.data) {
           dispatch(setCredentials(authEvent.data));
-          const user = 'user' in authEvent.data ? authEvent.data.user : authEvent.data;
           if (user) {
             queryClient.setQueryData(["currentUser"], { data: user });
           }
@@ -67,6 +76,28 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
 
+  const [dob, setDob] = useState({
+    month: "",
+    day: "",
+    year: ""
+  });
+
+  const updateDob = (updates: Partial<typeof dob>) => {
+    const newDob = { ...dob, ...updates };
+    setDob(newDob);
+    if (newDob.month && newDob.day && newDob.year) {
+      const month = newDob.month.padStart(2, '0');
+      const day = newDob.day.padStart(2, '0');
+      setDateOfBirth(`${newDob.year}-${month}-${day}`);
+    } else {
+      setDateOfBirth("");
+    }
+  };
+
+  const years = Array.from({ length: 121 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
   const validateForm = () => {
     if (username.length < 2 || username.length > 24) {
       return "Tên người dùng phải từ 2 đến 24 ký tự.";
@@ -86,8 +117,39 @@ export default function SignupPage() {
       return "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&#).";
     }
 
-    if (!dateOfBirth) {
-      return "Vui lòng nhập ngày sinh.";
+    if (!dob.month || !dob.day || !dob.year) {
+      return "Vui lòng chọn ngày sinh.";
+    }
+
+    const yearNum = Number(dob.year);
+    const monthNum = Number(dob.month);
+    const dayNum = Number(dob.day);
+
+    const today = new Date();
+    const birthDate = new Date(yearNum, monthNum - 1, dayNum);
+
+    // Leap year / day count check
+    if (
+      birthDate.getFullYear() !== yearNum ||
+      birthDate.getMonth() !== monthNum - 1 ||
+      birthDate.getDate() !== dayNum
+    ) {
+      return "Ngày sinh không hợp lệ.";
+    }
+
+    // Min 13 years old check
+    let age = today.getFullYear() - yearNum;
+    const monthDiff = today.getMonth() - (monthNum - 1);
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
+      age--;
+    }
+
+    if (age < 13) {
+      return "Bạn phải từ 13 tuổi trở lên để đăng ký.";
+    }
+
+    if (birthDate > today) {
+      return "Ngày sinh không thể ở tương lai.";
     }
 
     return null;
@@ -216,14 +278,52 @@ export default function SignupPage() {
             </button>
           </div>
 
-          <input
-            type="date"
-            placeholder="Ngày sinh"
-            required
-            className="input-field"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-          />
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider ml-1 mb-1">
+              Ngày sinh
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <select
+                  required
+                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
+                  value={dob.month}
+                  onChange={(e) => updateDob({ month: e.target.value })}
+                >
+                  <option value="" disabled hidden>Tháng</option>
+                  {months.map((m) => (
+                    <option key={m} value={m} className="bg-background text-text-primary">Tháng {m}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative flex-1">
+                <select
+                  required
+                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
+                  value={dob.day}
+                  onChange={(e) => updateDob({ day: e.target.value })}
+                >
+                  <option value="" disabled hidden>Ngày</option>
+                  {days.map((d) => (
+                    <option key={d} value={d} className="bg-background text-text-primary">{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative flex-1">
+                <select
+                  required
+                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
+                  value={dob.year}
+                  onChange={(e) => updateDob({ year: e.target.value })}
+                >
+                  <option value="" disabled hidden>Năm</option>
+                  {years.map((y) => (
+                    <option key={y} value={y} className="bg-background text-text-primary">{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
 
         <button 
@@ -269,6 +369,13 @@ export default function SignupPage() {
         </div>
 
       </div>
+      {tempAuthData && (
+        <AuthModal 
+          onClose={() => setTempAuthData(null)}
+          initialMethod="onboard_dob"
+          tempAuthData={tempAuthData}
+        />
+      )}
     </div>
   );
 }

@@ -4,16 +4,34 @@ import { useConversations } from "@/hooks/chat-hooks";
 import { ConversationItem } from "./ConversationItem";
 import { useTranslations } from "next-intl";
 import { Skeleton } from "@repo/ui";
+import { ChevronRight, MessageCircleMore } from "lucide-react";
+import type { ConversationStatus } from "@/types/chat";
+
+type ConversationView = "inbox" | "requests";
 
 interface ConversationListProps {
   selectedId?: number;
-  onSelect: (id: number) => void;
+  view?: ConversationView;
+  onViewChange?: (view: ConversationView) => void;
+  onSelect: (id: number, status: ConversationStatus) => void;
 }
 
-export const ConversationList = ({ selectedId, onSelect }: ConversationListProps) => {
+export const ConversationList = ({
+  selectedId,
+  view = "inbox",
+  onViewChange,
+  onSelect,
+}: ConversationListProps) => {
   const t = useTranslations('Chat');
-  const { data, isLoading } = useConversations();
+  const activeStatus: ConversationStatus = view === "requests" ? "REQUESTED" : "ACTIVE";
+  const { data, isLoading } = useConversations(0, 20, activeStatus);
+  const { data: requestsData } = useConversations(0, 20, "REQUESTED");
   const conversations = data?.data || [];
+  const requestConversations = requestsData?.data || [];
+  const requestUnreadCount = requestConversations.reduce(
+    (total, conv) => total + (conv.unreadCount || 0),
+    0,
+  );
 
   if (isLoading) {
     return (
@@ -34,12 +52,52 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-elevated">
-        <h1 className="text-xl font-bold">{t('messages')}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">
+            {view === "requests" ? t('messageRequests') : t('messages')}
+          </h1>
+          {view === "requests" && (
+            <button
+              type="button"
+              onClick={() => onViewChange?.("inbox")}
+              className="text-[13px] font-semibold text-text-secondary hover:text-text-primary"
+            >
+              {t('backToInbox')}
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
+        {view === "inbox" && requestConversations.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onViewChange?.("requests")}
+            className="flex w-full items-center gap-3 border-b border-elevated/60 p-3 text-left transition-colors hover:bg-hover"
+          >
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-elevated text-text-primary">
+              <MessageCircleMore size={22} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[15px] font-bold">
+                  {t('messageRequests')}
+                </span>
+                {requestUnreadCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
+                    {requestUnreadCount > 99 ? "99+" : requestUnreadCount}
+                  </span>
+                )}
+              </div>
+              <p className="truncate text-[13px] text-text-muted">
+                {t('messageRequestsDescription')}
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 flex-shrink-0 text-text-muted" />
+          </button>
+        )}
         {conversations.length === 0 ? (
           <div className="p-8 text-center text-text-muted">
-            {t('noConversations')}
+            {view === "requests" ? t('noMessageRequests') : t('noConversations')}
           </div>
         ) : (
           conversations.map((conv) => (
@@ -47,7 +105,7 @@ export const ConversationList = ({ selectedId, onSelect }: ConversationListProps
               key={conv.id}
               conversation={conv}
               isActive={selectedId === conv.id}
-              onClick={() => onSelect(conv.id)}
+              onClick={() => onSelect(conv.id, activeStatus)}
             />
           ))
         )}

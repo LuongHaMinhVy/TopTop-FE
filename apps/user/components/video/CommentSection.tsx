@@ -128,7 +128,9 @@ export default function CommentSection({
         ) : comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted">
             <MessageCircle size={48} className="mb-4 opacity-20" />
-            <p className="text-[14px]">{t("video.noComments")}</p>
+            <p className="text-[14px]">
+              {allowComments ? t("video.noComments") : t("video.commentsDisabled")}
+            </p>
           </div>
         ) : (
           comments.map((comment) => (
@@ -153,10 +155,9 @@ export default function CommentSection({
         )}
       </div>
 
-      <div className="p-4 border-t border-elevated/30 bg-background/80 backdrop-blur-md">
-        {!allowComments ? (
-          <p className="text-center text-[14px] text-text-muted">{t("video.commentsDisabled")}</p>
-        ) : currentUser ? (
+      {allowComments && (
+        <div className="p-4 border-t border-elevated/30 bg-background/80 backdrop-blur-md">
+          {currentUser ? (
           <div className="space-y-2">
             {activeReplyTarget && (
               <div className="flex items-center justify-between rounded-lg bg-elevated/30 px-3 py-2 text-[13px] text-text-secondary">
@@ -200,8 +201,9 @@ export default function CommentSection({
               {t("auth.login")}
             </Button>
           </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {reportTargetId !== null && (
         <ReportModal

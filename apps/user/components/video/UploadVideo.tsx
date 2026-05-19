@@ -497,6 +497,75 @@ export default function UploadVideo() {
     return () => revokeCoverObjectUrl();
   }, [revokeCoverObjectUrl]);
 
+  // Extract the first frame as the default cover if none is chosen
+  useEffect(() => {
+    if (!preview) return;
+
+    const extractDefaultCover = async () => {
+      try {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        video.crossOrigin = 'anonymous';
+
+        await new Promise<void>((resolve, reject) => {
+          video.onloadedmetadata = () => resolve();
+          video.onerror = () => reject(new Error('Could not load video metadata'));
+          video.src = preview;
+          video.load();
+        });
+
+        // Seek to 0.05s to get a valid starting frame
+        await new Promise<void>((resolve, reject) => {
+          video.onseeked = () => resolve();
+          video.onerror = () => reject(new Error('Could not seek video'));
+          video.currentTime = 0.05;
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = COVER_OUTPUT_WIDTH;
+        canvas.height = COVER_OUTPUT_HEIGHT;
+        const context = canvas.getContext('2d');
+        if (context) {
+          const sourceWidth = video.videoWidth || 720;
+          const sourceHeight = video.videoHeight || 1280;
+
+          // Crop source to 9:16 aspect ratio
+          const targetAspect = 9 / 16;
+          const sourceAspect = sourceWidth / sourceHeight;
+          let drawWidth = sourceWidth;
+          let drawHeight = sourceHeight;
+          let sx = 0;
+          let sy = 0;
+
+          if (sourceAspect > targetAspect) {
+            drawWidth = sourceHeight * targetAspect;
+            sx = (sourceWidth - drawWidth) / 2;
+          } else {
+            drawHeight = sourceWidth / targetAspect;
+            sy = (sourceHeight - drawHeight) / 2;
+          }
+
+          context.drawImage(
+            video,
+            sx, sy, drawWidth, drawHeight,
+            0, 0, canvas.width, canvas.height
+          );
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          const defaultCoverFile = dataUrlToFile(dataUrl, 'default-cover.jpg');
+          setCoverFile(defaultCoverFile);
+          setCoverPreview(dataUrl);
+        }
+      } catch (err) {
+        console.warn('Failed to extract default cover frame:', err);
+      }
+    };
+
+    void extractDefaultCover();
+  }, [preview]);
+
   const openCoverPicker = useCallback(() => {
     setCoverPickerOpen(true);
     setCoverTab('video');

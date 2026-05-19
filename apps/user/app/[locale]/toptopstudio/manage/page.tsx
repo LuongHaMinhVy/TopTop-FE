@@ -433,7 +433,7 @@ export default function ContentManagementPage() {
 
       {/* Content Table Card */}
       <div className="bg-background rounded-xl border border-elevated overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="bg-surface border-b border-elevated text-[13px] font-bold text-text-muted select-none">
@@ -1145,7 +1145,7 @@ function PrivacyDropdown({ videoId, value, onChange, disabled }: PrivacyDropdown
   };
 
   return (
-    <div ref={dropdownRef} className="relative w-[138px] select-none text-left">
+    <div ref={dropdownRef} className={`relative w-[138px] select-none text-left ${isOpen ? 'z-50' : 'z-10'}`}>
       {/* Trigger Button */}
       <button
         type="button"

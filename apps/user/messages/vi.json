@@ -8,7 +8,11 @@
       "empty": "Chưa có thông báo nào",
       "liked": "đã thích video của bạn",
       "commented": "đã bình luận về video của bạn",
-      "followed": "đã bắt đầu follow bạn"
+      "followed": "đã bắt đầu follow bạn",
+      "today": "Hôm nay",
+      "thisWeek": "Tuần này",
+      "thisMonth": "Tháng này",
+      "earlier": "Trước đó"
     },
     "sidebar": {
         "forYou": "Đề xuất",
@@ -254,7 +258,17 @@
     "hasAccount": "Bạn đã có tài khoản?",
     "successLogin": "Đăng nhập thành công",
     "successRegister": "Đăng ký thành công",
-    "errorAuth": "Xác thực thất bại"
+    "errorAuth": "Xác thực thất bại",
+    "chooseDob": "Chọn ngày sinh",
+    "dobLabel": "Ngày sinh của bạn",
+    "btnContinue": "Tiếp tục",
+    "chooseUsername": "Chọn username",
+    "btnFinishRegister": "Đăng ký & Đăng nhập",
+    "errSelectDob": "Vui lòng chọn ngày sinh.",
+    "errInvalidDob": "Ngày sinh không hợp lệ.",
+    "errAgeRestriction": "Bạn phải từ 13 tuổi trở lên để đăng ký.",
+    "errFutureDob": "Ngày sinh không thể ở tương lai.",
+    "errGeneric": "Có lỗi xảy ra"
   },
   "notFound": {
     "title": "Oops! Trang này không tồn tại",
@@ -311,5 +325,32 @@
     "makePublicDescription": "Những bộ sưu tập ở chế độ công khai sẽ hiển thị trên hồ sơ của bạn và có thể được chia sẻ với bạn bè.",
     "save": "Lưu",
     "videoCount": "{count, plural, =0 {Chưa có video} other {# video}}"
+  },
+  "following": {
+    "loginRequired": "Đăng nhập để xem video từ các tài khoản bạn đang follow.",
+    "login": "Đăng nhập",
+    "noFollowing": "Follow các nhà sáng tạo để xây dựng bảng tin Đã follow của bạn.",
+    "noVideos": "Chưa có video nào từ các tài khoản bạn đang follow.",
+    "suggestedAccounts": "Tài khoản được gợi ý",
+    "noSuggestions": "Hiện chưa có gợi ý nào.",
+    "loadError": "Không thể tải video đang follow. Vui lòng thử lại.",
+    "follow": "Follow",
+    "following": "Đã follow",
+    "followBack": "Follow lại",
+    "friends": "Bạn bè"
+  },
+  "friends": {
+    "title": "Bạn bè",
+    "loginRequired": "Đăng nhập để xem video từ bạn bè và tìm những người bạn có thể quen.",
+    "login": "Đăng nhập",
+    "noFriends": "Follow lẫn nhau với các nhà sáng tạo để xem video bạn bè tại đây.",
+    "noVideos": "Chưa có video nào từ bạn bè.",
+    "suggestedFriends": "Bạn bè được gợi ý",
+    "noSuggestions": "Hiện chưa có gợi ý nào.",
+    "loadError": "Không thể tải video từ bạn bè. Vui lòng thử lại.",
+    "follow": "Follow",
+    "following": "Đã follow",
+    "followBack": "Follow lại",
+    "friends": "Bạn bè"
   }
 }

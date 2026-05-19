@@ -6,20 +6,28 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   useLikeVideoMutation,
   useAllVideos,
+  useLikedVideos,
   useUnlikeVideoMutation,
   useUserVideos,
   useVideoDetail,
 } from "@/hooks/video-hooks";
-import { useBlockUserMutation } from "@/hooks/user-hooks";
+import { useFriendsFeed } from "@/hooks/friend-hooks";
+import { useFollowingFeed } from "@/hooks/following-hooks";
+import { useSearchVideos } from "@/hooks/search-hooks";
+import {
+  useBlockUserMutation,
+  useDynamicFollowMutation,
+  useDynamicUnfollowMutation,
+} from "@/hooks/user-hooks";
 import {
   usePublicCollectionVideos,
+  useFavoriteVideos,
   useSaveVideoMutation,
   useUnsaveVideoMutation,
 } from "@/hooks/collection-hooks";
 import { VideoPlayerContainer } from "./VideoPlayerContainer";
-import { VideoActionRail } from "./VideoActionRail";
-import { AddToCollectionModal } from "@/components/collection/AddToCollectionModal";
 import CommentSection from "@/components/video/CommentSection";
+import VideoCard from "@/components/video/VideoCard";
 import {
   ChevronLeft,
   Code2,
@@ -28,7 +36,7 @@ import {
   Link as LinkIcon,
   MessageCircle,
   Play,
-  Share2,
+  Bookmark,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -38,13 +46,36 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { openAuthModal } from "@/store/slices/authSlice";
 import type { Video } from "@/types/video";
+import type { SearchVideo } from "@/types/search";
 import { useTranslations } from "next-intl";
 import { videoPath } from "@/utils/video-url";
 import Facebook from "@/components/shared/icons/FaceBookIcon";
 
 type DetailMode = "direct" | "internal";
 type DetailTab = "comments" | "videos";
-const SCROLLABLE_DETAIL_SOURCES = new Set(["feed", "explore", "friends", "following", "profile", "collection"]);
+const DIRECT_DETAIL_SOURCES = new Set(["feed", "explore", "friends", "following", "follow"]);
+const PROFILE_DETAIL_SOURCES = new Set(["profile", "collection", "favorites", "liked"]);
+const FEED_DETAIL_PANEL_WIDTH = 384;
+const DIRECT_DETAIL_PANEL_WIDTH = 420;
+
+function toSearchVideoDetail(video: SearchVideo): Video {
+  return {
+    id: video.id,
+    title: video.caption,
+    description: video.caption,
+    thumbnailUrl: video.coverUrl ?? undefined,
+    fileUrl: video.videoUrl ?? "",
+    viewCount: video.viewCount,
+    likeCount: video.likeCount,
+    commentCount: video.commentCount,
+    userId: video.author.id,
+    username: video.author.username,
+    userNickname: video.author.displayName,
+    userAvatarUrl: video.author.avatarUrl ?? undefined,
+    createdAt: video.createdAt,
+    isFollowingAuthor: video.author.followed,
+  };
+}
 
 export default function VideoDetailPage() {
   const params = useParams();
@@ -62,33 +93,47 @@ export default function VideoDetailPage() {
     : decodedUsername;
 
   const source = searchParams.get("from");
+  const searchQuery = searchParams.get("q")?.trim() ?? "";
   const collectionIdParam = searchParams.get("collectionId");
   const collectionId = collectionIdParam ? Number(collectionIdParam) : undefined;
   const collectionOwner = searchParams.get("collectionOwner") ?? username;
-  const detailMode: DetailMode = source ? "internal" : "direct";
+  const detailMode: DetailMode = !source || DIRECT_DETAIL_SOURCES.has(source) ? "direct" : "internal";
   const isProfileDetail = source === "profile";
   const isCollectionDetail = source === "collection" && Number.isFinite(collectionId) && Number(collectionId) > 0;
-  const usesProfileDetailLayout = isProfileDetail || source === "collection";
-  const isScrollableDetail = source ? SCROLLABLE_DETAIL_SOURCES.has(source) : false;
+  const usesProfileDetailLayout = isProfileDetail || PROFILE_DETAIL_SOURCES.has(source ?? "");
+  const usesFeedThemeDetail = !source || source === "feed";
+  const isScrollableDetail = true;
   const commentsRequested = searchParams.get("comments") === "1";
   const defaultTab: DetailTab = commentsRequested ? "comments" : detailMode === "direct" ? "videos" : "comments";
+  const activeTabKey = `${videoId}:${defaultTab}`;
 
   const { data: videoRes, isLoading, isError } = useVideoDetail(username, videoId);
   const video = videoRes?.data;
   const { data: allVideosRes } = useAllVideos();
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  const [activeTab, setActiveTab] = useState<DetailTab>(defaultTab);
-  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [activeTabState, setActiveTabState] = useState<{ key: string; tab: DetailTab }>(() => ({
+    key: activeTabKey,
+    tab: defaultTab,
+  }));
+  const activeTab = activeTabState.key === activeTabKey ? activeTabState.tab : defaultTab;
+  const setActiveTab = useCallback(
+    (tab: DetailTab) => setActiveTabState({ key: activeTabKey, tab }),
+    [activeTabKey],
+  );
   const [optimisticVideo, setOptimisticVideo] = useState<Video | null>(null);
   const [activeScrollableVideo, setActiveScrollableVideo] = useState<Video | null>(null);
+  const [followOverride, setFollowOverride] = useState<{ userId: number; value: boolean } | null>(null);
   const [isUnavailable, setIsUnavailable] = useState(false);
   const initializedScrollableVideoIdRef = useRef<number | null>(null);
+  const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
   const displayedVideo = optimisticVideo ?? activeScrollableVideo ?? video;
   const { data: moreVideosRes } = useUserVideos(displayedVideo?.userId);
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
+  const followMutation = useDynamicFollowMutation();
+  const unfollowMutation = useDynamicUnfollowMutation();
   const blockMutation = useBlockUserMutation(displayedVideo?.username ?? username);
   const { data: collectionVideosRes } = usePublicCollectionVideos(
     collectionOwner,
@@ -97,11 +142,20 @@ export default function VideoDetailPage() {
     0,
     18,
   );
+  const { data: favoriteVideosRes } = useFavoriteVideos(source === "favorites");
+  const { data: likedVideosRes } = useLikedVideos(source === "liked");
+  const { data: followingFeedRes } = useFollowingFeed(
+    Boolean(currentUser) && (source === "following" || source === "follow"),
+    30,
+  );
+  const { data: friendsFeedRes } = useFriendsFeed(Boolean(currentUser) && source === "friends", 30);
+  const { data: searchVideosRes } = useSearchVideos(searchQuery, 0, 50, source === "search" && searchQuery.length > 0);
   const moreVideos = useMemo(
     () => moreVideosRes?.data?.filter((item) => item.id !== displayedVideo?.id) ?? [],
     [displayedVideo?.id, moreVideosRes?.data],
   );
   const detailScopeParams = useMemo(() => {
+    if (source === "search") return { from: "search", q: searchQuery || undefined };
     if (source !== "collection") return { from: source ?? "feed" };
 
     return {
@@ -109,14 +163,26 @@ export default function VideoDetailPage() {
       collectionId: isCollectionDetail ? collectionId : undefined,
       collectionOwner,
     };
-  }, [collectionId, collectionOwner, isCollectionDetail, source]);
+  }, [collectionId, collectionOwner, isCollectionDetail, searchQuery, source]);
   const scrollableVideos = useMemo(() => {
     let videos: Video[] = [];
 
     if (source === "profile") {
       videos = moreVideosRes?.data ?? [];
+    } else if (source === "following" || source === "follow") {
+      videos = followingFeedRes?.pages.flatMap((page) => page.data ?? []) ?? [];
+    } else if (source === "friends") {
+      videos = friendsFeedRes?.pages.flatMap((page) => page.data ?? []) ?? [];
+    } else if (source === "search") {
+      videos = (searchVideosRes?.data ?? [])
+        .map(toSearchVideoDetail)
+        .filter((item) => item.fileUrl && !item.unavailable && !item.deleted);
     } else if (source === "collection") {
-      videos = collectionVideosRes?.data ?? [];
+      videos = (collectionVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
+    } else if (source === "favorites") {
+      videos = (favoriteVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
+    } else if (source === "liked") {
+      videos = (likedVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
     } else {
       videos = allVideosRes?.data ?? [];
     }
@@ -125,8 +191,24 @@ export default function VideoDetailPage() {
 
     if (videos.some((item) => item.id === video.id)) return videos;
     return [video, ...videos];
-  }, [allVideosRes?.data, collectionVideosRes?.data, moreVideosRes?.data, source, video]);
+  }, [
+    allVideosRes?.data,
+    collectionVideosRes?.data,
+    favoriteVideosRes?.data,
+    followingFeedRes?.pages,
+    friendsFeedRes?.pages,
+    likedVideosRes?.data,
+    moreVideosRes?.data,
+    searchVideosRes?.data,
+    source,
+    video,
+  ]);
   const canBlockAuthor = Boolean(currentUser && displayedVideo && currentUser.id !== displayedVideo.userId);
+  const canFollowAuthor = Boolean(currentUser && displayedVideo && currentUser.id !== displayedVideo.userId);
+  const isFollowingAuthor =
+    displayedVideo?.userId && followOverride?.userId === displayedVideo.userId
+      ? followOverride.value
+      : (displayedVideo?.isFollowingAuthor ?? false);
   const canonicalPath = displayedVideo ? videoPath(displayedVideo.username, displayedVideo.id) : "";
   const shareUrl = typeof window !== "undefined" && canonicalPath ? `${window.location.origin}${canonicalPath}` : "";
 
@@ -138,6 +220,20 @@ export default function VideoDetailPage() {
     setActiveScrollableVideo(video);
     setOptimisticVideo(null);
   }, [isScrollableDetail, video]);
+
+  useEffect(() => {
+    if (!isScrollableDetail || !video || scrollableVideos.length === 0) return;
+    if (initializedScrollableVideoIdRef.current !== video.id) return;
+
+    const frameId = requestAnimationFrame(() => {
+      const target = scrollableContainerRef.current?.querySelector(
+        `[data-detail-video-id="${video.id}"]`,
+      );
+      target?.scrollIntoView({ block: "start" });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [isScrollableDetail, scrollableVideos.length, video]);
 
   const requireLogin = () => {
     if (currentUser) return true;
@@ -156,15 +252,16 @@ export default function VideoDetailPage() {
       });
       unlikeMutation.mutate(displayedVideo.id, {
         onSuccess: (response) => {
-          if (!response.data) return;
-          setOptimisticVideo({
-            ...previousVideo,
-            isLiked: response.data.liked,
-            likeCount: response.data.likeCount,
-            commentCount: response.data.commentCount,
-            saveCount: response.data.saveCount,
-            shareCount: response.data.shareCount,
-          });
+          const stats = response.data;
+          if (!stats) return;
+          setOptimisticVideo((current) => ({
+            ...(current ?? previousVideo),
+            isLiked: stats.liked,
+            likeCount: stats.likeCount,
+            commentCount: stats.commentCount,
+            saveCount: stats.saveCount,
+            shareCount: stats.shareCount,
+          }));
         },
         onError: () => setOptimisticVideo(previousVideo),
       });
@@ -176,15 +273,16 @@ export default function VideoDetailPage() {
       });
       likeMutation.mutate(displayedVideo.id, {
         onSuccess: (response) => {
-          if (!response.data) return;
-          setOptimisticVideo({
-            ...previousVideo,
-            isLiked: response.data.liked,
-            likeCount: response.data.likeCount,
-            commentCount: response.data.commentCount,
-            saveCount: response.data.saveCount,
-            shareCount: response.data.shareCount,
-          });
+          const stats = response.data;
+          if (!stats) return;
+          setOptimisticVideo((current) => ({
+            ...(current ?? previousVideo),
+            isLiked: stats.liked,
+            likeCount: stats.likeCount,
+            commentCount: stats.commentCount,
+            saveCount: stats.saveCount,
+            shareCount: stats.shareCount,
+          }));
         },
         onError: () => setOptimisticVideo(previousVideo),
       });
@@ -195,27 +293,31 @@ export default function VideoDetailPage() {
     if (!displayedVideo || !requireLogin()) return;
 
     const previousVideo = displayedVideo;
-    const nextSaved = !previousVideo.isSaved;
+    const nextSaved = !displayedVideo.isSaved;
     setOptimisticVideo({
-      ...previousVideo,
+      ...displayedVideo,
       isSaved: nextSaved,
-      saveCount: Math.max(0, (previousVideo.saveCount ?? 0) + (nextSaved ? 1 : -1)),
+      saveCount: Math.max(0, (displayedVideo.saveCount ?? 0) + (nextSaved ? 1 : -1)),
     });
 
-    if (nextSaved) {
-      saveMutation.mutate(previousVideo.id, {
-        onSuccess: (response) => {
-          setOptimisticVideo(response.data ?? null);
-          setIsCollectionModalOpen(true);
-        },
-        onError: () => setOptimisticVideo(previousVideo),
-      });
-    } else {
-      unsaveMutation.mutate(previousVideo.id, {
-        onSuccess: (response) => setOptimisticVideo(response.data ?? null),
-        onError: () => setOptimisticVideo(previousVideo),
-      });
-    }
+    const mutation = nextSaved ? saveMutation : unsaveMutation;
+    mutation.mutate(displayedVideo.id, {
+      onSuccess: (response) => {
+        const savedVideo = response.data;
+        if (!savedVideo) return;
+        setOptimisticVideo((current) => {
+          const baseVideo = current ?? previousVideo;
+          return {
+            ...baseVideo,
+            ...savedVideo,
+            isLiked: savedVideo.isLiked ?? baseVideo.isLiked,
+            isSaved: savedVideo.isSaved ?? nextSaved,
+            saveCount: savedVideo.saveCount ?? baseVideo.saveCount,
+          };
+        });
+      },
+      onError: () => setOptimisticVideo(previousVideo),
+    });
   };
 
   const handleBlockUser = () => {
@@ -223,6 +325,21 @@ export default function VideoDetailPage() {
 
     blockMutation.mutate(undefined, {
       onSuccess: () => setIsUnavailable(true),
+    });
+  };
+
+  const handleToggleFollowAuthor = () => {
+    if (!displayedVideo || !canFollowAuthor) return;
+    if (!requireLogin()) return;
+    if (followMutation.isPending || unfollowMutation.isPending) return;
+
+    const previousFollowing = isFollowingAuthor;
+    const nextFollowing = !previousFollowing;
+    setFollowOverride({ userId: displayedVideo.userId, value: nextFollowing });
+
+    const mutation = nextFollowing ? followMutation : unfollowMutation;
+    mutation.mutate(displayedVideo.username, {
+      onError: () => setFollowOverride({ userId: displayedVideo.userId, value: previousFollowing }),
     });
   };
 
@@ -291,50 +408,61 @@ export default function VideoDetailPage() {
   if (detailMode === "direct") {
     return (
       <div className="relative flex h-full w-full overflow-hidden bg-background">
-        <div className="relative flex min-w-0 flex-1 items-center justify-center bg-black">
-          <VideoPlayerContainer {...commonPlayerProps} className="h-full w-full px-6 py-5" />
-          <VideoActionRail
-            video={displayedVideo}
-            onLike={handleLike}
-            onSave={handleSave}
-            onShare={handleCopyLink}
-            onFocusComments={() => setActiveTab("comments")}
-          />
+        <div
+          className={`relative flex min-w-0 flex-1 items-center justify-center ${
+            usesFeedThemeDetail ? "bg-background" : "bg-black"
+          }`}
+        >
+          <div
+            ref={scrollableContainerRef}
+            className="h-full w-full overflow-y-auto custom-scrollbar"
+            style={{
+              scrollSnapType: "y mandatory",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {scrollableVideos.map((scrollVideo) => (
+              <ScrollableFeedDetailVideo
+                key={scrollVideo.id}
+                video={scrollVideo}
+                detailSource={source ?? "feed"}
+                isInitial={scrollVideo.id === Number(params.videoId)}
+                onActive={handleScrollableVideoActive}
+                onCommentsClick={() => setActiveTab("comments")}
+                stageOffsetX={usesFeedThemeDetail ? "clamp(-80px, -4vw, -48px)" : "0px"}
+              />
+            ))}
+          </div>
         </div>
 
-        <aside className="hidden w-[462px] flex-shrink-0 flex-col border-l border-white/10 bg-background lg:flex">
-          {commentsRequested ? (
-            <div className="flex h-16 items-center justify-between px-6">
-              <h2 className="text-[20px] font-bold">Bình luận {formatCount(displayedVideo.commentCount)}</h2>
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="grid size-9 place-items-center rounded-full bg-elevated hover:bg-hover"
-              >
-                <X className="size-5" /> 
-              </button>
-            </div>
-          ) : (
-            <div className="h-24" />
-          )}
+        <aside
+          className={`hidden flex-shrink-0 flex-col border-l bg-background lg:flex ${
+            usesFeedThemeDetail ? "border-elevated" : "border-white/10"
+          }`}
+          style={{ width: usesFeedThemeDetail ? FEED_DETAIL_PANEL_WIDTH : DIRECT_DETAIL_PANEL_WIDTH }}
+        >
+          <div className="h-24" />
 
-          {!commentsRequested && (
-            <div className="flex border-b border-white/10 px-8">
-              <DetailTabButton
-                active={activeTab === "comments"}
-                onClick={() => setActiveTab("comments")}
-                label="Bình luận"
-              />
-              <DetailTabButton
-                active={activeTab === "videos"}
-                onClick={() => setActiveTab("videos")}
-                label="Bạn có thể thích"
-              />
-            </div>
-          )}
+          <div
+            className={`flex border-b px-6 ${
+              usesFeedThemeDetail ? "border-elevated" : "border-white/10"
+            }`}
+          >
+            <DetailTabButton
+              active={activeTab === "comments"}
+              onClick={() => setActiveTab("comments")}
+              label="Bình luận"
+            />
+            <DetailTabButton
+              active={activeTab === "videos"}
+              onClick={() => setActiveTab("videos")}
+              label="Bạn có thể thích"
+            />
+          </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-            {activeTab === "comments" || commentsRequested ? (
+            {activeTab === "comments" ? (
               <CommentSection
                 key={displayedVideo.id}
                 videoId={displayedVideo.id}
@@ -349,11 +477,6 @@ export default function VideoDetailPage() {
           </div>
         </aside>
 
-        <AddToCollectionModal
-          isOpen={isCollectionModalOpen}
-          videoId={displayedVideo.id}
-          onClose={() => setIsCollectionModalOpen(false)}
-        />
       </div>
     );
   }
@@ -370,6 +493,7 @@ export default function VideoDetailPage() {
       <div className={`relative min-w-0 flex-1 ${usesProfileDetailLayout ? "bg-black" : "bg-[#161616]"}`}>
         {isScrollableDetail && scrollableVideos.length > 0 ? (
           <div
+            ref={scrollableContainerRef}
             className="h-full overflow-y-auto custom-scrollbar"
             style={{
               scrollSnapType: "y mandatory",
@@ -382,6 +506,7 @@ export default function VideoDetailPage() {
                 key={scrollVideo.id}
                 video={scrollVideo}
                 isActive={displayedVideo?.id === scrollVideo.id}
+                isInitial={scrollVideo.id === Number(params.videoId)}
                 controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
                 className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
                 onActive={handleScrollableVideoActive}
@@ -406,14 +531,14 @@ export default function VideoDetailPage() {
 
       <aside
         className={`hidden flex-shrink-0 flex-col border-l border-white/10 bg-background xl:flex ${
-          usesProfileDetailLayout ? "w-[38vw] min-w-[480px] max-w-[680px]" : "w-[680px]"
+          usesProfileDetailLayout ? "w-[34vw] min-w-[420px] max-w-[560px]" : "w-[520px]"
         }`}
       >
-        <div className="border-b border-white/10 p-6">
-          <div className="mb-5 rounded-xl bg-elevated/70 p-5">
-            <div className="mb-3 flex items-start justify-between gap-4">
+        <div className="border-b border-white/10 p-5">
+          <div className="mb-4 rounded-xl bg-elevated/70 p-4">
+            <div className="mb-3 flex items-start justify-between gap-3">
               <Link href={`/@${displayedVideo.username}`} className="flex min-w-0 items-center gap-3">
-                <div className="relative size-12 overflow-hidden rounded-full bg-surface">
+                <div className="relative size-11 overflow-hidden rounded-full bg-surface">
                   <Image
                     src={displayedVideo.userAvatarUrl || "/default-avatar.png"}
                     alt={displayedVideo.username}
@@ -422,57 +547,73 @@ export default function VideoDetailPage() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-[20px] font-bold">@{displayedVideo.username}</h3>
-                  <p className="truncate text-[15px] font-semibold text-text-secondary">
+                  <h3 className="truncate text-[18px] font-bold">@{displayedVideo.username}</h3>
+                  <p className="truncate text-[13px] font-semibold text-text-secondary">
                     {displayedVideo.userNickname || displayedVideo.username}
                     {" · "}
                     {new Date(displayedVideo.createdAt).toLocaleDateString("vi-VN")}
                   </p>
                 </div>
               </Link>
+              {canFollowAuthor && (
+                <button
+                  type="button"
+                  onClick={handleToggleFollowAuthor}
+                  disabled={followMutation.isPending || unfollowMutation.isPending}
+                  className={`h-10 min-w-[104px] rounded-sm px-5 text-[16px] font-bold transition ${
+                    isFollowingAuthor
+                      ? "bg-elevated text-white hover:bg-hover"
+                      : "bg-brand text-white hover:bg-brand-dark"
+                  } ${(followMutation.isPending || unfollowMutation.isPending) ? "opacity-60" : ""}`}
+                >
+                  {isFollowingAuthor ? "Following" : "Follow"}
+                </button>
+              )}
             </div>
-            <p className="whitespace-pre-wrap text-[17px] leading-snug">
+            <p className="whitespace-pre-wrap text-[15px] leading-snug">
               {displayedVideo.description || displayedVideo.title}
             </p>
-            <p className="mt-3 text-[15px] font-semibold text-text-secondary">
+            <p className="mt-2.5 text-[13px] font-semibold text-text-secondary">
               ♫ {t("originalSound", { username: displayedVideo.username })}
             </p>
           </div>
 
-          <div className="mb-5 flex items-center gap-4">
+          <div className="mb-4 flex items-center gap-3">
             <CompactMetric
               active={displayedVideo.isLiked}
-              icon={<Heart className={displayedVideo.isLiked ? "fill-current" : ""} size={22} />}
+              icon={<Heart className={displayedVideo.isLiked ? "fill-current" : ""} size={20} />}
               label={formatCount(displayedVideo.likeCount)}
               onClick={handleLike}
             />
             <CompactMetric
-              icon={<MessageCircle size={22} />}
+              icon={<MessageCircle size={20} />}
               label={formatCount(displayedVideo.commentCount)}
               onClick={() => setActiveTab("comments")}
             />
             <CompactMetric
-              icon={<Share2 size={22} />}
-              label={formatCount(displayedVideo.shareCount ?? 0)}
-              onClick={handleCopyLink}
+              active={displayedVideo.isSaved}
+              activeColor="text-yellow-400"
+              icon={<Bookmark className={displayedVideo.isSaved ? "fill-current" : ""} size={20} />}
+              label={formatCount(displayedVideo.saveCount ?? 0)}
+              onClick={handleSave}
             />
             <div className="ml-auto flex items-center gap-2">
-              <ShareCircle icon={<Code2 size={18} />} />
-              <ShareCircle icon={<Facebook className="size-5" />} />
-              <ShareCircle icon={<LinkIcon size={18} />} onClick={handleCopyLink} />
+              <ShareCircle icon={<Code2 size={16} />} />
+              <ShareCircle icon={<Facebook className="size-4" />} />
+              <ShareCircle icon={<LinkIcon size={16} />} onClick={handleCopyLink} />
             </div>
           </div>
 
-          <div className="flex h-10 overflow-hidden rounded-md bg-elevated">
-            <div className="min-w-0 flex-1 truncate px-4 py-2 text-[15px] text-text-secondary">
+          <div className="flex h-9 overflow-hidden rounded-md bg-elevated">
+            <div className="min-w-0 flex-1 truncate px-3 py-2 text-[14px] text-text-secondary">
               {shareUrl}
             </div>
             <button
               type="button"
               onClick={handleCopyLink}
-              className="flex items-center gap-2 bg-hover px-5 text-[15px] font-bold hover:bg-white/15"
+              className="flex items-center gap-2 bg-hover px-4 text-[14px] font-bold hover:bg-white/15"
             >
-              <Copy className="size-4" />
+              <Copy className="size-3.5" />
               Sao chép liên kết
             </button>
           </div>
@@ -506,11 +647,6 @@ export default function VideoDetailPage() {
         </div>
       </aside>
 
-      <AddToCollectionModal
-        isOpen={isCollectionModalOpen}
-        videoId={displayedVideo.id}
-        onClose={() => setIsCollectionModalOpen(false)}
-      />
     </div>
   );
 }
@@ -541,6 +677,7 @@ function DetailTabButton({
 function ScrollableDetailVideo({
   video,
   isActive,
+  isInitial,
   className,
   controlsVariant,
   onActive,
@@ -550,6 +687,7 @@ function ScrollableDetailVideo({
 }: {
   video: Video;
   isActive: boolean;
+  isInitial?: boolean;
   className?: string;
   controlsVariant?: "default" | "profile-detail";
   onActive: (video: Video) => void;
@@ -558,6 +696,14 @@ function ScrollableDetailVideo({
   blockLabel?: string;
 }) {
   const itemRef = useRef<HTMLDivElement | null>(null);
+
+  // Tự động cuộn phần tử video được click chọn vào tiêu điểm hiển thị ngay khi mount.
+  // Điều này cho phép giữ nguyên thứ tự sắp xếp gốc, giúp người dùng có thể lướt ngược lên để xem các video trước đó.
+  useEffect(() => {
+    if (isInitial && itemRef.current) {
+      itemRef.current.scrollIntoView({ block: "start" });
+    }
+  }, [isInitial]);
 
   useEffect(() => {
     const item = itemRef.current;
@@ -577,6 +723,7 @@ function ScrollableDetailVideo({
   return (
     <div
       ref={itemRef}
+      data-detail-video-id={video.id}
       className="flex h-full w-full items-center justify-center"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >
@@ -590,6 +737,62 @@ function ScrollableDetailVideo({
         onOpenVideoInfo={() => {}}
         onBlockUser={onBlockUser}
         blockLabel={blockLabel}
+      />
+    </div>
+  );
+}
+
+function ScrollableFeedDetailVideo({
+  video,
+  detailSource,
+  isInitial,
+  onActive,
+  onCommentsClick,
+  stageOffsetX,
+}: {
+  video: Video;
+  detailSource: string;
+  isInitial?: boolean;
+  onActive: (video: Video) => void;
+  onCommentsClick: () => void;
+  stageOffsetX: string;
+}) {
+  const itemRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isInitial && itemRef.current) {
+      itemRef.current.scrollIntoView({ block: "start" });
+    }
+  }, [isInitial]);
+
+  useEffect(() => {
+    const item = itemRef.current;
+    if (!item) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onActive(video);
+      },
+      { threshold: 0.65 },
+    );
+
+    observer.observe(item);
+    return () => observer.disconnect();
+  }, [onActive, video]);
+
+  return (
+    <div
+      ref={itemRef}
+      data-detail-video-id={video.id}
+      className="h-full w-full"
+      style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
+    >
+      <VideoCard
+        video={video}
+        detailSource={detailSource}
+        onCommentsClick={onCommentsClick}
+        reserveCommentPanelSpace
+        stageOffsetX={stageOffsetX}
       />
     </div>
   );
@@ -611,7 +814,7 @@ function RecommendedVideoGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-5 p-8">
+    <div className="grid grid-cols-2 gap-4 p-6">
       {videos.map((video) => (
         <Link
           key={video.id}
@@ -641,11 +844,13 @@ function RecommendedVideoGrid({
 
 function CompactMetric({
   active,
+  activeColor = "text-brand",
   icon,
   label,
   onClick,
 }: {
   active?: boolean;
+  activeColor?: string;
   icon: ReactNode;
   label: string;
   onClick: () => void;
@@ -654,7 +859,7 @@ function CompactMetric({
     <button type="button" onClick={onClick} className="flex items-center gap-2 font-bold">
       <span
         className={`grid size-11 place-items-center rounded-full bg-elevated ${
-          active ? "text-brand" : "text-white"
+          active ? activeColor : "text-white"
         }`}
       >
         {icon}
@@ -686,7 +891,7 @@ function VideoDetailSkeleton({ mode }: { mode: DetailMode }) {
   return (
     <div className={mode === "direct" ? "flex h-full w-full bg-background" : "fixed inset-0 z-[100] flex bg-background"}>
       <div className="flex-1 animate-pulse bg-neutral-900" />
-      <div className="hidden w-[462px] flex-col gap-6 p-6 lg:flex">
+      <div className="hidden w-[420px] flex-col gap-6 p-6 lg:flex">
         <div className="h-12 rounded bg-neutral-800" />
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((item) => (

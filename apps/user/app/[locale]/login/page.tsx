@@ -15,7 +15,8 @@ import { setCredentials } from "@/store/slices/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLoginMutation } from "@/hooks/auth-hooks";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-import type { AuthMessageData } from "@/types/auth";
+import AuthModal from "@/components/auth/AuthModal";
+import type { AuthMessageData, AuthResponse } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
 
   useEffect(() => {
     const channel = new BroadcastChannel("oauth_channel");
@@ -37,10 +39,17 @@ export default function LoginPage() {
       const authEvent = event.data as AuthMessageData;
 
       if (authEvent.type === "AUTH_SUCCESS") {
+        const { data } = authEvent;
+        const responseData = data as AuthResponse;
+        const user = responseData && 'user' in responseData ? responseData.user : responseData;
+        if (user && user.onboarded === false) {
+          setTempAuthData(responseData);
+          return;
+        }
+
         setSuccessMsg("Đăng nhập thành công");
         if (authEvent.data) {
           dispatch(setCredentials(authEvent.data));
-          const user = 'user' in authEvent.data ? authEvent.data.user : authEvent.data;
           if (user) {
             queryClient.setQueryData(["currentUser"], { data: user });
           }
@@ -49,23 +58,22 @@ export default function LoginPage() {
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         }, 300);
         setTimeout(() => {
-        router.push("/");
-        router.refresh();
-      }, 1000);
-    } else if (authEvent.type === "AUTH_ERROR") {
-      setErrorMsg(authEvent.error || "Xác thực thất bại");
-    }
+          window.location.href = "/";
+        }, 1000);
+      } else if (authEvent.type === "AUTH_ERROR") {
+        setErrorMsg(authEvent.error || "Xác thực thất bại");
+      }
 
-    channel.close();
-  };
+      channel.close();
+    };
 
-  return () => channel.close();
-}, [dispatch, router, queryClient]);
+    return () => channel.close();
+  }, [dispatch, router, queryClient]);
 
   const loginMutation = useLoginMutation(() => {
     setSuccessMsg("Đăng nhập thành công");
     setTimeout(() => {
-      router.push("/");
+      window.location.href = "/";
     }, 1000);
   });
 
@@ -209,6 +217,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      {tempAuthData && (
+        <AuthModal 
+          onClose={() => setTempAuthData(null)}
+          initialMethod="onboard_dob"
+          tempAuthData={tempAuthData}
+        />
+      )}
     </div>
   );
 }

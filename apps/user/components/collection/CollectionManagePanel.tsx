@@ -85,14 +85,14 @@ export function CollectionManagePanel({
     <>
       <div
         ref={panelRef}
-        className="absolute z-[220] hidden w-[280px] overflow-hidden rounded-lg border border-white/15 bg-[#3f3f3f] text-white shadow-2xl sm:block"
+        className="absolute z-[220] hidden w-[248px] overflow-hidden rounded-lg border border-white/15 bg-[#3f3f3f] text-white shadow-2xl sm:block"
         style={panelStyle}
       >
-        <div className="max-h-[360px] overflow-y-auto p-2 custom-scrollbar">
+        <div className="max-h-[320px] overflow-y-auto p-2 custom-scrollbar">
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="mb-2 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-white/10 px-3 text-[15px] font-bold hover:bg-white/15"
+            className="mb-2 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-white/10 px-3 text-[14px] font-bold hover:bg-white/15"
           >
             <PlusCircle className="size-4" />
             {t("createNewCollection")}
@@ -114,19 +114,19 @@ export function CollectionManagePanel({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleAdd(collection.id)}
-                    className="flex h-[56px] w-full items-center gap-3 rounded-md px-2 text-left hover:bg-white/10 disabled:opacity-60"
+                    className="flex h-12 w-full items-center gap-2.5 rounded-md px-2 text-left hover:bg-white/10 disabled:opacity-60"
                   >
-                    <div className="grid size-10 flex-shrink-0 place-items-center rounded-md bg-white/15 text-white/70">
+                    <div className="grid size-9 flex-shrink-0 place-items-center rounded-md bg-white/15 text-white/70">
                       {isPending ? (
-                        <Loader2 className="size-5 animate-spin" />
+                        <Loader2 className="size-4 animate-spin" />
                       ) : isSelected ? (
-                        <Check className="size-5 text-brand" />
+                        <Check className="size-4 text-brand" />
                       ) : (
-                        <Bookmark className="size-5" />
+                        <Bookmark className="size-4" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-bold">{collection.name}</p>
+                      <p className="truncate text-[13px] font-bold">{collection.name}</p>
                       <p className="truncate text-[12px] font-semibold text-white/45">
                         {t("videoCount", { count: collection.videoCount })}
                       </p>
@@ -136,7 +136,7 @@ export function CollectionManagePanel({
               })}
             </div>
           ) : (
-            <p className="py-8 text-center text-[14px] font-semibold text-white/55">
+            <p className="py-7 text-center text-[13px] font-semibold text-white/55">
               {t("emptyCollections")}
             </p>
           )}

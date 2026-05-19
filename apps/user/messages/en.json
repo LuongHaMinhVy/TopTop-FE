@@ -8,7 +8,11 @@
       "empty": "No notifications yet",
       "liked": "liked your video",
       "commented": "commented on your video",
-      "followed": "started following you"
+      "followed": "started following you",
+      "today": "Today",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "earlier": "Earlier"
     },
     "sidebar": {
         "forYou": "For You",
@@ -254,7 +258,17 @@
     "hasAccount": "Already have an account?",
     "successLogin": "Logged in successfully",
     "successRegister": "Registered successfully",
-    "errorAuth": "Authentication failed"
+    "errorAuth": "Authentication failed",
+    "chooseDob": "Choose date of birth",
+    "dobLabel": "Your date of birth",
+    "btnContinue": "Continue",
+    "chooseUsername": "Choose username",
+    "btnFinishRegister": "Register & Log in",
+    "errSelectDob": "Please select a date of birth.",
+    "errInvalidDob": "Invalid date of birth.",
+    "errAgeRestriction": "You must be 13 years or older to register.",
+    "errFutureDob": "Date of birth cannot be in the future.",
+    "errGeneric": "An error occurred"
   },
   "notFound": {
     "title": "Oops! This page doesn't exist",
@@ -311,5 +325,32 @@
     "makePublicDescription": "Public collections will appear on your profile and can be shared with friends.",
     "save": "Save",
     "videoCount": "{count, plural, =0 {No videos} =1 {# video} other {# videos}}"
+  },
+  "following": {
+    "loginRequired": "Log in to see videos from accounts you follow.",
+    "login": "Log in",
+    "noFollowing": "Follow creators to build your Following feed.",
+    "noVideos": "No videos from accounts you follow yet.",
+    "suggestedAccounts": "Suggested accounts",
+    "noSuggestions": "No suggestions available at this time.",
+    "loadError": "Unable to load following videos. Please try again.",
+    "follow": "Follow",
+    "following": "Following",
+    "followBack": "Follow back",
+    "friends": "Friends"
+  },
+  "friends": {
+    "title": "Friends",
+    "loginRequired": "Log in to see videos from friends and find people you may know.",
+    "login": "Log in",
+    "noFriends": "Follow each other with creators to see friends' videos here.",
+    "noVideos": "No videos from friends yet.",
+    "suggestedFriends": "Suggested friends",
+    "noSuggestions": "No suggestions available at this time.",
+    "loadError": "Unable to load friends videos. Please try again.",
+    "follow": "Follow",
+    "following": "Following",
+    "followBack": "Follow back",
+    "friends": "Friends"
   }
 }

@@ -33,14 +33,20 @@ import Image from "next/image";
 import type { Video } from "@/types/video";
 import { useCommentSidebar } from "@/components/layout/CommentSidebarContext";
 import { useLikeVideoMutation, useUnlikeVideoMutation } from "@/hooks/video-hooks";
-import { useBlockUserMutation } from "@/hooks/user-hooks";
+import { useBlockUserMutation, useDynamicFollowMutation, useDynamicUnfollowMutation } from "@/hooks/user-hooks";
 import { useSaveVideoMutation, useUnsaveVideoMutation } from "@/hooks/collection-hooks";
 import { usePathname, useRouter } from "@/i18n/routing";
 import { videoPath } from "@/utils/video-url";
 
-const FEED_VIDEO_MAX_WIDTH = "60vw";
+const FEED_VIDEO_LANDSCAPE_MAX_WIDTH = "62vw";
 const FEED_VIDEO_MAX_HEIGHT = "calc(100dvh - 32px)";
+const FEED_VIDEO_VIEWPORT_WIDTH = "calc(100vw - 32px)";
 const FEED_VIDEO_SIDE_CONTROLS_WIDTH = "112px";
+const FEED_VIDEO_COMMENT_SIDE_CONTROLS_WIDTH = "192px";
+const FEED_VIDEO_RESERVED_COMMENT_SIDE_CONTROLS_WIDTH = "168px";
+const COLLECTION_PANEL_WIDTH = 248;
+const COLLECTION_PANEL_GAP = 16;
+const COLLECTION_PANEL_RIGHT_GAP = 64;
 
 interface InteractionSidebarProps {
   overlay?: boolean;
@@ -57,6 +63,9 @@ interface InteractionSidebarProps {
   onAvatarClick?: () => void;
   onCommentsClick?: () => void;
   showFollowButton?: boolean;
+  isFollowingAuthor?: boolean;
+  isFollowPending?: boolean;
+  onFollowClick?: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
@@ -75,6 +84,9 @@ const InteractionSidebar = ({
   onAvatarClick,
   onCommentsClick,
   showFollowButton = true,
+  isFollowingAuthor = false,
+  isFollowPending = false,
+  onFollowClick,
 }: InteractionSidebarProps) => {
   return (
     <div className={`flex flex-col items-center gap-3 ${overlay ? "" : "pb-10"}`}>
@@ -93,8 +105,24 @@ const InteractionSidebar = ({
           />
         </div>
         {showFollowButton && (
-          <button className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white hover:scale-110 transition-all duration-200 border-2 border-background shadow-md group-hover/avatar:bg-brand-dark">
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!isFollowingAuthor) onFollowClick?.();
+            }}
+            disabled={isFollowPending}
+            className={`absolute -bottom-1 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border-2 border-background shadow-md transition-all duration-200 ${
+              isFollowingAuthor
+                ? "bg-[#161616] text-brand hover:scale-110"
+                : "bg-brand text-white hover:scale-110 group-hover/avatar:bg-brand-dark"
+            } ${isFollowPending ? "opacity-60" : ""}`}
+          >
+            {isFollowingAuthor ? (
+              <Check className="h-3.5 w-3.5 stroke-[3]" />
+            ) : (
+              <Plus className="h-3.5 w-3.5 stroke-[3]" />
+            )}
           </button>
         )}
       </div>
@@ -161,6 +189,10 @@ interface VideoCardProps {
   comments?: string;
   saves?: string;
   shares?: string;
+  detailSource?: string;
+  onCommentsClick?: () => void;
+  reserveCommentPanelSpace?: boolean;
+  stageOffsetX?: string;
 }
 
 // ─────────────────────────────────────────────
@@ -178,6 +210,10 @@ export default function VideoCard({
   comments: commentsProp,
   saves: savesProp = "0",
   shares: sharesProp = "0",
+  detailSource: detailSourceProp,
+  onCommentsClick: onCommentsClickProp,
+  reserveCommentPanelSpace = false,
+  stageOffsetX,
   ref,
 }: VideoCardProps & { ref?: React.Ref<HTMLDivElement> }) {
   // ── Derived props ──
@@ -217,19 +253,21 @@ export default function VideoCard({
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const isOwnVideo = currentUser && video && currentUser.id === video.userId;
-  const detailSource =
-    pathname === "/explore"
+  const detailSource = detailSourceProp ??
+    (pathname === "/explore"
       ? "explore"
       : pathname === "/friends"
         ? "friends"
         : pathname === "/following"
           ? "following"
-          : "feed";
+          : "feed");
 
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
+  const followMutation = useDynamicFollowMutation();
+  const unfollowMutation = useDynamicUnfollowMutation();
   const blockMutation = useBlockUserMutation(username);
 
   // ── State ──
@@ -237,6 +275,7 @@ export default function VideoCard({
   const [likeCount,       setLikeCount]       = useState(initialLikeCount);
   const [isSaved,         setIsSaved]         = useState(video?.isSaved ?? false);
   const [saveCount,       setSaveCount]       = useState(savesFromProps);
+  const [followOverride, setFollowOverride] = useState<{ videoId: number; value: boolean } | null>(null);
   const [isPlaying,       setIsPlaying]       = useState(true);
   const [showControlIcon, setShowControlIcon] = useState(false);
   const [iconType,        setIconType]        = useState<"play" | "pause">("play");
@@ -246,9 +285,14 @@ export default function VideoCard({
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isNearViewport,  setIsNearViewport]  = useState(false);
   const [detectedAspectRatio, setDetectedAspectRatio] = useState<number | null>(null);
+  const [collectionPanelSide, setCollectionPanelSide] = useState<"left" | "right">(
+    () => (parseAspectRatio(aspectRatio || "9/16") > 1 ? "left" : "right"),
+  );
 
   // ── Refs ──
   const internalRef       = useRef<HTMLDivElement>(null);
+  const stageRef          = useRef<HTMLDivElement>(null);
+  const videoFrameRef     = useRef<HTMLDivElement>(null);
   const videoRef          = useRef<HTMLVideoElement>(null);
   const menuRef           = useRef<HTMLDivElement>(null);
   const favoriteToastRef  = useRef<HTMLDivElement>(null);
@@ -270,6 +314,10 @@ export default function VideoCard({
 
   // Context Menu Logic
   const { isOpen: isCtxOpen, position: ctxPos, openMenu, closeMenu } = useVideoContextMenu();
+  const isFollowingAuthor =
+    video?.id && followOverride?.videoId === video.id
+      ? followOverride.value
+      : (video?.isFollowingAuthor ?? false);
 
   const hideFavoriteToast = useCallback(() => {
     setIsFavoriteToastLeaving(true);
@@ -306,28 +354,82 @@ export default function VideoCard({
   const controlIconTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const videoAspectRatio = detectedAspectRatio ?? parseAspectRatio(aspectRatio || "9/16");
-  const isCommentSidebarOpen = activeCommentVideoId !== null;
-  const feedVideoAvailableWidth = `calc(100% - ${FEED_VIDEO_SIDE_CONTROLS_WIDTH})`;
-  const feedVideoMaxWidth = isCommentSidebarOpen
-    ? `min(${FEED_VIDEO_MAX_WIDTH}, ${feedVideoAvailableWidth})`
-    : FEED_VIDEO_MAX_WIDTH;
+  const isCommentSidebarOpen = reserveCommentPanelSpace || activeCommentVideoId !== null;
+  const isExternalFeedCommentOpen =
+    !reserveCommentPanelSpace && detailSource === "feed" && activeCommentVideoId !== null;
+  const isLandscape = videoAspectRatio > 1;
+  const updateCollectionPanelSide = useCallback(() => {
+    if (isLandscape) {
+      setCollectionPanelSide("left");
+      return;
+    }
+
+    const frame = videoFrameRef.current;
+    if (!frame) {
+      setCollectionPanelSide("right");
+      return;
+    }
+
+    const frameRect = frame.getBoundingClientRect();
+    const actionRailViewportLeft = frameRect.right + 24;
+    const rightPanelEdge =
+      actionRailViewportLeft + COLLECTION_PANEL_RIGHT_GAP + COLLECTION_PANEL_WIDTH;
+
+    setCollectionPanelSide(rightPanelEdge > window.innerWidth - 16 ? "left" : "right");
+  }, [isLandscape]);
+  const resolvedStageOffsetX =
+    stageOffsetX ??
+    (isExternalFeedCommentOpen
+      ? isLandscape
+        ? "clamp(-48px, -2.5vw, -24px)"
+        : "clamp(-72px, -4vw, -40px)"
+      : isLandscape
+        ? "clamp(-96px, -5vw, -56px)"
+        : "clamp(-96px, -5vw, -56px)");
+  const feedVideoSideControlsWidth =
+    reserveCommentPanelSpace && detailSource === "feed"
+      ? FEED_VIDEO_RESERVED_COMMENT_SIDE_CONTROLS_WIDTH
+      : isCommentSidebarOpen
+        ? FEED_VIDEO_COMMENT_SIDE_CONTROLS_WIDTH
+        : FEED_VIDEO_SIDE_CONTROLS_WIDTH;
+  const feedVideoAvailableWidth = `calc(100% - ${feedVideoSideControlsWidth})`;
+  const feedVideoLandscapeMaxWidth = isCommentSidebarOpen
+    ? `min(${FEED_VIDEO_LANDSCAPE_MAX_WIDTH}, ${feedVideoAvailableWidth})`
+    : FEED_VIDEO_LANDSCAPE_MAX_WIDTH;
+  const feedVideoFrameWidth = isLandscape
+    ? `min(${feedVideoLandscapeMaxWidth}, calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}))`
+    : `min(calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}), ${FEED_VIDEO_VIEWPORT_WIDTH})`;
+  const feedVideoFrameHeight = isLandscape
+    ? `calc(${feedVideoFrameWidth} / ${videoAspectRatio})`
+    : `min(${FEED_VIDEO_MAX_HEIGHT}, calc(${FEED_VIDEO_VIEWPORT_WIDTH} / ${videoAspectRatio}))`;
   const videoFrameStyle = {
     "--feed-video-ratio": String(videoAspectRatio),
     aspectRatio: String(videoAspectRatio),
-    width: `min(${feedVideoMaxWidth}, calc(${FEED_VIDEO_MAX_HEIGHT} * var(--feed-video-ratio)))`,
-    height: `min(${FEED_VIDEO_MAX_HEIGHT}, calc(${feedVideoMaxWidth} / var(--feed-video-ratio)))`,
-    maxWidth: feedVideoMaxWidth,
+    width: feedVideoFrameWidth,
+    height: feedVideoFrameHeight,
+    maxWidth: isLandscape ? feedVideoLandscapeMaxWidth : feedVideoFrameWidth,
     maxHeight: FEED_VIDEO_MAX_HEIGHT,
     transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1), height 280ms cubic-bezier(0.22, 1, 0.36, 1), max-width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
     willChange: "width, height, max-width",
   } as React.CSSProperties;
+
+  const actionRailLeft = `calc(50% + (${feedVideoFrameWidth} / 2) + 24px)`;
   const actionRailStyle = {
-    left: `calc(50% + min(calc(${feedVideoMaxWidth} / 2), calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio} / 2)) + 24px)`,
-    transition: "left 280ms cubic-bezier(0.22, 1, 0.36, 1)",
-    willChange: "left",
+    left: actionRailLeft,
+    top: isLandscape
+      ? "50%"
+      : `calc(50% + (${feedVideoFrameHeight} / 2))`,
+    transform: isLandscape
+      ? "translateY(-50%)"
+      : "translateY(-100%) translateY(-16px)",
+    transition: "left 280ms cubic-bezier(0.22, 1, 0.36, 1), top 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+    willChange: "left, top",
   } as React.CSSProperties;
   const collectionPanelStyle = {
-    left: `min(calc(100vw - 300px), calc(50% + min(calc(${feedVideoMaxWidth} / 2), calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio} / 2)) + 86px))`,
+    left:
+      collectionPanelSide === "left"
+        ? `max(12px, calc(${actionRailLeft} - ${COLLECTION_PANEL_WIDTH + COLLECTION_PANEL_GAP}px))`
+        : `min(calc(100vw - ${COLLECTION_PANEL_WIDTH + 12}px), calc(${actionRailLeft} + ${COLLECTION_PANEL_RIGHT_GAP}px))`,
     top: "50%",
     transform: "translateY(-50%)",
     transition: "left 280ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -338,6 +440,29 @@ export default function VideoCard({
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    if (!isCollectionPanelOpen) return;
+
+    let frameId = 0;
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(updateCollectionPanelSide);
+    };
+
+    scheduleUpdate();
+    window.addEventListener("resize", scheduleUpdate);
+
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    if (stageRef.current) resizeObserver.observe(stageRef.current);
+    if (videoFrameRef.current) resizeObserver.observe(videoFrameRef.current);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", scheduleUpdate);
+      resizeObserver.disconnect();
+    };
+  }, [isCollectionPanelOpen, updateCollectionPanelSide]);
 
   // ── Click-outside for options menu ──
   useEffect(() => {
@@ -402,7 +527,7 @@ export default function VideoCard({
           ) {
             openCommentSidebar(
               videoId,
-              videoPath(video.username, video.id, { from: detailSource }),
+              videoPath(video.username, video.id, { from: detailSource, comments: 1 }),
               video.allowComments ?? true,
             );
           }
@@ -514,14 +639,26 @@ export default function VideoCard({
   }, [router, username]);
 
   const handleCommentsClick = useCallback(() => {
-    if (videoId && isCommentSidebarAvailable) {
+    if (onCommentsClickProp) {
+      onCommentsClickProp();
+      return;
+    }
+
+    if (videoId && video && isCommentSidebarAvailable) {
       toggleCommentSidebar(
         videoId,
-        video ? videoPath(video.username, video.id, { from: detailSource }) : undefined,
-        video?.allowComments ?? true,
+        videoPath(video.username, video.id, { from: detailSource, comments: 1 }),
+        video.allowComments ?? true,
       );
     }
-  }, [detailSource, isCommentSidebarAvailable, toggleCommentSidebar, video, videoId]);
+  }, [
+    detailSource,
+    isCommentSidebarAvailable,
+    onCommentsClickProp,
+    toggleCommentSidebar,
+    video,
+    videoId,
+  ]);
 
   const handleLike = () => {
     if (!video?.id || likeMutation.isPending || unlikeMutation.isPending) return;
@@ -583,6 +720,24 @@ export default function VideoCard({
         },
       });
     }
+  };
+
+  const handleFollowAuthor = () => {
+    const isFollowPending = followMutation.isPending || unfollowMutation.isPending;
+    if (!video || isOwnVideo || isFollowPending) return;
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      return;
+    }
+
+    const previousFollowing = isFollowingAuthor;
+    const nextFollowing = !previousFollowing;
+    setFollowOverride({ videoId: video.id, value: nextFollowing });
+
+    const mutation = nextFollowing ? followMutation : unfollowMutation;
+    mutation.mutate(username, {
+      onError: () => setFollowOverride({ videoId: video.id, value: previousFollowing }),
+    });
   };
 
   const handleBlockUser = () => {
@@ -674,20 +829,29 @@ export default function VideoCard({
       className="flex h-full w-full items-center justify-center px-4 py-4"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >
-      <div className="relative flex h-full w-full items-center justify-center">
+      <div
+        ref={stageRef}
+        className="relative flex h-full w-full items-center justify-center"
+        style={{
+          transform: `translateX(${resolvedStageOffsetX})`,
+          transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: resolvedStageOffsetX === "0px" ? undefined : "transform",
+        }}
+      >
 
         {/* ── Video wrapper ── */}
         <div
+          ref={videoFrameRef}
           className={`
-            relative group flex-shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.5)] bg-black
-            overflow-hidden rounded-[24px] sm:rounded-[32px]
+            relative group flex-shrink-0 bg-black
+            overflow-hidden rounded-[20px] sm:rounded-[24px]
           `}
           style={videoFrameStyle}
         >
           {videoUrl ? (
             <>
               <div
-                className="relative w-full h-full overflow-hidden rounded-[24px] sm:rounded-[32px] cursor-pointer shadow-inner"
+                className="relative w-full h-full overflow-hidden rounded-[1rem] sm:rounded-[1rem] cursor-pointer"
                 onClick={togglePlay}
                 onContextMenu={openMenu}
               >
@@ -695,7 +859,7 @@ export default function VideoCard({
                   <video
                     ref={videoRef}
                     src={videoUrl}
-                    className="block h-full w-full object-contain"
+                    className="block h-full w-full object-cover"
                     loop={!autoScroll}
                     onEnded={handleEnded}
                     muted={isMuted}
@@ -718,7 +882,7 @@ export default function VideoCard({
                         src={video.thumbnailUrl} 
                         alt={caption} 
                         fill 
-                        className="object-contain"
+                        className="object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-[#121212]" />
@@ -808,6 +972,9 @@ export default function VideoCard({
                     onAvatarClick={handleProfileClick}
                     onCommentsClick={handleCommentsClick}
                     showFollowButton={!isOwnVideo}
+                    isFollowingAuthor={isFollowingAuthor}
+                    isFollowPending={followMutation.isPending || unfollowMutation.isPending}
+                    onFollowClick={handleFollowAuthor}
                     videoRef={videoRef}
                   />
                 </div>
@@ -915,7 +1082,7 @@ export default function VideoCard({
         </div>
 
         {/* Tablet/Desktop interaction sidebar */}
-        <div className="absolute bottom-4 hidden sm:block" style={actionRailStyle}>
+        <div className="absolute hidden sm:block" style={actionRailStyle}>
           <InteractionSidebar
             avatarUrl={avatarUrl}
             username={username}
@@ -930,6 +1097,9 @@ export default function VideoCard({
             onAvatarClick={handleProfileClick}
             onCommentsClick={handleCommentsClick}
             showFollowButton={!isOwnVideo}
+            isFollowingAuthor={isFollowingAuthor}
+            isFollowPending={followMutation.isPending || unfollowMutation.isPending}
+            onFollowClick={handleFollowAuthor}
             videoRef={videoRef}
           />
         </div>

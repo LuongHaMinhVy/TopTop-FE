@@ -24,7 +24,7 @@ import Image from "next/image";
 import { ReportModal } from "@/components/report/ReportModal";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { useUserProfile, useFollowMutation, useUnfollowMutation, useBlockUserMutation, useUnblockUserMutation } from "@/hooks/user-hooks";
-import { useUserVideos } from "@/hooks/video-hooks";
+import { useUserVideos, useLikedVideos } from "@/hooks/video-hooks";
 import {
   useCreateCollectionMutation,
   useFavoriteVideos,
@@ -68,6 +68,7 @@ export default function ProfilePage() {
 
   const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id);
   const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos(isOwnProfileForQueries);
+  const { data: likedVideosRes, isLoading: isLoadingLiked } = useLikedVideos(isOwnProfileForQueries && activeTab === "liked");
   const { data: userCollectionsRes, isLoading: isLoadingCollections } = useUserCollections(
     username,
     activeTab === "favorites"
@@ -75,10 +76,25 @@ export default function ProfilePage() {
 
   const userVideos = userVideosRes?.data || [];
   const favoriteVideos = favoriteVideosRes?.data || [];
+  const likedVideos = likedVideosRes?.data || [];
   const collections = userCollectionsRes?.data || [];
 
-  const displayedVideos = activeTab === "video" ? userVideos : activeTab === "favorites" ? favoriteVideos : [];
-  const isDisplayedLoading = activeTab === "video" ? isLoadingVideos : activeTab === "favorites" ? isLoadingFavorites : false;
+  const displayedVideos =
+    activeTab === "video"
+      ? userVideos
+      : activeTab === "favorites"
+      ? favoriteVideos
+      : activeTab === "liked"
+      ? likedVideos
+      : [];
+  const isDisplayedLoading =
+    activeTab === "video"
+      ? isLoadingVideos
+      : activeTab === "favorites"
+      ? isLoadingFavorites
+      : activeTab === "liked"
+      ? isLoadingLiked
+      : false;
 
   if (isLoading) {
     return (
@@ -175,13 +191,13 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="h-full w-full overflow-y-auto px-5 pt-8 pb-20 sm:px-8 lg:px-10 xl:px-12">
+    <div className="h-full w-full overflow-y-auto px-5 pt-6 pb-20 sm:px-8 lg:px-10 xl:px-12">
       {/* Profile Header */}
-      <div className="mb-8 flex max-w-[1160px] flex-col gap-5 lg:mb-10">
-        <div className="flex items-start gap-6 lg:gap-10">
+      <div className="mb-6 flex max-w-[1220px] flex-col gap-4 lg:mb-7">
+        <div className="flex items-start gap-5 lg:gap-8">
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
-            <div className="relative h-28 w-28 overflow-hidden rounded-full border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105 sm:h-36 sm:w-36 lg:h-44 lg:w-44">
+            <div className="relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105 sm:h-32 sm:w-32 lg:h-36 lg:w-36">
               {profile.avatarUrl ? (
                 <Image src={profile.avatarUrl} alt={profile.nickname ?? ""} fill className="object-cover rounded-full" />
               ) : (
@@ -193,36 +209,53 @@ export default function ProfilePage() {
           </div>
 
           {/* User Info */}
-          <div className="flex-1 min-w-0 pt-1 lg:pt-2">
-            <div className="flex flex-col gap-1 mb-4">
-              <h1 className="text-3xl lg:text-[32px] font-bold tracking-tight truncate leading-tight flex items-center gap-2">
+          <div className="min-w-0 flex-1 pt-1 lg:pt-2">
+            <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h1 className="max-w-[420px] truncate text-[28px] font-bold leading-tight tracking-tight lg:text-[30px]">
                 {profile.nickname ?? profile.username}
-                
               </h1>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[16px] lg:text-[18px] font-semibold text-text-primary truncate">
-                  {profile.username}
-                </h2>
-                
+              <div className="hidden h-7 w-px bg-elevated sm:block" />
+              <h2 className="max-w-[300px] truncate text-[16px] font-semibold text-text-secondary lg:text-[17px]">
+                {profile.username}
+              </h2>
+            </div>
+
+            <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[18px]">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold">{profile.followingCount ?? 0}</span>
+                <span className="text-[16px] text-text-primary">{t('following')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold">{profile.followersCount ?? 0}</span>
+                <span className="text-[16px] text-text-primary">{t('followers')}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold">{profile.totalLikes ?? 0}</span>
+                <span className="text-[16px] text-text-primary">{t('likes')}</span>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 mb-5">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
               {isOwnProfile ? (
                 <>
                   <button 
                     onClick={() => setIsEditProfileOpen(true)}
-                    className="flex h-12 items-center gap-2 rounded-full bg-elevated px-7 text-[17px] font-bold transition-colors hover:bg-hover"
+                    className="flex h-9 items-center rounded-full bg-elevated px-5 text-[15px] font-bold transition-colors hover:bg-hover"
                   >
-                    <Settings className="w-5 h-5" />
                     {t('editProfile')}
                   </button>
-                  <button className="flex h-12 w-12 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
-                    <Share2 className="w-5 h-5" />
+                  <button className="flex h-9 items-center rounded-full bg-elevated px-5 text-[15px] font-bold transition-colors hover:bg-hover">
+                    Quảng bá bài đăng
                   </button>
-                  <button className="flex h-12 w-12 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
-                    <MoreHorizontal className="w-5 h-5" />
+                  <button
+                    onClick={() => setIsEditProfileOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
+                  <button className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
+                    <Share2 className="w-5 h-5" />
                   </button>
                 </>
               ) : (
@@ -231,7 +264,7 @@ export default function ProfilePage() {
                     <button
                       onClick={handleBlockToggle}
                       disabled={blockMutation.isPending || unblockMutation.isPending}
-                      className="flex h-12 items-center gap-2 rounded-full bg-elevated px-8 text-[17px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
+                      className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
                       <Ban className="w-5 h-5" />
                       {t('unblockUser')}
@@ -240,7 +273,7 @@ export default function ProfilePage() {
                     <button 
                       onClick={handleFollowToggle}
                       disabled={followMutation.isPending || unfollowMutation.isPending}
-                      className="flex h-12 items-center gap-2 rounded-full bg-elevated px-8 text-[17px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
+                      className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
                       <Users className="w-5 h-5" />
                       {t('friends')}
@@ -249,7 +282,7 @@ export default function ProfilePage() {
                     <button 
                       onClick={handleFollowToggle}
                       disabled={followMutation.isPending || unfollowMutation.isPending}
-                      className="flex h-12 items-center gap-2 rounded-full bg-elevated px-8 text-[17px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
+                      className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
                       <UserCheck className="w-5 h-5" />
                       {t('following')}
@@ -258,20 +291,20 @@ export default function ProfilePage() {
                     <button 
                       onClick={handleFollowToggle}
                       disabled={followMutation.isPending || unfollowMutation.isPending}
-                      className="flex h-12 items-center gap-2 rounded-full bg-brand px-10 text-[17px] font-bold text-white transition-all hover:bg-brand/90 active:scale-95 disabled:opacity-50"
+                      className="flex h-9 items-center gap-2 rounded-full bg-brand px-7 text-[15px] font-bold text-white transition-all hover:bg-brand/90 active:scale-95 disabled:opacity-50"
                     >
                       <UserPlus className="w-5 h-5" />
                       {relationship?.isFollower ? t('followBack') : t('follow')}
                     </button>
                   )}
                   
-                  <button className="flex h-12 w-12 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
+                  <button className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
                     <Share2 className="w-5 h-5" />
                   </button>
                   <div className="relative">
                     <button
                       onClick={() => setIsProfileMenuOpen((value) => !value)}
-                      className="flex h-12 w-12 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
                     >
                       <MoreHorizontal className="w-5 h-5" />
                     </button>
@@ -305,6 +338,31 @@ export default function ProfilePage() {
                 </>
               )}
             </div>
+
+            <div className="flex flex-col gap-3">
+              {profile.bio && (
+                <p className="max-w-[760px] whitespace-pre-wrap text-[16px] leading-relaxed">
+                  {profile.bio}
+                </p>
+              )}
+
+              {(profile.websiteUrl || profile.instagramHandle || profile.youtubeHandle || profile.region || profile.gender) && (
+                <div className="flex flex-wrap items-center gap-4 text-[14px] text-text-secondary">
+                  {profile.websiteUrl && (
+                    <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-text-primary hover:underline">
+                      <LinkIcon className="w-4 h-4" />
+                      <span className="max-w-[200px] truncate">{profile.websiteUrl.replace(/^https?:\/\//, '')}</span>
+                    </a>
+                  )}
+                  {profile.region && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4" />
+                      <span>{profile.region}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -314,56 +372,11 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-[20px]">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold">{profile.followingCount ?? 0}</span>
-            <span className="text-text-secondary text-[18px]">{t('following')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold">{profile.followersCount ?? 0}</span>
-            <span className="text-text-secondary text-[18px]">{t('followers')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold">{profile.totalLikes ?? 0}</span>
-            <span className="text-text-secondary text-[18px]">{t('likes')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold">{profile.videoCount ?? 0}</span>
-            <span className="text-text-secondary text-[18px]">{t('tabs.video')}</span>
-          </div>
-        </div>
-
-        {/* Bio and Links */}
-        <div className="flex flex-col gap-3">
-          {profile.bio && (
-            <p className="max-w-[760px] whitespace-pre-wrap text-[20px] leading-relaxed">
-              {profile.bio}
-            </p>
-          )}
-
-          {/* Social Links & Info */}
-          {(profile.websiteUrl || profile.instagramHandle || profile.youtubeHandle || profile.region || profile.gender) && (
-            <div className="flex flex-wrap items-center gap-4 text-[14px] text-text-secondary">
-              {profile.websiteUrl && (
-                <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-text-primary transition-colors hover:underline">
-                  <LinkIcon className="w-4 h-4" />
-                  <span className="truncate max-w-[200px]">{profile.websiteUrl.replace(/^https?:\/\//, '')}</span>
-                </a>
-              )}
-              {profile.region && (
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4" />
-                  <span>{profile.region}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Tabs */}
-      <div className="relative mb-8 border-b border-elevated">
-        <div className="flex items-center gap-8">
+      <div className="relative mb-7 border-b border-elevated">
+        <div className="flex items-center overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -371,7 +384,7 @@ export default function ProfilePage() {
                 setActiveTab(tab.id);
                 if (tab.id === "favorites" && !isOwnProfile) setFavoriteSection("collections");
               }}
-              className={`relative flex h-[56px] items-center justify-center gap-2 px-8 text-[18px] font-bold transition-colors whitespace-nowrap lg:text-[20px]
+              className={`relative flex h-[54px] min-w-[170px] items-center justify-center gap-2 px-7 text-[18px] font-bold transition-colors whitespace-nowrap lg:text-[20px]
                 ${activeTab === tab.id ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}
               `}
             >
@@ -432,7 +445,7 @@ export default function ProfilePage() {
                 [1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />)
               ) : favoriteVideos.length > 0 ? (
                 favoriteVideos.map((video) => (
-                  <FavoriteVideoTile key={video.id} video={video} href={videoPath(video.username, video.id, { from: "profile" })} />
+                  <FavoriteVideoTile key={video.id} video={video} href={videoPath(video.username, video.id, { from: "favorites" })} />
                 ))
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
@@ -471,7 +484,13 @@ export default function ProfilePage() {
             ))
           ) : displayedVideos.length > 0 ? (
             displayedVideos.map((video) => (
-              <FavoriteVideoTile key={video.id} video={video} href={videoPath(profile.username, video.id, { from: "profile" })} />
+              <FavoriteVideoTile
+                key={video.id}
+                video={video}
+                href={videoPath(video.username, video.id, {
+                  from: activeTab === "liked" ? "liked" : "profile",
+                })}
+              />
             ))
           ) : (
             <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">

@@ -4,13 +4,20 @@ import { AxiosError } from "axios";
 import { handleErrorResponse } from "./handle-error-response";
 import type { 
   ConversationResponseDTO, 
+  ConversationStatus,
   MessageResponseDTO, 
   UnreadCountResponseDTO 
 } from "@/types/chat";
 
-export const getConversations = async (page = 0, size = 20): Promise<ApiResponse<ConversationResponseDTO[]>> => {
+export const getConversations = async (
+  page = 0,
+  size = 20,
+  status: ConversationStatus = "ACTIVE",
+): Promise<ApiResponse<ConversationResponseDTO[]>> => {
   try {
-    const response = await api.get<ApiResponse<ConversationResponseDTO[]>>(`/chat/conversations?page=${page}&size=${size}`);
+    const response = await api.get<ApiResponse<ConversationResponseDTO[]>>(
+      `/chat/conversations?page=${page}&size=${size}&status=${status}`,
+    );
     return response.data;
   } catch (error) {
     handleErrorResponse(error as AxiosError);

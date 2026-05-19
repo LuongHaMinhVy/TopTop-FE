@@ -2,7 +2,7 @@
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import AuthModal from "./AuthModal";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "@/i18n/routing";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [hasShownModal, setHasShownModal] = useState(false);
   const { isAuthModalOpen, authModalType, isNotFound } = useSelector((state: RootState) => state.auth);
 
   const isSkipPage = pathname === "/login" || 
@@ -25,12 +26,20 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const user = useSelector((state: RootState) => state.auth.user);
 
   const queryClient = useQueryClient();
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     const handleAuthExpired = () => {
+      const wasLoggedIn = !!userRef.current;
       dispatch(clearCredentials());
       queryClient.setQueryData(["currentUser"], null);
-      dispatch(openAuthModal("login"));
+      if (wasLoggedIn) {
+        dispatch(openAuthModal("login"));
+      }
     };
 
     window.addEventListener("auth:expired", handleAuthExpired);
@@ -45,18 +54,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }, [user, dispatch, queryClient]);
 
   useEffect(() => {
-    if (isLoading || user || isSkipPage) return;
-
-    if (sessionStorage.getItem("initial_auth_modal_shown")) return;
-
-    sessionStorage.setItem("initial_auth_modal_shown", "true");
+    if (isLoading || user || isSkipPage || hasShownModal) return;
 
     const timer = setTimeout(() => {
+      setHasShownModal(true);
       dispatch(openAuthModal("login"));
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [isLoading, user, isSkipPage, dispatch]);
+  }, [isLoading, user, isSkipPage, hasShownModal, dispatch]);
 
   return (
     <>

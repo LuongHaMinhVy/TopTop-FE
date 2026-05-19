@@ -50,7 +50,7 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
       className={`
         flex items-center rounded-2xl w-full py-2.5 my-0.5 transition-all gap-2 duration-300 group relative overflow-hidden
         ${active 
-          ? "text-brand font-black" 
+          ? "text-brand font-bold" 
           : "hover:bg-hover text-text-primary font-bold"}
       `}
       style={{ 
@@ -65,7 +65,7 @@ export function TikNavItem({ icon, label, active, collapsed, onClick }: { icon: 
       )}
 
       <span className={`flex items-center justify-center w-8 h-8 flex-shrink-0 transition-all duration-300 ${active ? "scale-110" : "group-hover:scale-110 group-active:scale-95"}`}>
-        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ strokeWidth?: number }>, { strokeWidth: active ? 3 : 2.5 }) : icon}
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ strokeWidth?: number }>, { strokeWidth: 2.5 }) : icon}
       </span>
       <span 
         className="text-[17px] text-start tracking-tight whitespace-nowrap ml-3" 

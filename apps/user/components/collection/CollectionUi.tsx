@@ -34,12 +34,21 @@ export function FavoriteVideoTile({
   selected?: boolean;
   onSelect?: () => void;
 }) {
+  const isUnavailable = Boolean(video.unavailable || video.deleted);
   const content = (
     <div
-      className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-elevated"
+      className={`group relative aspect-[3/4] overflow-hidden rounded-lg bg-elevated ${
+        isUnavailable ? "cursor-default" : ""
+      }`}
       onClick={selectable ? onSelect : undefined}
     >
-      {video.thumbnailUrl ? (
+      {isUnavailable ? (
+        <div className="flex h-full w-full flex-col items-center justify-center bg-surface-secondary px-4 text-center text-text-muted">
+          <Trash2 className="mb-3 size-10 opacity-50" />
+          <p className="text-[15px] font-bold text-text-secondary">Video không khả dụng</p>
+          <p className="mt-1 text-[12px] font-semibold">Video này đã bị xóa hoặc không còn công khai.</p>
+        </div>
+      ) : video.thumbnailUrl ? (
         <Image
           src={video.thumbnailUrl}
           alt={video.title}
@@ -54,11 +63,15 @@ export function FavoriteVideoTile({
           preload="metadata"
         />
       )}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
-      <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[15px] font-bold text-white">
-        <span className="text-[18px] leading-none">▷</span>
-        {formatCount(video.viewCount)}
-      </div>
+      {!isUnavailable && (
+        <>
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent" />
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[15px] font-bold text-white">
+            <span className="text-[18px] leading-none">▷</span>
+            {formatCount(video.viewCount)}
+          </div>
+        </>
+      )}
       {selectable && (
         <div
           className={`absolute right-3 top-3 grid size-7 place-items-center rounded-full border-2 border-white ${
