@@ -17,6 +17,12 @@ import type { AuthType, AuthMethod, AuthModalProps, AuthMessageData, AuthRespons
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Modal } from "@repo/ui/modal";
+import type { UserInfo } from "@/types/user";
+
+const getAuthUser = (authData?: AuthResponse | UserInfo | null) => {
+  if (!authData) return null;
+  return "user" in authData ? authData.user : authData;
+};
 
 export default function AuthModal({ 
   onClose, 
@@ -32,11 +38,14 @@ export default function AuthModal({
   const [method, setMethod] = useState<AuthMethod>(initialMethod);
   const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(propTempAuthData || null);
   
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    username: "",
-    dateOfBirth: ""
+  const [formData, setFormData] = useState(() => {
+    const user = getAuthUser(propTempAuthData);
+    return {
+      email: "",
+      password: "",
+      username: user?.username ?? "",
+      dateOfBirth: ""
+    };
   });
   const [dob, setDob] = useState({
     month: "",
@@ -55,15 +64,6 @@ export default function AuthModal({
   });
 
   useEffect(() => {
-    if (tempAuthData) {
-      const user = 'user' in tempAuthData ? tempAuthData.user : tempAuthData;
-      if (user && user.username) {
-        setFormData(prev => ({ ...prev, username: user.username }));
-      }
-    }
-  }, [tempAuthData]);
-
-  useEffect(() => {
     const channel = new BroadcastChannel("oauth_channel");
 
     channel.onmessage = (event) => {
@@ -71,7 +71,7 @@ export default function AuthModal({
       if (authEvent.type === "AUTH_SUCCESS") {
         const { data } = authEvent;
         const responseData = data as AuthResponse;
-        const user = responseData && 'user' in responseData ? responseData.user : responseData;
+        const user = getAuthUser(responseData);
         if (user && user.onboarded === false) {
           setTempAuthData(responseData);
           if (user.username) {
@@ -84,7 +84,7 @@ export default function AuthModal({
         setSuccessMsg(t('successLogin'));
         if (data) {
           dispatch(setCredentials(data));
-          const user = 'user' in data ? data.user : data;
+          const user = getAuthUser(data);
           if (user) {
             queryClient.setQueryData(["currentUser"], { data: user });
           }
@@ -348,8 +348,9 @@ export default function AuthModal({
                       },
                       accessToken: tempAuthData?.accessToken
                     }, {
-                      onError: (err: any) => {
-                        setErrorMsg(err.response?.data?.message || err.message || t('errGeneric'));
+                      onError: (err: unknown) => {
+                        const error = err as { response?: { data?: { message?: string } }; message?: string };
+                        setErrorMsg(error.response?.data?.message || error.message || t('errGeneric'));
                       }
                     });
                   }}

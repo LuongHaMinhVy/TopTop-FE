@@ -16,6 +16,7 @@ import {
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { useUserVideos } from '@/hooks/video-hooks';
+import Image from 'next/image';
 
 export default function StudioDashboard() {
   const t = useTranslations('Studio');
@@ -240,9 +241,9 @@ export default function StudioDashboard() {
       <div className="bg-background border border-elevated rounded-xl p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6 transition duration-200">
         <div className="flex items-center gap-5">
           {/* Avatar circle */}
-          <div className="w-16 h-16 rounded-full overflow-hidden border border-elevated shrink-0 bg-surface flex items-center justify-center font-bold text-xl text-white/80">
+          <div className="relative w-16 h-16 rounded-full overflow-hidden border border-elevated shrink-0 bg-surface flex items-center justify-center font-bold text-xl text-white/80">
             {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.nickname || ''} className="w-full h-full object-cover" />
+              <Image src={user.avatarUrl} alt={user.nickname || ''} fill sizes="64px" className="object-cover" unoptimized />
             ) : (
               user?.username?.[0].toUpperCase()
             )}
@@ -495,10 +496,13 @@ export default function StudioDashboard() {
                     {/* 9:16 Vertical Video Thumbnail */}
                     <div className="w-12 h-16 rounded bg-black/20 overflow-hidden relative shrink-0 border border-white/5 flex items-center justify-center">
                       {video.thumbnailUrl ? (
-                        <img 
+                        <Image 
                           src={video.thumbnailUrl} 
                           alt="" 
-                          className="w-full h-full object-cover" 
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <Video size={16} className="text-white/30" />

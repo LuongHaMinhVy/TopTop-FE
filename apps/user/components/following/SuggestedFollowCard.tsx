@@ -8,6 +8,7 @@ import { openAuthModal } from "@/store/slices/authSlice";
 import { useDynamicFollowMutation, useDynamicUnfollowMutation } from "@/hooks/user-hooks";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import Image from "next/image";
 
 interface SuggestedFollowCardProps {
   user: UserInfo;
@@ -69,10 +70,13 @@ export default function SuggestedFollowCard({ user, translationNamespace = "foll
       {/* Blurred cover background */}
       <div className="absolute top-0 left-0 right-0 h-[100px] overflow-hidden z-0">
         {user.coverUrl || user.avatarUrl ? (
-          <img 
-            src={user.coverUrl || user.avatarUrl} 
+          <Image 
+            src={user.coverUrl || user.avatarUrl || ""} 
             alt="" 
-            className="w-full h-full object-cover filter blur-[4px] brightness-[0.5] scale-105 group-hover:scale-110 transition-transform duration-500"
+            fill
+            sizes="100vw"
+            className="object-cover filter blur-[4px] brightness-[0.5] scale-105 group-hover:scale-110 transition-transform duration-500"
+            unoptimized
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950" />
@@ -82,12 +86,15 @@ export default function SuggestedFollowCard({ user, translationNamespace = "foll
 
       {/* Avatar */}
       <div className="relative z-10 mt-6 flex-shrink-0">
-        <div className="w-[88px] h-[88px] rounded-full overflow-hidden border-2 border-surface-secondary shadow-xl bg-zinc-800">
+        <div className="relative w-[88px] h-[88px] rounded-full overflow-hidden border-2 border-surface-secondary shadow-xl bg-zinc-800">
           {user.avatarUrl ? (
-            <img 
+            <Image 
               src={user.avatarUrl} 
               alt={displayName} 
-              className="w-full h-full object-cover"
+              fill
+              sizes="88px"
+              className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-white text-3xl font-bold bg-gradient-to-br from-[#fe2c55] to-purple-600">

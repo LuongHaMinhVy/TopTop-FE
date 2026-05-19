@@ -77,7 +77,7 @@ export default function ContentManagementPage() {
   
   // Fetch user videos
   const { data: videoResponse, isLoading } = useUserVideos(user?.id);
-  const videos = videoResponse?.data || [];
+  const videos = useMemo(() => videoResponse?.data ?? [], [videoResponse?.data]);
 
   // Mutations
   const deleteMutation = useDeleteVideoMutation(user?.id);

@@ -8,7 +8,7 @@ import type { UserInfo } from "@/types/user";
 export interface FollowingTraySummary {
   liveCount: number;
   storyCount: number;
-  items: any[];
+  items: UserInfo[];
 }
 
 export const getFollowingFeed = async (page = 0, size = 10): Promise<ApiResponse<Video[]>> => {
