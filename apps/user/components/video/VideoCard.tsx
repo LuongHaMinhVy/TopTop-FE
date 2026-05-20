@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   PictureInPicture,
   Check,
+  Repeat2,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -23,6 +24,8 @@ import { CollectionManagePanel } from "@/components/collection/CollectionManageP
 import { setMuted, setVolume, toggleMuted } from "@/store/slices/mediaSlice";
 import { openAuthModal } from "@/store/slices/authSlice";
 import { VideoOptionsMenu } from "./VideoOptionsMenu";
+import { ShareModal } from "./ShareModal";
+import { RepostBadge } from "./RepostBadge";
 import { IconButton } from "@repo/ui/icon-button";
 import { useTranslations } from "next-intl";
 import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
@@ -31,8 +34,14 @@ import { Avatar } from "@repo/ui/avatar";
 import { Button } from "@repo/ui/button";
 import Image from "next/image";
 import type { Video } from "@/types/video";
+import type { VideoRepostUser } from "@/types/video";
 import { useCommentSidebar } from "@/components/layout/CommentSidebarContext";
-import { useLikeVideoMutation, useUnlikeVideoMutation } from "@/hooks/video-hooks";
+import {
+  useLikeVideoMutation,
+  useRepostVideoMutation,
+  useUnlikeVideoMutation,
+  useUnrepostVideoMutation,
+} from "@/hooks/video-hooks";
 import { useBlockUserMutation, useDynamicFollowMutation, useDynamicUnfollowMutation } from "@/hooks/user-hooks";
 import { useSaveVideoMutation, useUnsaveVideoMutation } from "@/hooks/collection-hooks";
 import { usePathname, useRouter } from "@/i18n/routing";
@@ -58,8 +67,10 @@ interface InteractionSidebarProps {
   comments: string;
   saves: string;
   shares: string;
+  musicLabel?: string;
   onLike: () => void;
   onSave: () => void;
+  onShare?: () => void;
   onAvatarClick?: () => void;
   onCommentsClick?: () => void;
   showFollowButton?: boolean;
@@ -79,8 +90,10 @@ const InteractionSidebar = ({
   comments,
   saves,
   shares,
+  musicLabel = "Âm thanh",
   onLike,
   onSave,
+  onShare,
   onAvatarClick,
   onCommentsClick,
   showFollowButton = true,
@@ -109,19 +122,19 @@ const InteractionSidebar = ({
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              if (!isFollowingAuthor) onFollowClick?.();
+              onFollowClick?.();
             }}
             disabled={isFollowPending}
-            className={`absolute -bottom-1 left-1/2 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border-2 border-background shadow-md transition-all duration-200 ${
+            className={`absolute -bottom-1 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full border-2 border-background shadow-md transition-all duration-200 ${
               isFollowingAuthor
                 ? "bg-[#161616] text-brand hover:scale-110"
                 : "bg-brand text-white hover:scale-110 group-hover/avatar:bg-brand-dark"
             } ${isFollowPending ? "opacity-60" : ""}`}
           >
             {isFollowingAuthor ? (
-              <Check className="h-3.5 w-3.5 stroke-[3]" />
+              <Check className="block h-3.5 w-3.5 stroke-[3]" />
             ) : (
-              <Plus className="h-3.5 w-3.5 stroke-[3]" />
+              <Plus className="block h-3.5 w-3.5 stroke-[3]" />
             )}
           </button>
         )}
@@ -152,8 +165,20 @@ const InteractionSidebar = ({
       <IconButton
         icon={<Share2 className="w-7 h-7" />}
         label={shares}
+        onClick={onShare}
         isOverlay={overlay}
       />
+      <button
+        type="button"
+        aria-label={musicLabel}
+        title={musicLabel}
+        className={`
+          mt-1 grid place-items-center rounded-full text-white transition hover:scale-105
+          ${overlay ? "size-10 bg-black/40 backdrop-blur-sm" : "size-12 bg-neutral-800 hover:bg-neutral-700"}
+        `}
+      >
+        <Music className="h-5 w-5" />
+      </button>
     </div>
   );
 };
@@ -203,7 +228,6 @@ export default function VideoCard({
   videoUrl: videoUrlProp,
   username: usernameProp = "user",
   caption: captionProp = "",
-  sound: soundProp,
   aspectRatio = "9/16",
   avatarUrl: avatarUrlProp = "",
   likes: likesProp,
@@ -230,7 +254,6 @@ export default function VideoCard({
 
   const t        = useTranslations("video");
   const tCollection = useTranslations("Collection");
-  const sound     = video ? t('originalSound', { username: video.username }) : (soundProp || t('originalSound', { username }));
   const dispatch = useDispatch();
   const router   = useRouter();
   const pathname = usePathname();
@@ -239,6 +262,9 @@ export default function VideoCard({
   const [showFavoriteToast, setShowFavoriteToast] = useState(false);
   const [isFavoriteToastLeaving, setIsFavoriteToastLeaving] = useState(false);
   const [isCollectionPanelOpen, setIsCollectionPanelOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [repostOverride, setRepostOverride] = useState<{ videoId: number; value: boolean } | null>(null);
+  const [showRepostToast, setShowRepostToast] = useState(false);
   const {
     activeVideoId: activeCommentVideoId,
     isCommentSidebarAvailable,
@@ -253,6 +279,27 @@ export default function VideoCard({
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const isOwnVideo = currentUser && video && currentUser.id === video.userId;
+  const isReposted =
+    video?.id && repostOverride?.videoId === video.id
+      ? repostOverride.value
+      : (video?.isReposted ?? false);
+  const currentRepostUser: VideoRepostUser | null = currentUser
+    ? {
+        id: currentUser.id,
+        username: currentUser.username,
+        nickname: currentUser.nickname,
+        avatarUrl: currentUser.avatarUrl,
+        isCurrentUser: true,
+      }
+    : null;
+  const repostUsers = (() => {
+    const users = [...(video?.repostedBy ?? [])];
+    const hasCurrentUser = currentRepostUser && users.some((user) => user.id === currentRepostUser.id);
+    if (isReposted && currentRepostUser && !hasCurrentUser) {
+      return [currentRepostUser, ...users];
+    }
+    return users;
+  })();
   const detailSource = detailSourceProp ??
     (pathname === "/explore"
       ? "explore"
@@ -264,6 +311,8 @@ export default function VideoCard({
 
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
+  const repostMutation = useRepostVideoMutation();
+  const unrepostMutation = useUnrepostVideoMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
   const followMutation = useDynamicFollowMutation();
@@ -298,6 +347,7 @@ export default function VideoCard({
   const favoriteToastRef  = useRef<HTMLDivElement>(null);
   const isIntersectingRef = useRef(false);
   const isPlayingRef      = useRef(isPlaying);
+  const wasPlayingBeforeHiddenRef = useRef(false);
 
   // Helper to merge internal and external refs
   const setRefs = useCallback((node: HTMLDivElement | null) => {
@@ -333,6 +383,50 @@ export default function VideoCard({
         navigator.clipboard.writeText(url);
         closeMenu();
     }
+  };
+
+  const handleRepost = () => {
+    if (!video?.id) return;
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      return;
+    }
+    if (repostMutation.isPending || unrepostMutation.isPending) return;
+
+    const previousReposted = isReposted;
+    setRepostOverride({ videoId: video.id, value: true });
+    setShowRepostToast(true);
+    setTimeout(() => setShowRepostToast(false), 2500);
+
+    repostMutation.mutate(video.id, {
+      onSuccess: (response) => {
+        if (response.data?.reposted !== undefined) {
+          setRepostOverride({ videoId: video.id, value: response.data.reposted });
+        }
+      },
+      onError: () => {
+        setRepostOverride({ videoId: video.id, value: previousReposted });
+        setShowRepostToast(false);
+      },
+    });
+  };
+
+  const handleRemoveRepost = () => {
+    if (!video?.id) return;
+    if (repostMutation.isPending || unrepostMutation.isPending) return;
+
+    const previousReposted = isReposted;
+    if (video?.id) setRepostOverride({ videoId: video.id, value: false });
+    setShowRepostToast(false);
+
+    unrepostMutation.mutate(video.id, {
+      onSuccess: (response) => {
+        if (response.data?.reposted !== undefined) {
+          setRepostOverride({ videoId: video.id, value: response.data.reposted });
+        }
+      },
+      onError: () => setRepostOverride({ videoId: video.id, value: previousReposted }),
+    });
   };
 
   const handleDownload = () => {
@@ -507,9 +601,13 @@ export default function VideoCard({
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        videoRef.current?.pause();
-      } else if (isIntersectingRef.current && isPlayingRef.current) {
+        wasPlayingBeforeHiddenRef.current = !videoEl.paused;
+        videoEl.pause();
+      } else if (isIntersectingRef.current && wasPlayingBeforeHiddenRef.current) {
         videoRef.current?.play().catch(() => {});
+      }
+      if (!document.hidden) {
+        wasPlayingBeforeHiddenRef.current = false;
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -969,12 +1067,14 @@ export default function VideoCard({
                     shares={shares}
                     onLike={handleLike}
                     onSave={handleSave}
+                    onShare={() => setIsShareModalOpen(true)}
                     onAvatarClick={handleProfileClick}
                     onCommentsClick={handleCommentsClick}
                     showFollowButton={!isOwnVideo}
                     isFollowingAuthor={isFollowingAuthor}
                     isFollowPending={followMutation.isPending || unfollowMutation.isPending}
                     onFollowClick={handleFollowAuthor}
+                    musicLabel={t("originalSound", { username })}
                     videoRef={videoRef}
                   />
                 </div>
@@ -984,6 +1084,13 @@ export default function VideoCard({
 
                 {/* Caption / username area with better typography */}
                 <div className="absolute bottom-5 left-3 right-20 sm:right-4 z-0 text-white select-none pointer-events-none">
+                  <RepostBadge
+                    users={repostUsers}
+                    onRepost={!isReposted ? handleRepost : undefined}
+                    onRemove={isReposted ? handleRemoveRepost : undefined}
+                    className="mb-1.5"
+                    popoverPlacement="top"
+                  />
                   <div 
                     className="flex items-center gap-2 mb-1.5 pointer-events-auto group/user cursor-pointer w-fit"
                     onClick={handleProfileClick}
@@ -1006,22 +1113,6 @@ export default function VideoCard({
                     </button>
                   </div>
                   
-                  <div className="flex items-center gap-1.5 mt-3 opacity-90 group/music cursor-pointer pointer-events-auto w-fit">
-                    <div className="bg-black/10 p-1 rounded-full backdrop-blur-sm">
-                      <Music className="w-3.5 h-3.5 flex-shrink-0 animate-[bounce_2s_infinite]" />
-                    </div>
-                    <span className="text-[13px] truncate font-medium drop-shadow-md hover:underline decoration-white/30">{sound}</span>
-                  </div>
-                </div>
-
-                {/* FIX 6 — Music disc: will-change for GPU-accelerated spin */}
-                <div className="absolute bottom-5 right-4 z-20 hidden sm:block">
-                  <div
-                    className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-800 to-gray-900 border-[6px] border-gray-800 flex items-center justify-center animate-spin-slow shadow-lg"
-                    style={{ willChange: "transform" }}
-                  >
-                    <div className="w-3 h-3 rounded-full bg-gray-600" />
-                  </div>
                 </div>
               </div>
 
@@ -1094,12 +1185,14 @@ export default function VideoCard({
             shares={shares}
             onLike={handleLike}
             onSave={handleSave}
+            onShare={() => setIsShareModalOpen(true)}
             onAvatarClick={handleProfileClick}
             onCommentsClick={handleCommentsClick}
             showFollowButton={!isOwnVideo}
             isFollowingAuthor={isFollowingAuthor}
             isFollowPending={followMutation.isPending || unfollowMutation.isPending}
             onFollowClick={handleFollowAuthor}
+            musicLabel={t("originalSound", { username })}
             videoRef={videoRef}
           />
         </div>
@@ -1146,6 +1239,25 @@ export default function VideoCard({
           targetType="VIDEO"
           targetId={video.id}
         />
+      )}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        onCopyLink={handleCopyLink}
+        isReposted={isReposted}
+        onRepost={handleRepost}
+        onRemoveRepost={handleRemoveRepost}
+        videoId={video?.id}
+      />
+
+      {/* Repost Toast */}
+      {showRepostToast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 rounded-full bg-[#222] px-4 py-2.5 text-[14px] font-semibold text-white shadow-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Repeat2 className="size-4 text-yellow-400" />
+          Đã đăng lại
+        </div>
       )}
 
       {/* Context Menu */}

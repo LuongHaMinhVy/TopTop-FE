@@ -43,7 +43,7 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
 
   if (!conversation) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-text-muted bg-[#121212]">
+      <div className="flex flex-col items-center justify-center h-full text-text-muted bg-background">
         <MessageSquare size={64} className="mb-4 opacity-20" strokeWidth={1} />
         <h2 className="text-xl font-bold text-text-primary">{t('emptyTitle')}</h2>
         <p className="max-w-[300px] text-center mt-2">{t('emptyDescription')}</p>
@@ -67,7 +67,7 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
         <div className="flex flex-col min-w-0">
           <span className="font-bold truncate">{conversation.targetUser?.displayName}</span>
           <span className="text-[12px] text-text-muted">
-            {conversation.targetUser?.online ? t('online') : t('offline')}
+            {conversation.targetUser?.username ? `@${conversation.targetUser.username}` : ""}
           </span>
         </div>
       </button>
@@ -95,7 +95,15 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
         )}
         
         {messages.map((msg) => (
-          <MessageItem key={msg.id} message={msg} />
+          <MessageItem 
+            key={msg.id} 
+            message={msg} 
+            chatVideosStr={messages
+              .filter(m => m.type === 'VIDEO_SHARE' && m.attachment?.videoId)
+              .map(m => m.attachment!.videoId)
+              .reverse()
+              .join(',')}
+          />
         ))}
       </div>
 

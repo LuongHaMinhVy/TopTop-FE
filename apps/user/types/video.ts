@@ -19,10 +19,20 @@ export interface Video {
   isFollowingAuthor?: boolean;
   saveCount?: number;
   shareCount?: number;
+  isReposted?: boolean;
+  repostedBy?: VideoRepostUser[];
   allowComments?: boolean;
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   deleted?: boolean;
   unavailable?: boolean;
+}
+
+export interface VideoRepostUser {
+  id: number;
+  username: string;
+  nickname?: string;
+  avatarUrl?: string;
+  isCurrentUser?: boolean;
 }
 
 export interface VideoUploadData {

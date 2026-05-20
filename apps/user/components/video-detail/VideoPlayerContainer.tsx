@@ -51,6 +51,7 @@ export function VideoPlayerContainer({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [detectedAspectRatio, setDetectedAspectRatio] = useState<number | null>(null);
   const lastProgressRef = useRef(0);
+  const wasPlayingBeforeHiddenRef = useRef(false);
   const isProfileDetailControls = controlsVariant === "profile-detail";
   const profileDetailAspectRatio = detectedAspectRatio ?? 9 / 16;
 
@@ -73,15 +74,29 @@ export function VideoPlayerContainer({
 
     const handleEnterPip = () => setIsPipActive(true);
     const handleLeavePip = () => setIsPipActive(false);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        wasPlayingBeforeHiddenRef.current = !player.paused;
+        player.pause();
+        return;
+      }
+
+      if (wasPlayingBeforeHiddenRef.current && (isActive ?? true)) {
+        player.play().catch(() => {});
+      }
+      wasPlayingBeforeHiddenRef.current = false;
+    };
 
     player.addEventListener("enterpictureinpicture", handleEnterPip);
     player.addEventListener("leavepictureinpicture", handleLeavePip);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       player.removeEventListener("enterpictureinpicture", handleEnterPip);
       player.removeEventListener("leavepictureinpicture", handleLeavePip);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [video.id]);
+  }, [isActive, video.id]);
 
   const handleToggleMute = () => {
     const player = videoRef.current;
@@ -280,16 +295,16 @@ export function VideoPlayerContainer({
               }}
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="relative h-5 min-w-0 flex-1">
-                <div className="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/30 transition-all duration-150 group-hover/progress:h-1">
+              <div className="relative h-6 min-w-0 flex-1">
+                <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2 overflow-hidden rounded-full bg-white/20 border border-white/20 shadow-[0_1px_2px_rgba(0,0,0,0.5)] transition-all duration-150 group-hover/progress:h-2.5">
                   <div
                     className="h-full bg-white transition-[width] duration-100"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
                 <div
-                  className="absolute top-1/2 z-[60] size-3 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.45)]"
-                  style={{ left: `calc(${progress}% - 6px)` }}
+                  className="absolute top-1/2 z-[60] size-4 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_rgba(0,0,0,0.5)] transition-transform duration-150 group-hover/progress:scale-110"
+                  style={{ left: `calc(${progress}% - 8px)` }}
                 />
                 <input
                   type="range"
@@ -364,18 +379,18 @@ export function VideoPlayerContainer({
             </button>
 
             <div
-              className="absolute bottom-0 left-0 z-50 h-6 w-full group/progress"
+              className="absolute bottom-0 left-0 z-50 h-8 w-full group/progress"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="absolute bottom-0 left-0 h-1 w-full overflow-hidden rounded-b-xl bg-white/10 transition-all duration-150 group-hover/progress:h-1.5">
+              <div className="absolute bottom-0 left-0 h-1.5 w-full overflow-hidden rounded-b-xl bg-black/20 border-t border-white/10 transition-all duration-150 group-hover/progress:h-2.5">
                 <div
                   className="h-full bg-brand transition-[width] duration-100"
                   style={{ width: `${progress}%` }}
                 />
               </div>
               <div
-                className="absolute z-[60] size-3 rounded-full bg-white opacity-0 shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-opacity duration-150 group-hover/progress:opacity-100"
-                style={{ bottom: "-1px", left: `calc(${progress}% - 6px)` }}
+                className="absolute z-[60] size-4 rounded-full bg-white opacity-0 shadow-[0_0_8px_rgba(0,0,0,0.6)] transition-all duration-150 group-hover/progress:opacity-100 group-hover/progress:scale-110"
+                style={{ bottom: "-2px", left: `calc(${progress}% - 8px)` }}
               />
               <input
                 type="range"

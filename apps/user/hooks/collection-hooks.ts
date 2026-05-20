@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as collectionService from "@/services/collection-api-service";
 import type { CreateCollectionRequest, UpdateCollectionRequest } from "@/types/collection";
+import { updateVideoInCache } from "./video-hooks";
 
 export const useFavoriteVideos = (enabled = true) => {
   return useQuery({
@@ -74,12 +75,12 @@ export const useSaveVideoMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (videoId: number) => collectionService.saveVideo(videoId),
-    onSuccess: () => {
+    onSuccess: (response, videoId) => {
+      if (response?.data) {
+        updateVideoInCache(queryClient, videoId, { isSaved: true, saveCount: response.data.saveCount });
+      }
       queryClient.invalidateQueries({ queryKey: ["favorite-videos"] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
-      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["video-detail"] });
     },
   });
 };
@@ -88,13 +89,13 @@ export const useUnsaveVideoMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (videoId: number) => collectionService.unsaveVideo(videoId),
-    onSuccess: () => {
+    onSuccess: (response, videoId) => {
+      if (response?.data) {
+        updateVideoInCache(queryClient, videoId, { isSaved: false, saveCount: response.data.saveCount });
+      }
       queryClient.invalidateQueries({ queryKey: ["favorite-videos"] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
       queryClient.invalidateQueries({ queryKey: ["collection-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
-      queryClient.invalidateQueries({ queryKey: ["video-detail"] });
     },
   });
 };

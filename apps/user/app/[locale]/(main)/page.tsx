@@ -1,6 +1,7 @@
 "use client";
 
 import VideoCard from "@/components/video/VideoCard";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useInfiniteVideos } from "@/hooks/video-hooks";
 import { useCallback, useRef } from "react";
 import { Video } from "@/types/video";
@@ -50,6 +51,7 @@ export default function FeedPage() {
   const allVideos = data?.pages.flatMap((page) => page.data ?? []) ?? [];
   return (
     <>
+      <DocumentTitle title="TopTop - Make Your Day" />
       <div
         className="h-full overflow-y-auto custom-scrollbar relative"
         style={{

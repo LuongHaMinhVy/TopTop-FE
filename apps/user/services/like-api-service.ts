@@ -23,3 +23,23 @@ export const unlikeVideo = async (videoId: number) => {
     throw error;
   }
 };
+
+export const repostVideo = async (videoId: number) => {
+  try {
+    const response = await api.post<ApiResponse<VideoStatsResponse>>(`/videos/${videoId}/repost`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const unrepostVideo = async (videoId: number) => {
+  try {
+    const response = await api.delete<ApiResponse<VideoStatsResponse>>(`/videos/${videoId}/repost`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

@@ -28,6 +28,7 @@ import Image from 'next/image';
 import { useUserVideos, useDeleteVideoMutation, useUpdateVideoMutation } from '@/hooks/video-hooks';
 import { useComments, useDeleteCommentMutation } from '@/hooks/comment-hooks';
 import type { Video } from '@/types/video';
+import { DocumentTitle } from '@/components/shared/DocumentTitle';
 
 // Custom Date Formatter in Vietnamese matching screenshot: e.g. "1 tháng 4 2025, 10:20 SA"
 const formatVietnameseDate = (dateString?: string) => {
@@ -302,6 +303,7 @@ export default function ContentManagementPage() {
 
   return (
     <div className="py-2 px-1 relative">
+      <DocumentTitle title="Manage posts | TopTop Studio" />
       {/* Toast Alert */}
       {toastMessage && (
         <div className={`fixed top-5 right-5 z-[9999] flex items-center gap-2 rounded-lg px-4 py-3 shadow-lg border transition-all duration-300 animate-in fade-in slide-in-from-top-4

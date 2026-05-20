@@ -19,12 +19,15 @@ import {
   MapPin,
   Ban,
   Flag,
+  MessageCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { ReportModal } from "@/components/report/ReportModal";
 import { EditProfileModal } from "@/components/profile/EditProfileModal";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useUserProfile, useFollowMutation, useUnfollowMutation, useBlockUserMutation, useUnblockUserMutation } from "@/hooks/user-hooks";
-import { useUserVideos, useLikedVideos } from "@/hooks/video-hooks";
+import { useCreateConversation } from "@/hooks/chat-hooks";
+import { useUserVideos, useLikedVideos, useUserRepostedVideos } from "@/hooks/video-hooks";
 import {
   useCreateCollectionMutation,
   useFavoriteVideos,
@@ -35,10 +38,12 @@ import { collectionPath } from "@/utils/collection-url";
 import { videoPath } from "@/utils/video-url";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { useRouter } from "@/i18n/routing";
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const rawUsername = params.username as string;
   
   if (!rawUsername.startsWith("%40") && !rawUsername.startsWith("@")) {
@@ -60,41 +65,88 @@ export default function ProfilePage() {
   const profile = profileData?.data;
   const isOwnProfileForQueries = !!currentUser && currentUser.username === profile?.username;
 
+  // Tab sliding indicator state
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
+  const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
+  const [hoveredPreviewVideoId, setHoveredPreviewVideoId] = useState<number | null>(null);
+
   const followMutation = useFollowMutation(username);
   const unfollowMutation = useUnfollowMutation(username);
   const blockMutation = useBlockUserMutation(username);
   const unblockMutation = useUnblockUserMutation(username);
   const createCollectionMutation = useCreateCollectionMutation();
+  const createConversationMutation = useCreateConversation();
 
-  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id);
-  const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos(isOwnProfileForQueries);
+  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id, activeTab === "video");
+  const { data: repostedVideosRes, isLoading: isLoadingReposts } = useUserRepostedVideos(username, activeTab === "reposts");
+  const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos(
+    isOwnProfileForQueries && activeTab === "favorites" && favoriteSection === "posts",
+  );
   const { data: likedVideosRes, isLoading: isLoadingLiked } = useLikedVideos(isOwnProfileForQueries && activeTab === "liked");
   const { data: userCollectionsRes, isLoading: isLoadingCollections } = useUserCollections(
     username,
     activeTab === "favorites"
   );
 
-  const userVideos = userVideosRes?.data || [];
-  const favoriteVideos = favoriteVideosRes?.data || [];
-  const likedVideos = likedVideosRes?.data || [];
-  const collections = userCollectionsRes?.data || [];
-
-  const displayedVideos =
-    activeTab === "video"
-      ? userVideos
-      : activeTab === "favorites"
-      ? favoriteVideos
-      : activeTab === "liked"
-      ? likedVideos
-      : [];
+  const userVideos = useMemo(() => userVideosRes?.data ?? [], [userVideosRes?.data]);
+  const repostedVideos = useMemo(() => repostedVideosRes?.data ?? [], [repostedVideosRes?.data]);
+  const favoriteVideos = useMemo(() => favoriteVideosRes?.data ?? [], [favoriteVideosRes?.data]);
+  const likedVideos = useMemo(() => likedVideosRes?.data ?? [], [likedVideosRes?.data]);
+  const collections = useMemo(() => userCollectionsRes?.data ?? [], [userCollectionsRes?.data]);
+  const displayedVideos = useMemo(() => {
+    if (activeTab === "video") return userVideos;
+    if (activeTab === "reposts") return repostedVideos;
+    if (activeTab === "favorites") return favoriteVideos;
+    if (activeTab === "liked") return likedVideos;
+    return [];
+  }, [activeTab, favoriteVideos, likedVideos, repostedVideos, userVideos]);
   const isDisplayedLoading =
     activeTab === "video"
       ? isLoadingVideos
+      : activeTab === "reposts"
+      ? isLoadingReposts
       : activeTab === "favorites"
       ? isLoadingFavorites
       : activeTab === "liked"
       ? isLoadingLiked
       : false;
+  const firstPreviewVideoId = useMemo(
+    () => displayedVideos.find((video) => !video.unavailable && !video.deleted && video.fileUrl)?.id ?? null,
+    [displayedVideos],
+  );
+  const activePreviewVideoId = displayedVideos.some((video) => video.id === hoveredPreviewVideoId)
+    ? hoveredPreviewVideoId
+    : firstPreviewVideoId;
+
+  const updateIndicator = (tabId: string) => {
+    const btnEl = tabRefs.current[tabId];
+    if (btnEl) {
+      setIndicatorStyle({
+        left: btnEl.offsetLeft,
+        width: btnEl.offsetWidth,
+        opacity: 1
+      });
+    }
+  };
+
+  useEffect(() => {
+    updateIndicator(hoveredTabId || activeTab);
+  }, [activeTab, hoveredTabId]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateIndicator(hoveredTabId || activeTab);
+    };
+    
+    const timer = setTimeout(() => updateIndicator(hoveredTabId || activeTab), 100);
+    window.addEventListener("resize", handleResize);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [activeTab, hoveredTabId]);
 
   if (isLoading) {
     return (
@@ -147,6 +199,8 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.username === profile.username;
   const relationship = profile.relationship;
   const isBlocked = Boolean(relationship?.isBlocked);
+  const canMessage = Boolean(currentUser && !isOwnProfile && !isBlocked);
+  const profileTitle = `${profile.nickname || profile.username} (@${profile.username}) | TopTop`;
 
   const handleFollowToggle = async () => {
     if (!currentUser || isBlocked) return;
@@ -183,6 +237,21 @@ export default function ProfilePage() {
     setFavoriteSection("collections");
   };
 
+  const handleOpenMessage = async () => {
+    if (!currentUser || !profile?.id || !canMessage) return;
+
+    try {
+      const response = await createConversationMutation.mutateAsync(profile.id);
+      if (response.data?.id) {
+        router.push(`/messages?conversation=${response.data.id}`);
+      } else {
+        router.push("/messages");
+      }
+    } catch (error) {
+      console.error("Create conversation failed:", error);
+    }
+  };
+
   const tabs = [
     { id: "video", label: t('tabs.video'), icon: <Grid3X3 className="w-5 h-5" /> },
     { id: "reposts", label: t('tabs.reposts'), icon: <RotateCcw className="w-5 h-5" /> },
@@ -191,13 +260,14 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="h-full w-full overflow-y-auto px-5 pt-6 pb-20 sm:px-8 lg:px-10 xl:px-12">
+    <div className="h-full w-full overflow-y-auto px-5 pt-5 pb-20 sm:px-8 lg:px-9 xl:px-10">
+      <DocumentTitle title={profileTitle} />
       {/* Profile Header */}
-      <div className="mb-6 flex max-w-[1220px] flex-col gap-4 lg:mb-7">
-        <div className="flex items-start gap-5 lg:gap-8">
+      <div className="mb-5 flex max-w-[1160px] flex-col gap-3.5 lg:mb-6">
+        <div className="flex items-start gap-5 lg:gap-7">
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
-            <div className="relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105 sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+            <div className="relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105 sm:h-[120px] sm:w-[120px] lg:h-[132px] lg:w-[132px]">
               {profile.avatarUrl ? (
                 <Image src={profile.avatarUrl} alt={profile.nickname ?? ""} fill className="object-cover rounded-full" />
               ) : (
@@ -209,29 +279,29 @@ export default function ProfilePage() {
           </div>
 
           {/* User Info */}
-          <div className="min-w-0 flex-1 pt-1 lg:pt-2">
-            <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
-              <h1 className="max-w-[420px] truncate text-[28px] font-bold leading-tight tracking-tight lg:text-[30px]">
+          <div className="min-w-0 flex-1 pt-1 lg:pt-1.5">
+            <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+              <h1 className="max-w-[400px] truncate text-[27px] font-bold leading-tight tracking-tight lg:text-[29px]">
                 {profile.nickname ?? profile.username}
               </h1>
               <div className="hidden h-7 w-px bg-elevated sm:block" />
-              <h2 className="max-w-[300px] truncate text-[16px] font-semibold text-text-secondary lg:text-[17px]">
+              <h2 className="max-w-[280px] truncate text-[15px] font-semibold text-text-secondary lg:text-[16px]">
                 {profile.username}
               </h2>
             </div>
 
-            <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[18px]">
+            <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[17px]">
               <div className="flex items-center gap-1.5">
                 <span className="font-bold">{profile.followingCount ?? 0}</span>
-                <span className="text-[16px] text-text-primary">{t('following')}</span>
+                <span className="text-[15px] text-text-primary">{t('following')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold">{profile.followersCount ?? 0}</span>
-                <span className="text-[16px] text-text-primary">{t('followers')}</span>
+                <span className="text-[15px] text-text-primary">{t('followers')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold">{profile.totalLikes ?? 0}</span>
-                <span className="text-[16px] text-text-primary">{t('likes')}</span>
+                <span className="text-[15px] text-text-primary">{t('likes')}</span>
               </div>
             </div>
 
@@ -245,17 +315,14 @@ export default function ProfilePage() {
                   >
                     {t('editProfile')}
                   </button>
-                  <button className="flex h-9 items-center rounded-full bg-elevated px-5 text-[15px] font-bold transition-colors hover:bg-hover">
-                    Quảng bá bài đăng
-                  </button>
                   <button
                     onClick={() => setIsEditProfileOpen(true)}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
                   >
-                    <Settings className="w-5 h-5" />
+                    <Settings className="size-5" />
                   </button>
                   <button className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="size-5" />
                   </button>
                 </>
               ) : (
@@ -266,7 +333,7 @@ export default function ProfilePage() {
                       disabled={blockMutation.isPending || unblockMutation.isPending}
                       className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
-                      <Ban className="w-5 h-5" />
+                      <Ban className="size-5" />
                       {t('unblockUser')}
                     </button>
                   ) : relationship?.isFriend ? (
@@ -275,7 +342,7 @@ export default function ProfilePage() {
                       disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
-                      <Users className="w-5 h-5" />
+                      <Users className="size-5" />
                       {t('friends')}
                     </button>
                   ) : relationship?.isFollowing ? (
@@ -284,7 +351,7 @@ export default function ProfilePage() {
                       disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                     >
-                      <UserCheck className="w-5 h-5" />
+                      <UserCheck className="size-5" />
                       {t('following')}
                     </button>
                   ) : (
@@ -293,43 +360,55 @@ export default function ProfilePage() {
                       disabled={followMutation.isPending || unfollowMutation.isPending}
                       className="flex h-9 items-center gap-2 rounded-full bg-brand px-7 text-[15px] font-bold text-white transition-all hover:bg-brand/90 active:scale-95 disabled:opacity-50"
                     >
-                      <UserPlus className="w-5 h-5" />
+                      <UserPlus className="size-5" />
                       {relationship?.isFollower ? t('followBack') : t('follow')}
+                    </button>
+                  )}
+
+                  {canMessage && (
+                    <button
+                      type="button"
+                      onClick={handleOpenMessage}
+                      disabled={createConversationMutation.isPending}
+                      className="flex h-9 items-center gap-2 rounded-full bg-elevated px-6 text-[15px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
+                    >
+                      <MessageCircle className="size-5" />
+                      Tin nhắn
                     </button>
                   )}
                   
                   <button className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="size-5" />
                   </button>
                   <div className="relative">
                     <button
                       onClick={() => setIsProfileMenuOpen((value) => !value)}
                       className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
                     >
-                      <MoreHorizontal className="w-5 h-5" />
+                      <MoreHorizontal className="size-5" />
                     </button>
                     {isProfileMenuOpen && (
-                      <div className="absolute left-1/2 top-[52px] z-50 w-[226px] -translate-x-1/2 overflow-visible rounded-xl border border-white/15 bg-[#3f3f3f] p-2 text-white shadow-2xl">
-                        <div className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rotate-45 border-l border-t border-white/15 bg-[#3f3f3f]" />
+                      <div className="absolute left-1/2 top-[52px] z-50 w-[226px] -translate-x-1/2 overflow-visible rounded-xl border border-elevated bg-background p-2 text-text-primary shadow-2xl">
+                        <div className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rotate-45 border-l border-t border-elevated bg-background" />
                         <button
                           type="button"
                           onClick={() => {
                             setIsProfileMenuOpen(false);
                             setIsReportOpen(true);
                           }}
-                          className="relative z-10 flex h-[56px] w-full items-center gap-4 rounded-lg px-3 text-left text-[18px] font-bold transition-colors hover:bg-white/10"
+                          className="relative z-10 flex h-[56px] w-full items-center gap-4 rounded-lg px-3 text-left text-[18px] font-bold transition-colors hover:bg-hover"
                         >
-                          <Flag className="size-5 text-white/85" />
+                          <Flag className="size-5 text-text-secondary" />
                           {t('reportUser')}
                         </button>
-                        <div className="mx-3 h-px bg-white/5" />
+                        <div className="mx-3 h-px bg-elevated" />
                         <button
                           type="button"
                           onClick={handleBlockToggle}
                           disabled={blockMutation.isPending || unblockMutation.isPending}
-                          className="relative z-10 flex h-[56px] w-full items-center gap-4 rounded-lg px-3 text-left text-[18px] font-bold transition-colors hover:bg-white/10 disabled:opacity-50"
+                          className="relative z-10 flex h-[56px] w-full items-center gap-4 rounded-lg px-3 text-left text-[18px] font-bold transition-colors hover:bg-hover disabled:opacity-50"
                         >
-                          <Ban className="size-5 text-white/85" />
+                          <Ban className="size-5 text-text-secondary" />
                           {isBlocked ? t('unblockUser') : t('blockUser')}
                         </button>
                       </div>
@@ -341,13 +420,13 @@ export default function ProfilePage() {
 
             <div className="flex flex-col gap-3">
               {profile.bio && (
-                <p className="max-w-[760px] whitespace-pre-wrap text-[16px] leading-relaxed">
+                <p className="max-w-[740px] whitespace-pre-wrap text-[15px] leading-relaxed">
                   {profile.bio}
                 </p>
               )}
 
               {(profile.websiteUrl || profile.instagramHandle || profile.youtubeHandle || profile.region || profile.gender) && (
-                <div className="flex flex-wrap items-center gap-4 text-[14px] text-text-secondary">
+                <div className="flex flex-wrap items-center gap-3.5 text-[14px] text-text-secondary">
                   {profile.websiteUrl && (
                     <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-text-primary hover:underline">
                       <LinkIcon className="w-4 h-4" />
@@ -375,24 +454,37 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="relative mb-7 border-b border-elevated">
-        <div className="flex items-center overflow-x-auto">
+      <div className="relative mb-6 border-b border-elevated">
+        <div 
+          className="relative flex items-center overflow-x-auto no-scrollbar"
+          onMouseLeave={() => setHoveredTabId(null)}
+        >
+          {/* Sliding Indicator */}
+          <div 
+            className="absolute bottom-0 h-[2px] bg-text-primary z-10 rounded-full pointer-events-none"
+            style={{ 
+              left: `${indicatorStyle.left}px`, 
+              width: `${indicatorStyle.width}px`,
+              opacity: indicatorStyle.opacity,
+              transition: "left 0.3s cubic-bezier(0.25, 1, 0.5, 1), width 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+            }} 
+          />
+
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              ref={(el) => { tabRefs.current[tab.id] = el; }}
+              onMouseEnter={() => setHoveredTabId(tab.id)}
               onClick={() => {
                 setActiveTab(tab.id);
                 if (tab.id === "favorites" && !isOwnProfile) setFavoriteSection("collections");
               }}
-              className={`relative flex h-[54px] min-w-[170px] items-center justify-center gap-2 px-7 text-[18px] font-bold transition-colors whitespace-nowrap lg:text-[20px]
+              className={`relative flex h-11 min-w-[140px] items-center justify-center gap-2 px-5 text-[15px] font-bold transition-colors whitespace-nowrap lg:text-[17px]
                 ${activeTab === tab.id ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}
               `}
             >
               {tab.icon}
               {tab.label}
-              {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-text-primary animate-in fade-in duration-300" />
-              )}
             </button>
           ))}
         </div>
@@ -401,12 +493,12 @@ export default function ProfilePage() {
       {/* Content Grid */}
       {isBlocked && !isOwnProfile ? null : activeTab === "favorites" ? (
         <div>
-          <div className="mb-8 flex items-center justify-between border-b border-elevated">
-            <div className="flex items-center gap-4">
+          <div className="mb-6 flex items-center justify-between border-b border-elevated">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setFavoriteSection("posts")}
-                className={`h-12 rounded-md px-4 text-[18px] font-bold transition ${
+                className={`h-10 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
                   favoriteSection === "posts" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
@@ -415,7 +507,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setFavoriteSection("collections")}
-                className={`h-12 rounded-md px-4 text-[18px] font-bold transition ${
+                className={`h-10 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
                   favoriteSection === "collections" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
@@ -426,9 +518,9 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setIsCreateCollectionOpen(true)}
-                className="flex h-11 items-center gap-2 rounded-full bg-elevated px-5 text-[17px] font-bold hover:bg-hover"
+                className="flex h-9 items-center gap-2 rounded-full bg-elevated px-4 text-[14px] font-bold hover:bg-hover lg:text-[15px]"
               >
-                <PlusCircle className="size-5" />
+                <PlusCircle className="size-4" />
                 Tạo bộ sưu tập mới
               </button>
             )}
@@ -445,7 +537,13 @@ export default function ProfilePage() {
                 [1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />)
               ) : favoriteVideos.length > 0 ? (
                 favoriteVideos.map((video) => (
-                  <FavoriteVideoTile key={video.id} video={video} href={videoPath(video.username, video.id, { from: "favorites" })} />
+                  <FavoriteVideoTile
+                    key={video.id}
+                    video={video}
+                    href={videoPath(video.username, video.id, { from: "favorites" })}
+                    previewActive={activePreviewVideoId === video.id}
+                    onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
+                  />
                 ))
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
@@ -488,8 +586,11 @@ export default function ProfilePage() {
                 key={video.id}
                 video={video}
                 href={videoPath(video.username, video.id, {
-                  from: activeTab === "liked" ? "liked" : "profile",
+                  from: activeTab === "liked" ? "liked" : activeTab === "reposts" ? "reposts" : "profile",
+                  profileOwner: activeTab === "reposts" ? profile.username : undefined,
                 })}
+                previewActive={activePreviewVideoId === video.id}
+                onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
               />
             ))
           ) : (

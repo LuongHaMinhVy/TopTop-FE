@@ -121,3 +121,15 @@ export const getLikedVideos = async (page = 0, size = 18): Promise<ApiResponse<V
     throw error;
   }
 };
+
+export const getUserRepostedVideos = async (username: string, page = 0, size = 18): Promise<ApiResponse<Video[]>> => {
+  try {
+    const response = await api.get<ApiResponse<Video[]>>(`/videos/users/${username}/reposts`, {
+      params: { page, size }
+    });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

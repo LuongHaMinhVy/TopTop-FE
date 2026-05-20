@@ -302,7 +302,21 @@
     "inputPlaceholder": "Gửi tin nhắn...",
     "loadMore": "Tải thêm tin nhắn",
     "online": "Đang hoạt động",
-    "offline": "Không hoạt động"
+    "offline": "Không hoạt động",
+    "messageRequests": "Yêu cầu tin nhắn",
+    "backToInbox": "Quay lại",
+    "messageRequestsDesc": "Xem tin nhắn từ người lạ",
+    "noRequests": "Không có yêu cầu tin nhắn nào",
+    "startMessaging": "Bắt đầu nhắn tin",
+    "suggestedFriends": "Gợi ý bạn bè",
+    "following": "Đang follow",
+    "searchFriends": "Tìm kiếm bạn bè",
+    "newMessage": "Tin nhắn mới",
+    "searchAccountPlaceholder": "Tìm kiếm tài khoản...",
+    "noAccountFound": "Không tìm thấy tài khoản nào",
+    "searchToStartChat": "Tìm kiếm để bắt đầu trò chuyện",
+    "startedConversation": "Đã bắt đầu cuộc trò chuyện",
+    "messageRequestNotice": "Đây là yêu cầu nhắn tin. Người này sẽ không biết bạn đã xem tin nhắn cho đến khi bạn chấp nhận yêu cầu."
   },
   "Collection": {
     "addToCollection": "Thêm vào bộ sưu tập",

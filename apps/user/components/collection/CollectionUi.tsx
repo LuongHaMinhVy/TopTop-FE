@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bookmark,
   Check,
@@ -27,20 +27,41 @@ export function FavoriteVideoTile({
   selectable = false,
   selected = false,
   onSelect,
+  previewActive = false,
+  onPreviewEnter,
+  onPreviewLeave,
 }: {
   video: Video;
   href?: string;
   selectable?: boolean;
   selected?: boolean;
   onSelect?: () => void;
+  previewActive?: boolean;
+  onPreviewEnter?: () => void;
+  onPreviewLeave?: () => void;
 }) {
   const isUnavailable = Boolean(video.unavailable || video.deleted);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const preview = videoRef.current;
+    if (!preview) return;
+
+    if (previewActive) {
+      preview.play().catch(() => {});
+    } else {
+      preview.pause();
+    }
+  }, [previewActive]);
+
   const content = (
     <div
       className={`group relative aspect-[3/4] overflow-hidden rounded-lg bg-elevated ${
         isUnavailable ? "cursor-default" : ""
       }`}
       onClick={selectable ? onSelect : undefined}
+      onMouseEnter={!isUnavailable ? onPreviewEnter : undefined}
+      onMouseLeave={!isUnavailable ? onPreviewLeave : undefined}
     >
       {isUnavailable ? (
         <div className="flex h-full w-full flex-col items-center justify-center bg-surface-secondary px-4 text-center text-text-muted">
@@ -48,20 +69,32 @@ export function FavoriteVideoTile({
           <p className="text-[15px] font-bold text-text-secondary">Video không khả dụng</p>
           <p className="mt-1 text-[12px] font-semibold">Video này đã bị xóa hoặc không còn công khai.</p>
         </div>
-      ) : video.thumbnailUrl ? (
-        <Image
-          src={video.thumbnailUrl}
-          alt={video.title}
-          fill
-          className="object-cover transition-transform group-hover:scale-105"
-        />
       ) : (
-        <video
-          src={video.fileUrl}
-          className="h-full w-full object-cover"
-          muted
-          preload="metadata"
-        />
+        <>
+          {video.thumbnailUrl && (
+            <Image
+              src={video.thumbnailUrl}
+              alt={video.title}
+              fill
+              className={`object-cover transition duration-200 group-hover:scale-105 ${
+                previewActive && video.fileUrl ? "opacity-0" : "opacity-100"
+              }`}
+            />
+          )}
+          {video.fileUrl && (
+            <video
+              ref={videoRef}
+              src={video.fileUrl}
+              className={`h-full w-full object-cover transition duration-200 group-hover:scale-105 ${
+                video.thumbnailUrl && !previewActive ? "opacity-0" : "opacity-100"
+              }`}
+              muted
+              loop
+              playsInline
+              preload={previewActive ? "auto" : "metadata"}
+            />
+          )}
+        </>
       )}
       {!isUnavailable && (
         <>

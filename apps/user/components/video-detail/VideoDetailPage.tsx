@@ -8,6 +8,9 @@ import {
   useAllVideos,
   useLikedVideos,
   useUnlikeVideoMutation,
+  useRepostVideoMutation,
+  useUnrepostVideoMutation,
+  useUserRepostedVideos,
   useUserVideos,
   useVideoDetail,
 } from "@/hooks/video-hooks";
@@ -28,16 +31,20 @@ import {
 import { VideoPlayerContainer } from "./VideoPlayerContainer";
 import CommentSection from "@/components/video/CommentSection";
 import VideoCard from "@/components/video/VideoCard";
+import { RepostBadge } from "@/components/video/RepostBadge";
+import { DocumentTitle, truncateTitle } from "@/components/shared/DocumentTitle";
 import {
   ChevronLeft,
-  Code2,
-  Copy,
   Heart,
   Link as LinkIcon,
   MessageCircle,
-  Play,
   Bookmark,
   X,
+  ChevronUp,
+  ChevronDown,
+  Repeat2,
+  Copy,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -46,15 +53,16 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { openAuthModal } from "@/store/slices/authSlice";
 import type { Video } from "@/types/video";
+import type { VideoRepostUser } from "@/types/video";
 import type { SearchVideo } from "@/types/search";
 import { useTranslations } from "next-intl";
 import { videoPath } from "@/utils/video-url";
-import Facebook from "@/components/shared/icons/FaceBookIcon";
+
 
 type DetailMode = "direct" | "internal";
 type DetailTab = "comments" | "videos";
-const DIRECT_DETAIL_SOURCES = new Set(["feed", "explore", "friends", "following", "follow"]);
-const PROFILE_DETAIL_SOURCES = new Set(["profile", "collection", "favorites", "liked"]);
+const DIRECT_DETAIL_SOURCES = new Set(["feed", "friends", "following", "follow"]);
+const PROFILE_DETAIL_SOURCES = new Set(["profile", "collection", "favorites", "liked", "reposts", "explore", "chat"]);
 const FEED_DETAIL_PANEL_WIDTH = 384;
 const DIRECT_DETAIL_PANEL_WIDTH = 420;
 
@@ -97,6 +105,7 @@ export default function VideoDetailPage() {
   const collectionIdParam = searchParams.get("collectionId");
   const collectionId = collectionIdParam ? Number(collectionIdParam) : undefined;
   const collectionOwner = searchParams.get("collectionOwner") ?? username;
+  const profileOwner = searchParams.get("profileOwner") ?? username;
   const detailMode: DetailMode = !source || DIRECT_DETAIL_SOURCES.has(source) ? "direct" : "internal";
   const isProfileDetail = source === "profile";
   const isCollectionDetail = source === "collection" && Number.isFinite(collectionId) && Number(collectionId) > 0;
@@ -124,12 +133,16 @@ export default function VideoDetailPage() {
   const [activeScrollableVideo, setActiveScrollableVideo] = useState<Video | null>(null);
   const [followOverride, setFollowOverride] = useState<{ userId: number; value: boolean } | null>(null);
   const [isUnavailable, setIsUnavailable] = useState(false);
+  const [repostOverride, setRepostOverride] = useState<{ videoId: number; value: boolean } | null>(null);
+  const [showRepostToast, setShowRepostToast] = useState(false);
   const initializedScrollableVideoIdRef = useRef<number | null>(null);
   const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
   const displayedVideo = optimisticVideo ?? activeScrollableVideo ?? video;
   const { data: moreVideosRes } = useUserVideos(displayedVideo?.userId);
   const likeMutation = useLikeVideoMutation();
   const unlikeMutation = useUnlikeVideoMutation();
+  const repostMutation = useRepostVideoMutation();
+  const unrepostMutation = useUnrepostVideoMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
   const followMutation = useDynamicFollowMutation();
@@ -144,6 +157,7 @@ export default function VideoDetailPage() {
   );
   const { data: favoriteVideosRes } = useFavoriteVideos(source === "favorites");
   const { data: likedVideosRes } = useLikedVideos(source === "liked");
+  const { data: repostedVideosRes } = useUserRepostedVideos(profileOwner, source === "reposts");
   const { data: followingFeedRes } = useFollowingFeed(
     Boolean(currentUser) && (source === "following" || source === "follow"),
     30,
@@ -156,6 +170,7 @@ export default function VideoDetailPage() {
   );
   const detailScopeParams = useMemo(() => {
     if (source === "search") return { from: "search", q: searchQuery || undefined };
+    if (source === "reposts") return { from: "reposts", profileOwner };
     if (source !== "collection") return { from: source ?? "feed" };
 
     return {
@@ -163,7 +178,7 @@ export default function VideoDetailPage() {
       collectionId: isCollectionDetail ? collectionId : undefined,
       collectionOwner,
     };
-  }, [collectionId, collectionOwner, isCollectionDetail, searchQuery, source]);
+  }, [collectionId, collectionOwner, isCollectionDetail, profileOwner, searchQuery, source]);
   const scrollableVideos = useMemo(() => {
     let videos: Video[] = [];
 
@@ -183,6 +198,24 @@ export default function VideoDetailPage() {
       videos = (favoriteVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
     } else if (source === "liked") {
       videos = (likedVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
+    } else if (source === "reposts") {
+      videos = (repostedVideosRes?.data ?? []).filter((item) => !item.unavailable && !item.deleted);
+    } else if (source === "chat") {
+      // The user wants: "nếu tôi xem video dưới cùng thì tôi lướt lên sẽ là video gửi gần nhất rồi lên dần"
+      // This means the array should be [newest, older, oldest].
+      const convIdStr = searchParams.get("conversationId");
+      if (convIdStr) {
+        // We use allVideosRes as a soft data source to resolve full Video objects from IDs
+        const chatVideoIdsStr = searchParams.get("chatVideos");
+        if (chatVideoIdsStr) {
+           const ids = chatVideoIdsStr.split(",").map(Number);
+           videos = ids.map(id => allVideosRes?.data?.find(v => v.id === id)).filter(Boolean) as Video[];
+        } else {
+           videos = allVideosRes?.data ?? [];
+        }
+      } else {
+        videos = allVideosRes?.data ?? [];
+      }
     } else {
       videos = allVideosRes?.data ?? [];
     }
@@ -199,18 +232,43 @@ export default function VideoDetailPage() {
     friendsFeedRes?.pages,
     likedVideosRes?.data,
     moreVideosRes?.data,
+    repostedVideosRes?.data,
     searchVideosRes?.data,
     source,
     video,
   ]);
   const canBlockAuthor = Boolean(currentUser && displayedVideo && currentUser.id !== displayedVideo.userId);
   const canFollowAuthor = Boolean(currentUser && displayedVideo && currentUser.id !== displayedVideo.userId);
+  const isReposted =
+    displayedVideo?.id && repostOverride?.videoId === displayedVideo.id
+      ? repostOverride.value
+      : (displayedVideo?.isReposted ?? false);
+  const currentRepostUser: VideoRepostUser | null = currentUser
+    ? {
+        id: currentUser.id,
+        username: currentUser.username,
+        nickname: currentUser.nickname,
+        avatarUrl: currentUser.avatarUrl,
+        isCurrentUser: true,
+      }
+    : null;
+  const repostUsers = (() => {
+    const users = [...(displayedVideo?.repostedBy ?? [])];
+    const hasCurrentUser = currentRepostUser && users.some((user) => user.id === currentRepostUser.id);
+    if (isReposted && currentRepostUser && !hasCurrentUser) {
+      return [currentRepostUser, ...users];
+    }
+    return users;
+  })();
   const isFollowingAuthor =
     displayedVideo?.userId && followOverride?.userId === displayedVideo.userId
       ? followOverride.value
       : (displayedVideo?.isFollowingAuthor ?? false);
   const canonicalPath = displayedVideo ? videoPath(displayedVideo.username, displayedVideo.id) : "";
   const shareUrl = typeof window !== "undefined" && canonicalPath ? `${window.location.origin}${canonicalPath}` : "";
+  const documentTitle = displayedVideo
+    ? `${truncateTitle(displayedVideo.description || displayedVideo.title || `${displayedVideo.userNickname || displayedVideo.username}'s video`)} | TopTop`
+    : "TopTop - Make Your Day";
 
   useEffect(() => {
     if (!isScrollableDetail || !video) return;
@@ -222,7 +280,7 @@ export default function VideoDetailPage() {
   }, [isScrollableDetail, video]);
 
   useEffect(() => {
-    if (!isScrollableDetail || !video || scrollableVideos.length === 0) return;
+    if (!isScrollableDetail || !video || scrollableVideos.length === 0 || usesProfileDetailLayout) return;
     if (initializedScrollableVideoIdRef.current !== video.id) return;
 
     const frameId = requestAnimationFrame(() => {
@@ -233,7 +291,9 @@ export default function VideoDetailPage() {
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [isScrollableDetail, scrollableVideos.length, video]);
+  }, [isScrollableDetail, scrollableVideos.length, video, usesProfileDetailLayout]);
+
+
 
   const requireLogin = () => {
     if (currentUser) return true;
@@ -348,6 +408,47 @@ export default function VideoDetailPage() {
     await navigator.clipboard.writeText(shareUrl);
   };
 
+  const handleRepost = () => {
+    if (!displayedVideo) return;
+    if (!requireLogin()) return;
+    if (repostMutation.isPending || unrepostMutation.isPending) return;
+
+    const previousReposted = isReposted;
+    setRepostOverride({ videoId: displayedVideo.id, value: true });
+    setShowRepostToast(true);
+    setTimeout(() => setShowRepostToast(false), 2500);
+
+    repostMutation.mutate(displayedVideo.id, {
+      onSuccess: (response) => {
+        if (response.data?.reposted !== undefined) {
+          setRepostOverride({ videoId: displayedVideo.id, value: response.data.reposted });
+        }
+      },
+      onError: () => {
+        setRepostOverride({ videoId: displayedVideo.id, value: previousReposted });
+        setShowRepostToast(false);
+      },
+    });
+  };
+
+  const handleRemoveRepost = () => {
+    if (!displayedVideo) return;
+    if (repostMutation.isPending || unrepostMutation.isPending) return;
+
+    const previousReposted = isReposted;
+    setRepostOverride({ videoId: displayedVideo.id, value: false });
+    setShowRepostToast(false);
+
+    unrepostMutation.mutate(displayedVideo.id, {
+      onSuccess: (response) => {
+        if (response.data?.reposted !== undefined) {
+          setRepostOverride({ videoId: displayedVideo.id, value: response.data.reposted });
+        }
+      },
+      onError: () => setRepostOverride({ videoId: displayedVideo.id, value: previousReposted }),
+    });
+  };
+
   const handleCopyVideoLink = async (targetVideo: Video) => {
     const targetUrl = `${window.location.origin}${videoPath(targetVideo.username, targetVideo.id)}`;
     await navigator.clipboard.writeText(targetUrl);
@@ -369,6 +470,60 @@ export default function VideoDetailPage() {
     }
   }, [detailScopeParams]);
 
+  const navigateToVideo = useCallback((direction: 1 | -1) => {
+    if (scrollableVideos.length === 0 || !displayedVideo) return;
+    const currentIndex = scrollableVideos.findIndex((v) => v.id === displayedVideo.id);
+    if (currentIndex === -1) return;
+
+    const nextIndex = currentIndex + direction;
+    if (nextIndex >= 0 && nextIndex < scrollableVideos.length) {
+      handleScrollableVideoActive(scrollableVideos[nextIndex]);
+    }
+  }, [scrollableVideos, displayedVideo, handleScrollableVideoActive]);
+
+  useEffect(() => {
+    if (!usesProfileDetailLayout) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        navigateToVideo(-1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        navigateToVideo(1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [usesProfileDetailLayout, navigateToVideo]);
+
+  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleVideoAreaWheel = (e: React.WheelEvent) => {
+    if (!usesProfileDetailLayout) return;
+    
+    if (wheelTimeoutRef.current) return; // Cooldown active
+
+    if (e.deltaY > 30) {
+      navigateToVideo(1);
+      wheelTimeoutRef.current = setTimeout(() => { wheelTimeoutRef.current = null; }, 800);
+    } else if (e.deltaY < -30) {
+      navigateToVideo(-1);
+      wheelTimeoutRef.current = setTimeout(() => { wheelTimeoutRef.current = null; }, 800);
+    }
+  };
+
+  useEffect(() => {
+    if ((isUnavailable || isError || (!isLoading && !videoRes?.data)) && source === "chat") {
+      const convId = searchParams.get("conversationId");
+      if (convId) {
+        router.replace(`/messages?conversation=${convId}`);
+      } else {
+        router.replace("/messages");
+      }
+    }
+  }, [isUnavailable, isError, isLoading, videoRes, source, router, searchParams]);
+
   if (Number.isNaN(videoId)) {
     return (
       <div className="flex h-full items-center justify-center text-white">
@@ -384,6 +539,7 @@ export default function VideoDetailPage() {
   if (isUnavailable || isError || !displayedVideo) {
     return (
       <div className="flex h-full flex-col items-center justify-center bg-background text-white">
+        <DocumentTitle title="Video unavailable | TopTop" />
         <h1 className="mb-4 text-2xl font-bold">{t("videoUnavailable")}</h1>
         <button
           onClick={() => router.back()}
@@ -408,6 +564,7 @@ export default function VideoDetailPage() {
   if (detailMode === "direct") {
     return (
       <div className="relative flex h-full w-full overflow-hidden bg-background">
+        <DocumentTitle title={documentTitle} />
         <div
           className={`relative flex min-w-0 flex-1 items-center justify-center ${
             usesFeedThemeDetail ? "bg-background" : "bg-black"
@@ -483,6 +640,7 @@ export default function VideoDetailPage() {
 
   return (
     <div className="fixed inset-0 z-[100] flex overflow-hidden bg-[#111] text-white animate-in fade-in duration-200">
+      <DocumentTitle title={documentTitle} />
       <button
         onClick={() => router.back()}
         className="absolute left-6 top-6 z-[120] grid size-12 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
@@ -490,8 +648,40 @@ export default function VideoDetailPage() {
         <X size={30} />
       </button>
 
-      <div className={`relative min-w-0 flex-1 ${usesProfileDetailLayout ? "bg-black" : "bg-[#161616]"}`}>
-        {isScrollableDetail && scrollableVideos.length > 0 ? (
+      <div 
+        className={`relative min-w-0 flex-1 ${usesProfileDetailLayout ? "bg-black" : "bg-[#161616]"}`}
+        onWheel={usesProfileDetailLayout ? handleVideoAreaWheel : undefined}
+      >
+        {usesProfileDetailLayout ? (
+          <div className="relative h-full w-full">
+            <VideoPlayerContainer
+              {...commonPlayerProps}
+              controlsVariant="profile-detail"
+              className="h-full w-full p-0"
+              isActive={true}
+            />
+            {/* Floating Navigation Buttons */}
+            <div className="absolute right-6 top-1/2 flex -translate-y-1/2 flex-col gap-4 z-50">
+              <button
+                onClick={() => navigateToVideo(-1)}
+                disabled={scrollableVideos.findIndex((v) => v.id === displayedVideo?.id) <= 0}
+                className="grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
+                aria-label="Video trước"
+              >
+                <ChevronUp size={24} />
+              </button>
+
+              <button
+                onClick={() => navigateToVideo(1)}
+                disabled={scrollableVideos.findIndex((v) => v.id === displayedVideo?.id) >= scrollableVideos.length - 1}
+                className="grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
+                aria-label="Video tiếp theo"
+              >
+                <ChevronDown size={24} />
+              </button>
+            </div>
+          </div>
+        ) : isScrollableDetail && scrollableVideos.length > 0 ? (
           <div
             ref={scrollableContainerRef}
             className="h-full overflow-y-auto custom-scrollbar"
@@ -507,8 +697,8 @@ export default function VideoDetailPage() {
                 video={scrollVideo}
                 isActive={displayedVideo?.id === scrollVideo.id}
                 isInitial={scrollVideo.id === Number(params.videoId)}
-                controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
-                className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
+                controlsVariant="default"
+                className="h-full w-full px-8 py-0"
                 onActive={handleScrollableVideoActive}
                 onCopyLink={() => handleCopyVideoLink(scrollVideo)}
                 onBlockUser={
@@ -523,8 +713,18 @@ export default function VideoDetailPage() {
         ) : (
           <VideoPlayerContainer
             {...commonPlayerProps}
-            controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
-            className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
+            controlsVariant="default"
+            className="h-full w-full px-8 py-0"
+            isActive={true}
+          />
+        )}
+        {!usesProfileDetailLayout && (
+          <RepostBadge
+            users={repostUsers}
+            onRepost={!isReposted ? handleRepost : undefined}
+            onRemove={isReposted ? handleRemoveRepost : undefined}
+            className="absolute bottom-10 left-12 z-[95]"
+            popoverPlacement="top"
           />
         )}
       </div>
@@ -576,6 +776,14 @@ export default function VideoDetailPage() {
             <p className="mt-2.5 text-[13px] font-semibold text-text-secondary">
               ♫ {t("originalSound", { username: displayedVideo.username })}
             </p>
+            <RepostBadge
+              users={repostUsers}
+              onRepost={!isReposted ? handleRepost : undefined}
+              onRemove={isReposted ? handleRemoveRepost : undefined}
+              showRemoveButton={!usesProfileDetailLayout}
+              className="mt-3"
+              popoverPlacement="bottom"
+            />
           </div>
 
           <div className="mb-4 flex items-center gap-3">
@@ -598,8 +806,16 @@ export default function VideoDetailPage() {
               onClick={handleSave}
             />
             <div className="ml-auto flex items-center gap-2">
-              <ShareCircle icon={<Code2 size={16} />} />
-              <ShareCircle icon={<Facebook className="size-4" />} />
+              <button
+                type="button"
+                onClick={isReposted ? handleRemoveRepost : handleRepost}
+                className={`grid size-8 place-items-center rounded-full transition ${
+                  isReposted ? "bg-yellow-400/15 text-yellow-400 hover:bg-yellow-400/25" : "bg-elevated text-yellow-400 hover:bg-hover"
+                }`}
+                title={isReposted ? "Xóa video đăng lại" : "Đăng lại"}
+              >
+                <Repeat2 size={16} />
+              </button>
               <ShareCircle icon={<LinkIcon size={16} />} onClick={handleCopyLink} />
             </div>
           </div>
@@ -646,6 +862,18 @@ export default function VideoDetailPage() {
           )}
         </div>
       </aside>
+
+      {/* Repost Toast — bottom of video area for profile-detail, top otherwise */}
+      {showRepostToast && (
+        <div
+          className={`fixed z-[300] left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-[#222] px-5 py-3 text-[14px] font-semibold text-white shadow-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200 ${
+            usesProfileDetailLayout ? "bottom-8" : "top-6"
+          }`}
+        >
+          <Repeat2 className="size-4 text-yellow-400" />
+          Đã đăng lại
+        </div>
+      )}
 
     </div>
   );

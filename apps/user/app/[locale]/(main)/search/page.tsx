@@ -19,6 +19,7 @@ import { videoPath } from "@/utils/video-url";
 import { useFollowMutation, useUnfollowMutation } from "@/hooks/user-hooks";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
+import { DocumentTitle, truncateTitle } from "@/components/shared/DocumentTitle";
 
 const SEARCH_TABS: Array<{ value: SearchTab; label: string }> = [
   { value: "top", label: "Top" },
@@ -58,6 +59,7 @@ export default function SearchPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
+      <DocumentTitle title={q ? `${truncateTitle(q, 50)} | Search | TopTop` : "Search | TopTop"} />
       <div className="mx-auto grid max-w-[1540px] grid-cols-1 gap-8 px-6 pb-16 pt-0 lg:grid-cols-[minmax(0,1fr)_240px] xl:px-10">
         <main className="min-w-0">
           <div className="sticky top-0 z-20 border-b border-elevated bg-background/95 backdrop-blur">

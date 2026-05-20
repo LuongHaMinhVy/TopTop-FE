@@ -20,10 +20,10 @@ export const useAddCommentMutation = () => {
   });
 };
 
-export const useReplies = (commentId?: number) => {
+export const useReplies = (commentId?: number, size = 10) => {
   return useQuery({
-    queryKey: ["comment-replies", commentId],
-    queryFn: () => commentService.getReplies(commentId!),
+    queryKey: ["comment-replies", commentId, size],
+    queryFn: () => commentService.getReplies(commentId!, size),
     enabled: !!commentId,
   });
 };

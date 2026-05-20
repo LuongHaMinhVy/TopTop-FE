@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLoginMutation } from "@/hooks/auth-hooks";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import AuthModal from "@/components/auth/AuthModal";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
 
 type AuthMethod = "options" | "phone_email";
@@ -195,6 +196,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[rgba(0,0,0,0.7)] px-4">
+      <DocumentTitle title="Log in | TopTop" />
       <div className="w-full max-w-[480px] bg-transparent rounded-[12px] p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
 
         <div className="flex-1 mt-6">

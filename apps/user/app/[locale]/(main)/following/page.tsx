@@ -8,6 +8,7 @@ import VideoCard from "@/components/video/VideoCard";
 import FollowingSuggestionsGrid from "@/components/following/FollowingSuggestionsGrid";
 import type { Video } from "@/types/video";
 import { useTranslations } from "next-intl";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 
 function VideoSkeleton() {
   return (
@@ -60,13 +61,19 @@ export default function FollowingPage() {
 
   // If not logged in, show Guest suggested grid directly
   if (!isAuthenticated) {
-    return <FollowingSuggestionsGrid reason="GUEST" />;
+    return (
+      <>
+        <DocumentTitle title="Following | TopTop" />
+        <FollowingSuggestionsGrid reason="GUEST" />
+      </>
+    );
   }
 
   // If authenticated but loading the feed for the first time
   if (isLoading) {
     return (
       <div className="h-full overflow-y-hidden relative bg-black">
+        <DocumentTitle title="Following | TopTop" />
         <VideoSkeleton />
       </div>
     );
@@ -76,6 +83,7 @@ export default function FollowingPage() {
   if (isError) {
     return (
       <div className="h-full flex items-center justify-center bg-black">
+        <DocumentTitle title="Following | TopTop" />
         <div className="text-center space-y-3 p-8">
           <p className="text-zinc-400 text-[15px]">{t('loadError')}</p>
         </div>
@@ -88,7 +96,12 @@ export default function FollowingPage() {
   // If authenticated but has no videos in feed
   if (allVideos.length === 0) {
     const hasFollowing = user.followingCount && user.followingCount > 0;
-    return <FollowingSuggestionsGrid reason={hasFollowing ? "NO_VIDEOS" : "NO_FOLLOWING"} />;
+    return (
+      <>
+        <DocumentTitle title="Following | TopTop" />
+        <FollowingSuggestionsGrid reason={hasFollowing ? "NO_VIDEOS" : "NO_FOLLOWING"} />
+      </>
+    );
   }
 
   return (
@@ -100,6 +113,7 @@ export default function FollowingPage() {
         msOverflowStyle: "none",
       } as React.CSSProperties}
     >
+      <DocumentTitle title="Following | TopTop" />
       {allVideos.map((video: Video, index: number) => (
         <VideoCard
           key={video.id}

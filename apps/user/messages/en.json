@@ -302,7 +302,21 @@
     "inputPlaceholder": "Send a message...",
     "loadMore": "Load previous messages",
     "online": "Online",
-    "offline": "Offline"
+    "offline": "Offline",
+    "messageRequests": "Message requests",
+    "backToInbox": "Back",
+    "messageRequestsDesc": "View messages from people you don't follow",
+    "noRequests": "No message requests",
+    "startMessaging": "Start messaging",
+    "suggestedFriends": "Suggested friends",
+    "following": "Following",
+    "searchFriends": "Search friends",
+    "newMessage": "New message",
+    "searchAccountPlaceholder": "Search accounts...",
+    "noAccountFound": "No account found",
+    "searchToStartChat": "Search to start a chat",
+    "startedConversation": "Started a conversation",
+    "messageRequestNotice": "This is a message request. They won't know you've read it until you accept."
   },
   "Collection": {
     "addToCollection": "Add to collection",

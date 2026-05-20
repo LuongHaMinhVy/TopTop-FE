@@ -2,8 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserProfile, followUser, unfollowUser, getFollowingList, blockUser, unblockUser, updateProfile, uploadAvatar } from "@/services/user-api-service";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
+import { RootState } from "@/store/store";
 
 export function useUploadAvatarMutation() {
   return useMutation({
@@ -115,8 +116,9 @@ export function useUnblockUserMutation(username: string) {
 }
 
 export function useFollowingList(enabled = true) {
+  const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
   return useQuery({
-    queryKey: ["following-list"],
+    queryKey: ["following-list", currentUserId ?? "anonymous"],
     queryFn: () => getFollowingList(),
     staleTime: 10 * 60 * 1000, // 10 phút
     refetchOnWindowFocus: false,

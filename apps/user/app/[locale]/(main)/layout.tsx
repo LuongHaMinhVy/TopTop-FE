@@ -152,13 +152,13 @@ export default function MainLayout({
     ? activeCommentVideoId
     : null;
 
-  const shouldShowHeaderOverlay =
-    !pathname.includes("/collection/") && !pathname.includes("/video/");
   const currentSearchQuery = pathname === "/search" ? searchParams.get("q")?.trim() ?? "" : "";
   const isFeedDirectDetailRoute =
     pathname.includes("/video/") &&
     (!searchParams.get("from") || searchParams.get("from") === "feed");
   const isMessagesRoute = pathname === "/messages";
+  const shouldShowHeaderOverlay =
+    !isMessagesRoute && !pathname.includes("/collection/") && !pathname.includes("/video/");
   const messageView = searchParams.get("view") === "requests" ? "requests" : "inbox";
   const selectedConversationParam = Number(searchParams.get("conversation"));
   const selectedConversationId = Number.isFinite(selectedConversationParam)
@@ -456,7 +456,8 @@ export default function MainLayout({
               }}
             >
               <div className="sticky top-0 z-20 flex-shrink-0 bg-background">
-                <div
+                <Link
+                  href="/"
                   className="flex items-center pt-6 pb-3"
                   style={{
                     paddingLeft: collapsed ? 0 : 20,
@@ -471,7 +472,7 @@ export default function MainLayout({
                   >
                     TopTop
                   </span>
-                </div>
+                </Link>
 
                 <button
                   onClick={() => {
@@ -1186,7 +1187,7 @@ export default function MainLayout({
                                   )}
                                 </div>
                               ))}
-                            </div>
+\\                            </div>
                           </div>
                         );
                       })(groupLabels.earlier, groupedNotifications.earlier)}

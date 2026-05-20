@@ -12,30 +12,44 @@ type ConversationView = "inbox" | "requests";
 interface ConversationListProps {
   selectedId?: number;
   view?: ConversationView;
+  showHeader?: boolean;
   onViewChange?: (view: ConversationView) => void;
   onSelect: (id: number, status: ConversationStatus) => void;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   ConversationList Component
+───────────────────────────────────────────────────────────── */
 export const ConversationList = ({
   selectedId,
   view = "inbox",
+  showHeader = true,
   onViewChange,
   onSelect,
 }: ConversationListProps) => {
   const t = useTranslations('Chat');
   const activeStatus: ConversationStatus = view === "requests" ? "REQUESTED" : "ACTIVE";
+  
   const { data, isLoading } = useConversations(0, 20, activeStatus);
   const { data: requestsData } = useConversations(0, 20, "REQUESTED");
+  
   const conversations = data?.data || [];
   const requestConversations = requestsData?.data || [];
+  
   const requestUnreadCount = requestConversations.reduce(
     (total, conv) => total + (conv.unreadCount || 0),
     0,
   );
 
+  // Localization fallbacks
+  const textMessageRequests = t('messageRequests');
+  const textBackToInbox = t('backToInbox');
+  const textRequestsDesc = t('messageRequestsDesc');
+  const textNoRequests = t('noRequests');
+
   if (isLoading) {
     return (
-      <div className="flex flex-col p-4 gap-4">
+      <div className="flex flex-col p-4 gap-4 bg-background h-full">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="flex gap-3">
             <Skeleton className="w-12 h-12 rounded-full" />
@@ -50,23 +64,28 @@ export const ConversationList = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-elevated">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">
-            {view === "requests" ? t('messageRequests') : t('messages')}
-          </h1>
-          {view === "requests" && (
-            <button
-              type="button"
-              onClick={() => onViewChange?.("inbox")}
-              className="text-[13px] font-semibold text-text-secondary hover:text-text-primary"
-            >
-              {t('backToInbox')}
-            </button>
-          )}
+    <div className="flex flex-col h-full bg-background text-text-primary">
+      {showHeader && (
+        <div className="p-4 border-b border-elevated">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {view === "requests" && (
+                <button
+                  type="button"
+                  onClick={() => onViewChange?.("inbox")}
+                  className="text-[13px] font-semibold text-text-secondary hover:text-text-primary mr-1"
+                >
+                  ←
+                </button>
+              )}
+              <h1 className="text-xl font-bold">
+                {view === "requests" ? textMessageRequests : t('messages')}
+              </h1>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+      
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {view === "inbox" && requestConversations.length > 0 && (
           <button
@@ -80,7 +99,7 @@ export const ConversationList = ({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[15px] font-bold">
-                  {t('messageRequests')}
+                  {textMessageRequests}
                 </span>
                 {requestUnreadCount > 0 && (
                   <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
@@ -89,15 +108,16 @@ export const ConversationList = ({
                 )}
               </div>
               <p className="truncate text-[13px] text-text-muted">
-                {t('messageRequestsDescription')}
+                {textRequestsDesc}
               </p>
             </div>
             <ChevronRight className="h-4 w-4 flex-shrink-0 text-text-muted" />
           </button>
         )}
+        
         {conversations.length === 0 ? (
-          <div className="p-8 text-center text-text-muted">
-            {view === "requests" ? t('noMessageRequests') : t('noConversations')}
+          <div className="p-5 text-center text-text-muted text-[13px]">
+            {view === "requests" ? textNoRequests : t('noConversations')}
           </div>
         ) : (
           conversations.map((conv) => (

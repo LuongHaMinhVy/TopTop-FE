@@ -20,10 +20,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | TOPTOP",
-    default: "TOPTOP - Make Your Day",
+    template: "%s | TopTop",
+    default: "TopTop - Make Your Day",
   },
-  description: "A TikTok clone application",
+  description: "Watch, create, and share short videos on TopTop.",
 };
 
 export default async function LocaleLayout({

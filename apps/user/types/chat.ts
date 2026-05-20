@@ -11,21 +11,26 @@ export interface ConversationParticipantResponseDTO {
 export type ConversationStatus = 'ACTIVE' | 'REQUESTED' | 'BLOCKED' | 'DELETED';
 
 export interface MessageAttachmentResponseDTO {
-  id: number;
+  id?: number;
   type: string;
+  videoUrl?: string;
   url?: string;
   thumbnailUrl?: string;
   fileName?: string;
   fileSize?: number;
   videoId?: number;
   videoTitle?: string;
+  title?: string;
+  ownerUsername?: string;
 }
+
+export type MessageType = 'TEXT' | 'VIDEO_SHARE' | 'IMAGE' | 'VIDEO' | 'SYSTEM';
 
 export interface MessageResponseDTO {
   id: number;
   conversationId: number;
   senderId: number;
-  type: 'TEXT' | 'VIDEO_SHARE' | 'IMAGE' | 'SYSTEM';
+  type: MessageType;
   body?: string;
   status: 'SENT' | 'DELIVERED' | 'READ' | 'DELETED' | 'FAILED';
   attachment?: MessageAttachmentResponseDTO;

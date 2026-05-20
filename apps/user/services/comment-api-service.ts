@@ -4,10 +4,12 @@ import type { CommentLikeResponse, CommentResponse, CreateCommentRequest } from 
 import { AxiosError } from "axios";
 import { handleErrorResponse } from "./handle-error-response";
 
-export const addComment = async ({ videoId, content, parentId, timestampInVideo }: CreateCommentRequest) => {
+export const addComment = async ({ videoId, content, mediaUrl, mediaType, parentId, timestampInVideo }: CreateCommentRequest) => {
   try {
     const response = await api.post<ApiResponse<CommentResponse>>(`/videos/${videoId}/comments`, {
       content,
+      mediaUrl,
+      mediaType,
       parentId,
       timestampInVideo,
     });
@@ -30,10 +32,10 @@ export const getComments = async (videoId: number) => {
   }
 };
 
-export const getReplies = async (commentId: number) => {
+export const getReplies = async (commentId: number, size = 10) => {
   try {
     const response = await api.get<ApiResponse<CommentResponse[]>>(`/comments/${commentId}/replies`, {
-      params: { page: 0, size: 10 },
+      params: { page: 0, size },
     });
     return response.data;
   } catch (error) {
@@ -42,9 +44,9 @@ export const getReplies = async (commentId: number) => {
   }
 };
 
-export const addReply = async ({ commentId, content }: { commentId: number; content: string }) => {
+export const addReply = async ({ commentId, content, mediaUrl, mediaType }: { commentId: number; content: string; mediaUrl?: string | null; mediaType?: "IMAGE" | null }) => {
   try {
-    const response = await api.post<ApiResponse<CommentResponse>>(`/comments/${commentId}/replies`, { content });
+    const response = await api.post<ApiResponse<CommentResponse>>(`/comments/${commentId}/replies`, { content, mediaUrl, mediaType });
     return response.data;
   } catch (error) {
     handleErrorResponse(error as AxiosError);

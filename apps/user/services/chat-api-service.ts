@@ -45,7 +45,7 @@ export const createDirectConversation = async (targetUserId: number): Promise<Ap
   }
 };
 
-export const sendMessage = async (data: { conversationId: number; type: string; body?: string; videoId?: number; clientMessageId: string }): Promise<ApiResponse<MessageResponseDTO>> => {
+export const sendMessage = async (data: { conversationId: number; type: string; body?: string; videoId?: number; mediaUrl?: string; mediaType?: string; fileName?: string; fileSize?: number; clientMessageId: string }): Promise<ApiResponse<MessageResponseDTO>> => {
   try {
     const response = await api.post<ApiResponse<MessageResponseDTO>>('/chat/messages', data);
     return response.data;

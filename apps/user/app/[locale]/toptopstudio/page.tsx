@@ -17,6 +17,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { useUserVideos } from '@/hooks/video-hooks';
 import Image from 'next/image';
+import { DocumentTitle } from '@/components/shared/DocumentTitle';
 
 export default function StudioDashboard() {
   const t = useTranslations('Studio');
@@ -237,6 +238,7 @@ export default function StudioDashboard() {
 
   return (
     <div className="py-2 text-text-primary">
+      <DocumentTitle title="TopTop Studio | TopTop" />
       {/* 1. TOP PROFILE BANNER */}
       <div className="bg-background border border-elevated rounded-xl p-6 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6 transition duration-200">
         <div className="flex items-center gap-5">

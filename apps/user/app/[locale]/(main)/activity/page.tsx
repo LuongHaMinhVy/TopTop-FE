@@ -12,6 +12,7 @@ import type { Notification } from "@/types/notification";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { useRouter } from "@/i18n/routing";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 
 export default function ActivityPage() {
   const t = useTranslations('Main');
@@ -177,6 +178,7 @@ export default function ActivityPage() {
 
   return (
     <div className="max-w-[600px] mx-auto p-4 sm:p-6 pb-24 lg:pb-6">
+      <DocumentTitle title="Activity | TopTop" />
       <h1 className="text-[24px] font-bold mb-6">{t('sidebar.activity')}</h1>
 
       <div className="flex flex-col gap-1">

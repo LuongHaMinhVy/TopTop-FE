@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Heart, MessageCircle, Share2 } from "lucide-react";
+import { Bookmark, Heart, MessageCircle, Repeat2 } from "lucide-react";
 import Image from "next/image";
 import type { Video } from "@/types/video";
 import { formatCount } from "@/utils/format-count";
@@ -11,6 +11,7 @@ interface VideoActionRailProps {
   onSave: () => void;
   onShare: () => void;
   onFocusComments: () => void;
+  isReposted?: boolean;
 }
 
 export function VideoActionRail({
@@ -19,6 +20,7 @@ export function VideoActionRail({
   onSave,
   onShare,
   onFocusComments,
+  isReposted = false,
 }: VideoActionRailProps) {
   return (
     <aside
@@ -63,12 +65,30 @@ export function VideoActionRail({
         icon={<Bookmark className={video.isSaved ? "fill-current" : ""} size={26} />}
       />
 
-      <ActionButton
-        label={formatCount(video.shareCount ?? 0)}
-        ariaLabel="Chia sẻ video"
-        onClick={onShare}
-        icon={<Share2 size={26} />}
-      />
+      {/* Repost toggle — replaces Share */}
+      <div className="relative group/repost flex flex-col items-center gap-1">
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label={isReposted ? "Xóa đăng lại" : "Đăng lại"}
+          className={`
+            grid size-12 place-items-center rounded-full transition
+            ${isReposted
+              ? "bg-yellow-400/15 text-yellow-400"
+              : "bg-neutral-800 text-yellow-400 hover:bg-neutral-700"
+            }
+          `}
+        >
+          <Repeat2 size={26} />
+        </button>
+        <span className={`text-xs font-semibold ${isReposted ? "text-yellow-400" : ""}`}>
+          {formatCount(video.shareCount ?? 0)}
+        </span>
+        {/* Tooltip — shown above for non-profile-detail sources */}
+        <div className="pointer-events-none absolute bottom-full mb-2 hidden group-hover/repost:flex whitespace-nowrap rounded-md bg-[#222] px-3 py-1.5 text-[12px] font-semibold text-white shadow-lg border border-white/10">
+          {isReposted ? "Xóa đăng lại" : "Đăng lại"}
+        </div>
+      </div>
     </aside>
   );
 }

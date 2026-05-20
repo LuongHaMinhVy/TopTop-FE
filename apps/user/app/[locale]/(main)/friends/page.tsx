@@ -8,6 +8,7 @@ import VideoCard from "@/components/video/VideoCard";
 import type { Video } from "@/types/video";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
+import { DocumentTitle } from "@/components/shared/DocumentTitle";
 
 function VideoSkeleton() {
   return (
@@ -70,6 +71,7 @@ export default function FriendsPage() {
   if (!isAuthenticated || isFriendsCountLoading || !hasFriends) {
     return (
       <div className="h-full overflow-y-hidden relative bg-black">
+        <DocumentTitle title="Friends | TopTop" />
         <VideoSkeleton />
       </div>
     );
@@ -79,6 +81,7 @@ export default function FriendsPage() {
   if (isLoading) {
     return (
       <div className="h-full overflow-y-hidden relative bg-black">
+        <DocumentTitle title="Friends | TopTop" />
         <VideoSkeleton />
       </div>
     );
@@ -88,6 +91,7 @@ export default function FriendsPage() {
   if (isError) {
     return (
       <div className="h-full flex items-center justify-center bg-black">
+        <DocumentTitle title="Friends | TopTop" />
         <div className="text-center space-y-3 p-8">
           <p className="text-zinc-400 text-[15px]">{t("loadError")}</p>
         </div>
@@ -101,6 +105,7 @@ export default function FriendsPage() {
   if (allVideos.length === 0) {
     return (
       <div className="h-full flex items-center justify-center bg-black">
+        <DocumentTitle title="Friends | TopTop" />
         <div className="text-center space-y-3 p-8">
           <p className="text-zinc-400 text-[15px]">{t("noVideos")}</p>
         </div>
@@ -117,6 +122,7 @@ export default function FriendsPage() {
         msOverflowStyle: "none",
       } as React.CSSProperties}
     >
+      <DocumentTitle title="Friends | TopTop" />
       {allVideos.map((video: Video, index: number) => (
         <VideoCard
           key={video.id}

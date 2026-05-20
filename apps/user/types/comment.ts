@@ -1,6 +1,8 @@
 export interface CommentResponse {
   id: number;
   content: string;
+  mediaUrl?: string | null;
+  mediaType?: "IMAGE" | null;
   createdAt: string;
   updatedAt?: string | null;
   userId: number;
@@ -26,6 +28,8 @@ export interface CommentResponse {
 export interface CreateCommentRequest {
   videoId: number;
   content: string;
+  mediaUrl?: string | null;
+  mediaType?: "IMAGE" | null;
   parentId?: number | null;
   timestampInVideo?: number | null;
 }
