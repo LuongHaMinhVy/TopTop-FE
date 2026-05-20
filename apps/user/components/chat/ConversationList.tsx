@@ -43,7 +43,6 @@ export const ConversationList = ({
 
   // Localization fallbacks
   const textMessageRequests = t('messageRequests');
-  const textBackToInbox = t('backToInbox');
   const textRequestsDesc = t('messageRequestsDesc');
   const textNoRequests = t('noRequests');
 

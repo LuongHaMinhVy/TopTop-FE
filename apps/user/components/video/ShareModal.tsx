@@ -73,7 +73,7 @@ export function ShareModal({
     }
 
     return Array.from(targets.values());
-  }, [convRes?.data, currentUserId, followingRes?.data]);
+  }, [convRes, currentUserId, followingRes]);
 
   const isLoading = isLoadingConv || isLoadingFollowing;
 

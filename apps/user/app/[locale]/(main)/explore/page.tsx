@@ -7,7 +7,7 @@ import { Heart, Volume2, VolumeX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { videoPath } from "@/utils/video-url";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Video } from "@/types/video";
 import { formatCount } from "@/utils/format-count";
 
@@ -63,16 +63,10 @@ function ExploreVideoCard({
         });
     } else {
       player.pause();
-      setIsPlaying(false);
     }
     // isMuted intentionally excluded – handled by the sync effect above
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
-
-  /* Mark as started the first time this card becomes active */
-  useEffect(() => {
-    if (isActive && !started) setStarted(true);
-  }, [isActive, started]);
 
   /* After "started" flips, video element mounts → play if still active */
   useEffect(() => {
@@ -93,7 +87,6 @@ function ExploreVideoCard({
       if (!player) return;
       if (document.hidden) {
         player.pause();
-        setIsPlaying(false);
       } else {
         player.play().then(() => setIsPlaying(true)).catch(() => {});
       }
@@ -111,7 +104,11 @@ function ExploreVideoCard({
     <div
       className="relative overflow-hidden rounded-xl cursor-pointer bg-black group"
       style={{ aspectRatio: "3/4" }}
-      onMouseEnter={() => { setIsHovered(true); onActivate(); }}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        setStarted(true);
+        onActivate();
+      }}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() =>
         router.push(videoPath(video.username, video.id, { from: "explore" }))
@@ -197,17 +194,12 @@ function ExploreSkeleton() {
 export default function ExplorePage() {
   const t = useTranslations("Main");
   const { data, isLoading } = useAllVideos();
-  const videos: Video[] = data?.data ?? [];
+  const videos: Video[] = useMemo(() => data?.data ?? [], [data?.data]);
 
   const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
   // Start unmuted (first video has sound); toggling here affects all cards
   const [isMuted, setIsMuted] = useState(false);
-
-  useEffect(() => {
-    if (videos.length > 0 && activeVideoId === null) {
-      setActiveVideoId(videos[0].id);
-    }
-  }, [videos, activeVideoId]);
+  const displayedActiveVideoId = activeVideoId ?? videos[0]?.id ?? null;
 
   const tags = ["Trending", "Music", "Dance", "Gaming", "Food", "Fashion"];
 
@@ -238,7 +230,7 @@ export default function ExplorePage() {
               key={video.id}
               video={video}
               isFirst={index === 0}
-              isActive={activeVideoId === video.id}
+              isActive={displayedActiveVideoId === video.id}
               isMuted={isMuted}
               onActivate={() => setActiveVideoId(video.id)}
               onToggleMute={() => setIsMuted((m) => !m)}
