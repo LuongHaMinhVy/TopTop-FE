@@ -9,8 +9,11 @@ export interface SoundAuthor {
 }
 
 export interface SoundStats {
+  soundId?: number;
   usageCount: number;
   videoCount: number;
+  savedCount?: number;
+  isSaved?: boolean;
 }
 
 export interface Sound {
@@ -24,6 +27,7 @@ export interface Sound {
   originalSound: boolean;
   owner?: SoundAuthor | null;
   stats?: SoundStats | null;
+  isSaved?: boolean;
   isPublic: boolean;
   isActive: boolean;
   createdAt?: string;

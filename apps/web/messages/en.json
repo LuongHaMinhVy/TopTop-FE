@@ -7,6 +7,9 @@
     "notifications": {
       "empty": "No notifications yet",
       "liked": "liked your video",
+      "saved": "added your video to Favorites",
+      "reposted": "reposted your video",
+      "repostLiked": "liked a video you reposted",
       "commented": "commented on your video",
       "followed": "started following you",
       "mentioned": "mentioned you",
@@ -247,6 +250,7 @@
       "editorTitle": "Add title for your video",
       "cancel": "Cancel",
       "save": "Save",
+      "saved": "Saved",
       "textTool": "Text",
       "editTool": "Edit",
       "soundTool": "Sound",

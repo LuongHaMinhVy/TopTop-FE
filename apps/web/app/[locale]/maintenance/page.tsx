@@ -3,6 +3,7 @@
 import { ServerCrash, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useState } from "react";
+import { getBackendBaseUrl } from "@/utils/axios-instance";
 
 export default function MaintenancePage() {
   const [isRetrying, setIsRetrying] = useState(false);
@@ -13,9 +14,10 @@ export default function MaintenancePage() {
     setRetryError(false);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACK_END_URL}/api/v1/users/me`, {
+      const response = await fetch(`${getBackendBaseUrl()}/api/v1/users/me`, {
         method: 'GET',
-        headers: { 'X-App-Id': 'toptopuser' }
+        headers: { 'X-App-Id': 'toptopuser' },
+        credentials: 'include',
       });
 
       if (response.status !== 503) {

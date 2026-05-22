@@ -1,9 +1,10 @@
 import axios from "axios";
 
-const getBaseUrl = () => {
+export const getBackendBaseUrl = () => {
     if (typeof window === "undefined") {
         return process.env.NEXT_PUBLIC_BACK_END_URL || "http://localhost:8080";
     }
+
 
     const hostname = window.location.hostname;
 
@@ -14,14 +15,25 @@ const getBaseUrl = () => {
         );
     }
 
-    return (
-        process.env.NEXT_PUBLIC_IP_BACK_END_URL ||
-        process.env.NEXT_PUBLIC_BACK_END_URL ||
-        "http://localhost:8080"
-    );
+    const ipBackendUrl = process.env.NEXT_PUBLIC_IP_BACK_END_URL;
+    const configuredBackendUrl = process.env.NEXT_PUBLIC_BACK_END_URL;
+
+    if (ipBackendUrl) {
+        return ipBackendUrl;
+    }
+
+    if (
+        configuredBackendUrl &&
+        !configuredBackendUrl.includes("localhost") &&
+        !configuredBackendUrl.includes("127.0.0.1")
+    ) {
+        return configuredBackendUrl;
+    }
+
+    return `http://${hostname}:8080`;
 };
 
-const baseUrl = `${getBaseUrl()}/api/v1`;
+const baseUrl = `${getBackendBaseUrl()}/api/v1`;
 
 const api = axios.create({
     baseURL: baseUrl,
@@ -70,8 +82,15 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        const requestUrl = originalRequest?.url || "";
+        const isAuthRequest = requestUrl.startsWith("/auth/");
+        const shouldRefreshToken =
+            error.response?.status === 401 &&
+            !originalRequest?._retry &&
+            requestUrl !== "/auth/refresh" &&
+            !isAuthRequest;
 
-        if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== "/auth/refresh") {
+        if (shouldRefreshToken) {
             
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
@@ -106,7 +125,7 @@ api.interceptors.response.use(
             }
         }
 
-        if (error.response?.status === 401 && (originalRequest._retry || originalRequest.url === "/auth/refresh")) {
+        if (error.response?.status === 401 && (originalRequest?._retry || requestUrl === "/auth/refresh")) {
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("auth:expired"));
             }

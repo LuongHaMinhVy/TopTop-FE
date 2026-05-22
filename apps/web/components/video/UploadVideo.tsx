@@ -5,7 +5,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import axios from 'axios';
 import { useUploadVideoMutation } from '@/hooks/video-hooks';
-import { RefreshCw, Hash, AtSign, CheckCircle2, AlertCircle, ChevronDown, X, Upload, Film, ImagePlus, Music, Scissors, Type } from 'lucide-react';
+import { RefreshCw, Hash, AtSign, CheckCircle2, AlertCircle, ChevronDown, X, Upload, Film, ImagePlus, Music, Scissors, Type, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useHashtagSuggestions, useMentionSuggestions } from '@/hooks/suggestion-hooks';
@@ -77,6 +77,7 @@ export default function UploadVideo() {
   // Cover
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverManuallySelected, setCoverManuallySelected] = useState(false);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [coverTab, setCoverTab] = useState<CoverSourceTab>('video');
   const [videoFrames, setVideoFrames] = useState<VideoFrameOption[]>([]);
@@ -109,6 +110,7 @@ export default function UploadVideo() {
 
   // Settings
   const [visibility, setVisibility] = useState('PUBLIC');
+  const [visibilityDropdownOpen, setVisibilityDropdownOpen] = useState(false);
   const [allowComments, setAllowComments] = useState(true);
   const [allowDuet, setAllowDuet] = useState(true);
   const [allowStitch, setAllowStitch] = useState(true);
@@ -124,6 +126,7 @@ export default function UploadVideo() {
   const [mentionSearch, setMentionSearch] = useState('');
   const [hashtagSearch, setHashtagSearch] = useState('');
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const visibilityDropdownRef = useRef<HTMLDivElement>(null);
 
   const debouncedHashtagSearch = useDebounce(hashtagSearch, 300);
   const debouncedMentionSearch = useDebounce(mentionSearch, 300);
@@ -183,6 +186,12 @@ export default function UploadVideo() {
     return result.slice(0, 8);
   }, [conversationsRes?.data, followingRes?.data]);
   const mentions = hasMentionSearch ? mentionSearchResults : prioritizedMentionSuggestions;
+  const visibilityOptions = useMemo(() => [
+    { value: 'PUBLIC', label: t('everyone') },
+    { value: 'FRIENDS', label: t('friends') },
+    { value: 'PRIVATE', label: t('onlyMe') },
+  ], [t]);
+  const selectedVisibilityOption = visibilityOptions.find((option) => option.value === visibility) ?? visibilityOptions[0];
 
   const ffmpegRef = useRef<FFmpeg | null>(null);
   const submitLockRef = useRef(false);
@@ -323,6 +332,7 @@ export default function UploadVideo() {
     revokeCoverObjectUrl();
     setCoverFile(croppedCover.file);
     setCoverPreview(croppedCover.dataUrl);
+    setCoverManuallySelected(true);
     setCoverPickerOpen(false);
   }, [createCroppedCover, revokeCoverObjectUrl]);
 
@@ -499,6 +509,7 @@ export default function UploadVideo() {
     revokeCoverObjectUrl();
     setCoverFile(null);
     setCoverPreview(null);
+    setCoverManuallySelected(false);
   }, [revokeCoverObjectUrl]);
 
   const extractVideoFrames = useCallback(async () => {
@@ -570,6 +581,19 @@ export default function UploadVideo() {
     return () => revokeCoverObjectUrl();
   }, [revokeCoverObjectUrl]);
 
+  useEffect(() => {
+    if (!visibilityDropdownOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!visibilityDropdownRef.current?.contains(event.target as Node)) {
+        setVisibilityDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [visibilityDropdownOpen]);
+
   // Extract the first frame as the default cover if none is chosen
   useEffect(() => {
     if (!preview) return;
@@ -630,6 +654,7 @@ export default function UploadVideo() {
           const defaultCoverFile = dataUrlToFile(dataUrl, 'default-cover.jpg');
           setCoverFile(defaultCoverFile);
           setCoverPreview(dataUrl);
+          setCoverManuallySelected(false);
         }
       } catch (err) {
         console.warn('Failed to extract default cover frame:', err);
@@ -707,7 +732,7 @@ export default function UploadVideo() {
     return ffmpeg;
   };
 
-  const doUpload = async (fileToProcess: File, metadata?: { title: string; description: string; visibility: string; allowComments: boolean; allowEdit: boolean; soundId?: number | null }) => {
+  const doUpload = async (fileToProcess: File, metadata?: { title: string; description: string; visibility: string; allowComments: boolean; allowEdit: boolean; soundId?: number | null; useAvatarAsSoundCover?: boolean }) => {
     try {
       let fileToUpload = fileToProcess;
       const shouldCompress = fileToProcess.size > 10 * 1024 * 1024;
@@ -754,6 +779,7 @@ export default function UploadVideo() {
         allowEdit: false,
         soundId: selectedSound?.id ?? null,
       };
+      finalMetadata.useAvatarAsSoundCover = !finalMetadata.soundId && !coverManuallySelected;
       
       formData.append('data', new Blob([JSON.stringify(finalMetadata)], { type: 'application/json' }));
       if (coverFile) formData.append('cover', coverFile);
@@ -891,7 +917,7 @@ export default function UploadVideo() {
     if (preview) URL.revokeObjectURL(preview);
     revokeCoverObjectUrl();
     setFile(null); setPreview(null); setDescription(''); setStatus('idle');
-    setProgress(0); setErrorMessage(''); setCoverFile(null); setCoverPreview(null);
+    setProgress(0); setErrorMessage(''); setCoverFile(null); setCoverPreview(null); setCoverManuallySelected(false);
     setCoverPickerOpen(false); setCoverTab('video'); setVideoFrames([]);
     setSelectedCoverTime(0); setSelectedVideoFramePreview(null); setImportedCoverSource(null); resetCoverCrop(); setVideoDuration(0);
     setVisibility('PUBLIC'); setAllowComments(true); setAllowDuet(true); setAllowStitch(true);
@@ -903,7 +929,7 @@ export default function UploadVideo() {
     submitLockRef.current = true;
     setStatus('compressing'); // Just a visual indicator
     try {
-      const { saveDraft } = await import('@/utils/draftDb');
+      const { saveDraft } = await import('@/utils/draft-db');
       await saveDraft({
         id: Date.now().toString(),
         file,
@@ -1179,18 +1205,56 @@ export default function UploadVideo() {
               {/* Visibility */}
               <div className="mb-5">
                 <label className="text-sm font-semibold text-text-primary mb-2 block">{t('whoCanWatch')}</label>
-                <div className="relative w-56">
-                  <select
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value)}
+                <div ref={visibilityDropdownRef} className="relative w-full max-w-[260px]">
+                  <button
+                    type="button"
                     disabled={uploadLocked}
-                    className="w-full px-4 py-2.5 bg-background border border-elevated rounded-lg text-sm text-text-primary appearance-none pr-10 focus:outline-none focus:border-text-muted disabled:cursor-wait transition-colors"
+                    aria-haspopup="listbox"
+                    aria-expanded={visibilityDropdownOpen}
+                    onClick={() => setVisibilityDropdownOpen((open) => !open)}
+                    className={`flex h-11 w-full items-center justify-between rounded-lg border px-3.5 text-left text-sm font-semibold transition-colors ${
+                      visibilityDropdownOpen
+                        ? 'border-text-muted bg-surface text-text-primary'
+                        : 'border-elevated bg-background text-text-primary hover:bg-hover'
+                    } disabled:cursor-wait disabled:hover:bg-background`}
                   >
-                    <option value="PUBLIC">{t('everyone')}</option>
-                    <option value="FRIENDS">{t('friends')}</option>
-                    <option value="PRIVATE">{t('onlyMe')}</option>
-                  </select>
-                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                    <span className="truncate">{selectedVisibilityOption.label}</span>
+                    <ChevronDown
+                      size={16}
+                      className={`ml-3 shrink-0 text-text-muted transition-transform ${visibilityDropdownOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {visibilityDropdownOpen && (
+                    <div
+                      role="listbox"
+                      className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-elevated bg-surface shadow-2xl"
+                    >
+                      {visibilityOptions.map((option) => {
+                        const selected = option.value === visibility;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            onClick={() => {
+                              setVisibility(option.value);
+                              setVisibilityDropdownOpen(false);
+                            }}
+                            className={`flex h-11 w-full items-center justify-between px-3.5 text-left text-sm transition-colors ${
+                              selected
+                                ? 'bg-brand/10 font-bold text-brand'
+                                : 'font-medium text-text-primary hover:bg-hover'
+                            }`}
+                          >
+                            <span className="truncate">{option.label}</span>
+                            {selected ? <Check size={16} className="shrink-0" /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 

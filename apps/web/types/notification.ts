@@ -8,5 +8,6 @@ export interface Notification {
   actorUsername: string;
   actorAvatarUrl?: string;
   videoId?: number;
+  videoOwnerUsername?: string;
   videoThumbnailUrl?: string;
 }

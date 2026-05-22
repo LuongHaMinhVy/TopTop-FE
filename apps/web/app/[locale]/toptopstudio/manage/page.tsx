@@ -27,7 +27,7 @@ import {
 import Image from 'next/image';
 import { useUserVideos, useDeleteVideoMutation, useUpdateVideoMutation } from '@/hooks/video-hooks';
 import { useComments, useDeleteCommentMutation } from '@/hooks/comment-hooks';
-import { getDrafts, deleteDraft, type VideoDraft } from '@/utils/draftDb';
+import { getDrafts, deleteDraft, type VideoDraft } from '@/utils/draft-db';
 import type { Video } from '@/types/video';
 import { DocumentTitle } from '@/components/shared/DocumentTitle';
 

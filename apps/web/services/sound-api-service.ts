@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import api from "@/utils/axios-instance";
 import { handleErrorResponse } from "./handle-error-response";
 import type { ApiResponse } from "@/types/api";
-import type { Sound, SoundDetail, SoundType } from "@/types/sound";
+import type { Sound, SoundDetail, SoundStats, SoundType } from "@/types/sound";
 import type { Video } from "@/types/video";
 
 interface SoundListParams {
@@ -41,6 +41,38 @@ export const getSoundVideos = async (
     const response = await api.get<ApiResponse<Video[]>>(`/sounds/${soundId}/videos`, {
       params: { page, size },
     });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const getFavoriteSounds = async (page = 0, size = 20): Promise<ApiResponse<Sound[]>> => {
+  try {
+    const response = await api.get<ApiResponse<Sound[]>>("/sounds/favorites", {
+      params: { page, size },
+    });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const saveSound = async (soundId: number): Promise<ApiResponse<SoundStats>> => {
+  try {
+    const response = await api.post<ApiResponse<SoundStats>>(`/sounds/${soundId}/save`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const unsaveSound = async (soundId: number): Promise<ApiResponse<SoundStats>> => {
+  try {
+    const response = await api.delete<ApiResponse<SoundStats>>(`/sounds/${soundId}/save`);
     return response.data;
   } catch (error) {
     handleErrorResponse(error as AxiosError);

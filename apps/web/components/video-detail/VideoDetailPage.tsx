@@ -98,6 +98,7 @@ function toSearchVideoDetail(video: SearchVideo): Video {
     userAvatarUrl: video.author.avatarUrl ?? undefined,
     createdAt: video.createdAt,
     isFollowingAuthor: video.author.followed,
+    sound: video.sound ?? null,
   };
 }
 

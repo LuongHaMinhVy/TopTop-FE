@@ -34,8 +34,8 @@ export function FavoriteSoundTile({ sound }: { sound: Sound }) {
   const getSoundArtist = (s: Sound) => s.artistName || s.owner?.displayName || s.owner?.username || '';
 
   return (
-    <div className="flex items-center gap-4 border-b border-elevated py-4 last:border-0 hover:bg-hover transition-colors rounded-lg px-2">
-      <div className="relative size-[72px] flex-shrink-0 overflow-hidden rounded-md bg-elevated group cursor-pointer">
+    <Link href={`/music/${sound.id}`} className="group flex min-w-0 items-center gap-4 rounded-lg border border-elevated bg-surface/40 p-3 transition-colors hover:bg-hover">
+      <div className="group relative size-[72px] flex-shrink-0 cursor-pointer overflow-hidden rounded-md bg-elevated">
         {sound.coverUrl ? (
           <Image src={sound.coverUrl} alt={sound.title} fill className="object-cover" />
         ) : (
@@ -47,15 +47,15 @@ export function FavoriteSoundTile({ sound }: { sound: Sound }) {
           <Play size={24} className="text-white ml-1" fill="white" />
         </div>
       </div>
-      <div className="min-w-0 flex-1 cursor-pointer">
+      <div className="min-w-0 flex-1">
         <h4 className="truncate text-[16px] font-bold text-text-primary hover:underline">{sound.title}</h4>
         <p className="mt-0.5 truncate text-[14px] text-text-secondary">{getSoundArtist(sound)}</p>
         <p className="mt-0.5 text-[14px] text-text-secondary">{formatDuration(sound.durationSeconds)}</p>
       </div>
-      <button className="grid size-10 flex-shrink-0 place-items-center rounded-md hover:bg-elevated transition-colors text-text-primary">
+      <span className="grid size-10 flex-shrink-0 place-items-center rounded-md text-text-primary transition-colors group-hover:bg-elevated">
         <VideoIcon size={24} />
-      </button>
-    </div>
+      </span>
+    </Link>
   );
 }
 

@@ -6,6 +6,7 @@ import type { Video } from "@/types/video";
 import { useRecordVideoViewMutation } from "@/hooks/video-hooks";
 import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
 import { VideoContextMenu } from "./VideoContextMenu";
+import { SoundBadge } from "@/components/sound/SoundBadge";
 
 type VideoPlayerControlsVariant = "default" | "profile-detail";
 
@@ -329,6 +330,14 @@ export function VideoPlayerContainer({
 
         {isProfileDetailControls ? (
           <>
+            <div className="absolute bottom-24 left-6 z-[75] max-w-[min(420px,calc(100%-160px))] text-white">
+              <SoundBadge
+                sound={video.sound}
+                fallbackLabel={`Âm thanh gốc - @${video.username}`}
+                className="rounded-full bg-black/35 px-3 py-1.5 text-[14px] backdrop-blur-sm"
+              />
+            </div>
+
             <div
               className="absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-5 group/progress"
               style={{

@@ -32,8 +32,11 @@ import { ReportModal } from "@/components/report/ReportModal";
 import { useUploadMediaMutation } from "@/hooks/media-hooks";
 import { useConversations } from "@/hooks/chat-hooks";
 import { useFollowingList } from "@/hooks/user-hooks";
+import { useMentionSuggestions } from "@/hooks/user-hooks";
 import type { UserInfo } from "@/types/user";
+import type { MentionSuggestion } from "@/types/mention";
 import { useDebounce } from "@/hooks/useDebounce";
+import Link from "next/link";
 
 interface Props {
   videoId: number;
@@ -104,12 +107,19 @@ export default function CommentSection({
   const [mentionQuery, setMentionQuery] = useState("");
   const debouncedMentionQuery = useDebounce(mentionQuery, 250);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const [expandedReplyCommentIds, setExpandedReplyCommentIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [reportTargetId, setReportTargetId] = useState<number | null>(null);
   const commentsListRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const { data: conversationsData } = useConversations(0, 20, "ACTIVE");
   const { data: followingData } = useFollowingList(Boolean(currentUser));
+  const { data: mentionSuggestionsData } = useMentionSuggestions(
+    debouncedMentionQuery,
+    Boolean(currentUser) && mentionOpen,
+  );
 
   const comments = commentsData?.data || [];
   const content = draft.videoId === videoId ? draft.content : "";
@@ -130,7 +140,8 @@ export default function CommentSection({
     }));
   const followingUsers = followingData?.data ?? [];
   const mentionUsers = (
-    debouncedMentionQuery
+    mentionSuggestionsData?.data?.map(mentionToUserInfo) ??
+    (debouncedMentionQuery
       ? followingUsers.filter(
           (user) =>
             user.username
@@ -140,7 +151,7 @@ export default function CommentSection({
               .toLowerCase()
               .includes(debouncedMentionQuery.toLowerCase()),
         )
-      : chatMentionUsers
+      : chatMentionUsers)
   ).slice(0, 6);
 
   useEffect(() => {
@@ -213,6 +224,11 @@ export default function CommentSection({
         },
         {
           onSuccess: () => {
+            setExpandedReplyCommentIds((current) => {
+              const next = new Set(current);
+              next.add(activeReplyTarget.commentId);
+              return next;
+            });
             setDraft({ videoId, content: "" });
             if (activeImageDraft) URL.revokeObjectURL(activeImageDraft.previewUrl);
             setImageDraft(null);
@@ -297,9 +313,15 @@ export default function CommentSection({
               comment={comment}
               onReply={(target) => {
                 if (!requireLogin()) return;
+                const rootCommentId = target.parentId ?? target.id;
+                setExpandedReplyCommentIds((current) => {
+                  const next = new Set(current);
+                  next.add(rootCommentId);
+                  return next;
+                });
                 setReplyTarget({
                   videoId,
-                  commentId: target.id,
+                  commentId: rootCommentId,
                   username: commentUsername(target),
                 });
               }}
@@ -315,6 +337,7 @@ export default function CommentSection({
                   liked: Boolean(target.liked),
                 });
               }}
+              forceShowReplies={expandedReplyCommentIds.has(comment.id)}
             />
           ))
         )}
@@ -432,7 +455,11 @@ export default function CommentSection({
                         })
                       : t("video.commentPlaceholder")
                   }
-                  className="flex-1 bg-transparent border-none outline-none focus:outline-none focus:ring-0 resize-none py-1.5 px-2 text-[14px] max-h-24 no-scrollbar"
+                  className={`flex-1 resize-none border-none bg-transparent px-2 py-1.5 text-[14px] outline-none no-scrollbar focus:outline-none focus:ring-0 ${
+                    activeReplyTarget
+                      ? "h-8 max-h-8 overflow-hidden whitespace-nowrap"
+                      : "max-h-24"
+                  }`}
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -486,24 +513,34 @@ function CommentItem({
   onDelete,
   onReport,
   onLike,
+  depth = 0,
+  forceShowReplies = false,
 }: {
   comment: CommentResponse;
   onReply: (comment: CommentResponse) => void;
   onDelete: (commentId: number) => void;
   onReport: (commentId: number) => void;
   onLike: (comment: CommentResponse) => void;
+  depth?: number;
+  forceShowReplies?: boolean;
 }) {
   const t = useTranslations();
   const [showMenu, setShowMenu] = useState(false);
-  const [visibleReplyCount, setVisibleReplyCount] = useState(0);
+  const [visibleReplyCount, setVisibleReplyCount] = useState(() => {
+    if (!forceShowReplies || depth !== 0) return 0;
+    return Math.min(4, Math.max(1, comment.replyCount ?? 0));
+  });
+
   const { data: repliesData, isLoading: isLoadingReplies } = useReplies(
     visibleReplyCount > 0 ? comment.id : undefined,
   );
+
   const replies = repliesData?.data || [];
   const totalReplies = comment.replyCount ?? 0;
   const visibleReplies = replies.slice(0, visibleReplyCount);
   const remainingReplies = Math.max(0, totalReplies - visibleReplyCount);
   const nextReplyBatchCount = Math.min(4, remainingReplies);
+  const canShowReplies = depth === 0;
 
   const handleShowMoreReplies = () => {
     setVisibleReplyCount((current) => {
@@ -539,7 +576,7 @@ function CommentItem({
             <p
               className={`text-[14px] leading-snug ${comment.deleted ? "italic text-text-muted" : ""}`}
             >
-              {comment.deleted ? t("video.commentDeleted") : comment.content}
+              {comment.deleted ? t("video.commentDeleted") : renderCommentContent(comment.content)}
             </p>
             {!comment.deleted &&
               comment.mediaUrl &&
@@ -609,7 +646,7 @@ function CommentItem({
           </div>
         </div>
 
-        {totalReplies > 0 && visibleReplyCount === 0 && (
+        {canShowReplies && totalReplies > 0 && visibleReplyCount === 0 && (
           <button
             type="button"
             onClick={handleShowMoreReplies}
@@ -620,7 +657,7 @@ function CommentItem({
           </button>
         )}
 
-        {visibleReplyCount > 0 && (
+        {canShowReplies && visibleReplyCount > 0 && (
           <div className="mt-4 space-y-4 pl-4">
             {isLoadingReplies ? (
               <CommentSkeleton compact />
@@ -633,6 +670,7 @@ function CommentItem({
                   onDelete={onDelete}
                   onReport={onReport}
                   onLike={onLike}
+                  depth={depth + 1}
                 />
               ))
             )}
@@ -677,6 +715,38 @@ function CommentSkeleton({ compact = false }: { compact?: boolean }) {
       ))}
     </div>
   );
+}
+
+function mentionToUserInfo(mention: MentionSuggestion): UserInfo {
+  return {
+    id: mention.id,
+    username: mention.username,
+    nickname: mention.displayName,
+    avatarUrl: mention.avatarUrl,
+    roles: [],
+  };
+}
+
+function renderCommentContent(content: string) {
+  const parts = content.split(/(@[a-zA-Z0-9._]+)/g);
+
+  return parts.map((part, index) => {
+    if (/^@[a-zA-Z0-9._]+$/.test(part)) {
+      const username = part.slice(1);
+      return (
+        <Link
+          key={`${part}-${index}`}
+          href={`/@${username}`}
+          className="font-bold text-[#8ab4ff] hover:underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {part}
+        </Link>
+      );
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
 }
 
 function commentUsername(comment: CommentResponse) {

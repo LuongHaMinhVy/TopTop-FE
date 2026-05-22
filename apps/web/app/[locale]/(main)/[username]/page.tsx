@@ -36,7 +36,7 @@ import {
   useUserCollections,
 } from "@/hooks/collection-hooks";
 import { CollectionCard, CollectionFormModal, FavoriteSoundTile, FavoriteVideoTile } from "@/components/collection/CollectionUi";
-import { useSounds } from "@/hooks/sound-hooks";
+import { useFavoriteSounds } from "@/hooks/sound-hooks";
 import { collectionPath } from "@/utils/collection-url";
 import { videoPath } from "@/utils/video-url";
 import { useSelector } from "react-redux";
@@ -97,9 +97,10 @@ export default function ProfilePage() {
     !isOwnProfileForQueries && activeTab === "favorites"
   );
   const isLoadingCollections = isOwnProfileForQueries ? isLoadingOwnCollections : isLoadingPublicCollections;
-  const { data: soundsRes, isLoading: isLoadingSounds } = useSounds(
-    { size: 10 },
-    isOwnProfileForQueries && activeTab === "favorites"
+  const { data: soundsRes, isLoading: isLoadingSounds } = useFavoriteSounds(
+    isOwnProfileForQueries && activeTab === "favorites",
+    0,
+    50,
   );
 
   const userVideos = useMemo(() => userVideosRes?.data ?? [], [userVideosRes?.data]);
@@ -531,7 +532,7 @@ export default function ProfilePage() {
               >
                 Bộ sưu tập {collections.length}
               </button>
-              {favoriteSounds.length > 0 && (
+              {isOwnProfile && (
                 <button
                   type="button"
                   onClick={() => setFavoriteSection("sounds")}
@@ -587,15 +588,15 @@ export default function ProfilePage() {
               <p className="text-xl font-bold">{tCollection("privateFavorites")}</p>
             </div>
           ) : favoriteSection === "sounds" ? (
-            <div className="flex flex-col max-w-3xl">
+            <div className="grid max-w-5xl grid-cols-2 gap-4">
               {isLoadingSounds ? (
-                [1, 2, 3].map((i) => <div key={i} className="h-[104px] animate-pulse rounded-lg bg-elevated mb-4" />)
+                [1, 2, 3, 4].map((i) => <div key={i} className="h-[104px] animate-pulse rounded-lg bg-elevated" />)
               ) : favoriteSounds.length > 0 ? (
                 favoriteSounds.map((sound) => (
                   <FavoriteSoundTile key={sound.id} sound={sound} />
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center py-32 text-text-secondary">
+                <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
                   <Music className="mb-4 size-16 opacity-30" />
                   <p className="text-xl font-bold">Chưa có âm thanh yêu thích nào</p>
                 </div>

@@ -5,7 +5,7 @@ import {
   MessageCircle,
   Share2,
   Bookmark,
-  Music,
+  Disc3,
   Plus,
   Volume2,
   VolumeX,
@@ -26,6 +26,7 @@ import { openAuthModal } from "@/store/slices/authSlice";
 import { VideoOptionsMenu } from "./VideoOptionsMenu";
 import { ShareModal } from "./ShareModal";
 import { RepostBadge } from "./RepostBadge";
+import { SoundBadge } from "@/components/sound/SoundBadge";
 import { IconButton } from "@repo/ui/icon-button";
 import { useTranslations } from "next-intl";
 import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
@@ -79,6 +80,7 @@ interface InteractionSidebarProps {
   isFollowPending?: boolean;
   onFollowClick?: () => void;
   soundId?: number;
+  soundCoverUrl?: string | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
@@ -103,6 +105,7 @@ const InteractionSidebar = ({
   isFollowPending = false,
   onFollowClick,
   soundId,
+  soundCoverUrl,
 }: InteractionSidebarProps) => {
   const router = useRouter();
 
@@ -183,12 +186,16 @@ const InteractionSidebar = ({
           if (soundId) router.push(`/music/${soundId}`);
         }}
         className={`
-          mt-1 grid place-items-center rounded-full text-white transition hover:scale-105
+          relative mt-1 grid place-items-center overflow-hidden rounded-full text-white transition hover:scale-105
           ${soundId ? "cursor-pointer" : "cursor-default"}
           ${overlay ? "size-10 bg-black/40 backdrop-blur-sm" : "size-12 bg-neutral-800 hover:bg-neutral-700"}
         `}
       >
-        <Music className="h-5 w-5" />
+        {soundCoverUrl ? (
+          <Image src={soundCoverUrl} alt={musicLabel} fill className="object-cover" />
+        ) : (
+          <Disc3 className="h-5 w-5" />
+        )}
       </button>
     </div>
   );
@@ -1137,6 +1144,7 @@ export default function VideoCard({
                     onFollowClick={handleFollowAuthor}
                     musicLabel={soundLabel ?? "Âm thanh"}
                     soundId={video?.sound?.id}
+                    soundCoverUrl={video?.sound?.coverUrl ?? video?.sound?.owner?.avatarUrl ?? null}
                     videoRef={videoRef}
                   />
                 </div>
@@ -1168,6 +1176,11 @@ export default function VideoCard({
                   <p className="text-[14px] sm:text-[15px] line-clamp-3 leading-relaxed opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] font-medium max-w-[420px]">
                     {renderCaptionWithHashtags(caption)}
                   </p>
+                  <SoundBadge
+                    sound={video?.sound}
+                    fallbackLabel={soundLabel ? undefined : `Âm thanh gốc - @${username}`}
+                    className="pointer-events-auto mt-2 max-w-[360px] rounded-full bg-black/25 px-2.5 py-1 text-[13px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] backdrop-blur-sm"
+                  />
                   
                   <div className="mt-2 pointer-events-auto flex items-center gap-4">
                     <button className="text-[12px] font-bold opacity-70 hover:opacity-100 transition-opacity bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-sm">
@@ -1266,6 +1279,7 @@ export default function VideoCard({
             onFollowClick={handleFollowAuthor}
             musicLabel={soundLabel ?? "Âm thanh"}
             soundId={video?.sound?.id}
+            soundCoverUrl={video?.sound?.coverUrl ?? video?.sound?.owner?.avatarUrl ?? null}
             videoRef={videoRef}
           />
         </div>

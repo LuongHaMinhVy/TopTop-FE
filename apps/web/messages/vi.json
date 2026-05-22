@@ -7,6 +7,9 @@
     "notifications": {
       "empty": "Chưa có thông báo nào",
       "liked": "đã thích video của bạn",
+      "saved": "đã thêm video của bạn vào Yêu thích",
+      "reposted": "đã đăng lại video của bạn",
+      "repostLiked": "đã thích video bạn đăng lại",
       "commented": "đã bình luận về video của bạn",
       "followed": "đã bắt đầu follow bạn",
       "mentioned": "đã nhắc đến bạn",
@@ -247,6 +250,7 @@
       "editorTitle": "Thêm tiêu đề cho video của bạn",
       "cancel": "Hủy",
       "save": "Lưu",
+      "saved": "Đã lưu",
       "textTool": "Văn bản",
       "editTool": "Chỉnh sửa",
       "soundTool": "Âm thanh",

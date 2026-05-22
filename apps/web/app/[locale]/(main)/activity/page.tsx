@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useNotifications, useMarkReadMutation } from "@/hooks/notification-hooks";
 import { Avatar } from "@repo/ui";
-import { Heart, MessageCircle, UserPlus, Circle, BellOff } from "lucide-react";
+import { Bookmark, Heart, MessageCircle, Repeat2, UserPlus, Circle, BellOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import * as locales from "date-fns/locale";
 import { usePathname } from "next/navigation";
@@ -44,6 +44,15 @@ export default function ActivityPage() {
         }
         return t("notifications.liked");
       }
+      case "SAVE": {
+        return t("notifications.saved");
+      }
+      case "REPOST": {
+        return t("notifications.reposted");
+      }
+      case "REPOST_LIKE": {
+        return t("notifications.repostLiked");
+      }
       case "COMMENT": {
         const colonIndex = cleanContent.indexOf(":");
         if (colonIndex !== -1) {
@@ -63,6 +72,9 @@ export default function ActivityPage() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'LIKE': return <Heart className="w-4 h-4 fill-brand text-brand" />;
+      case 'SAVE': return <Bookmark className="w-4 h-4 fill-yellow-400 text-yellow-400" />;
+      case 'REPOST': return <Repeat2 className="w-4 h-4 text-green-500" />;
+      case 'REPOST_LIKE': return <Heart className="w-4 h-4 fill-pink-500 text-pink-500" />;
       case 'COMMENT': return <MessageCircle className="w-4 h-4 fill-blue-500 text-blue-500" />;
       case 'FOLLOW': return <UserPlus className="w-4 h-4 text-purple-500" />;
       default: return <Circle className="w-4 h-4 text-gray-400" />;
@@ -119,8 +131,8 @@ export default function ActivityPage() {
               className="flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer group hover:bg-black/5 dark:hover:bg-white/8"
               onClick={() => {
                 if (!notification.isRead) markRead.mutate(notification.id);
-                if (notification.videoId && user?.username) {
-                  router.push(`/@${user.username}/video/${notification.videoId}`);
+                if (notification.videoId) {
+                  router.push(`/@${notification.videoOwnerUsername || user?.username}/video/${notification.videoId}`);
                 } else {
                   router.push(`/@${notification.actorUsername}`);
                 }

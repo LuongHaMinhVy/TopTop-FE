@@ -1,3 +1,5 @@
+import type { VideoSound } from "./sound";
+
 export type SearchTab = "top" | "users" | "videos" | "live";
 export type SearchType = "ALL" | "TOP" | "USER" | "VIDEO" | "LIVE" | "HASHTAG" | "SOUND";
 export type SearchSourceType = "KEYWORD" | "USER" | "HASHTAG" | "SOUND";
@@ -25,6 +27,7 @@ export interface SearchVideo {
   commentCount: number;
   createdAt: string;
   author: SearchUser;
+  sound?: VideoSound | null;
 }
 
 export interface SearchLive {

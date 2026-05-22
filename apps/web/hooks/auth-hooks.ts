@@ -3,6 +3,7 @@ import { AxiosError } from "axios";
 import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { authLogin, authRegister, authLogout, authVerifyEmail, oauth2Onboard } from "@/services/auth-api-service";
+import { getBackendBaseUrl } from "@/utils/axios-instance";
 import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import type { ApiResponse } from "@/types/api";
 import type { AuthResponse, LoginRequest, RegisterRequest } from "@/types/auth";
@@ -69,10 +70,12 @@ export const useVerifyEmailMutation = () => {
 export const useOAuth = () => {
   const openAuthPopup = (provider: 'google' | 'facebook') => {
     document.cookie = `X-App-Id=toptopuser; path=/; max-age=3600; SameSite=Lax`;
+    const backendBaseUrl = getBackendBaseUrl();
+    const redirectBase = encodeURIComponent(window.location.origin);
 
     const urls = {
-      google: `${process.env.NEXT_PUBLIC_BACK_END_URL}/oauth2/authorization/google?X-App-Id=toptopuser`,
-      facebook: `${process.env.NEXT_PUBLIC_BACK_END_URL}/oauth2/authorization/facebook?X-App-Id=toptopuser`
+      google: `${backendBaseUrl}/oauth2/authorization/google?X-App-Id=toptopuser&redirect_base=${redirectBase}`,
+      facebook: `${backendBaseUrl}/oauth2/authorization/facebook?X-App-Id=toptopuser&redirect_base=${redirectBase}`
     };
 
     const width = 500;
