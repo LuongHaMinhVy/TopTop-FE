@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import axios from 'axios';
-import { useUploadVideoMutation } from '@/hooks/video-hooks';
+import { useUploadVideoMutation, useInitVideoUploadMutation, useCompleteVideoUploadMutation } from '@/hooks/video-hooks';
 import { RefreshCw, Hash, AtSign, CheckCircle2, AlertCircle, ChevronDown, X, Upload, Film, ImagePlus, Music, Scissors, Type, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -24,11 +24,24 @@ import { useSoundDetail } from '@/hooks/sound-hooks';
 import type { Sound } from '@/types/sound';
 
 type UploadStatus = 'idle' | 'compressing' | 'uploading' | 'uploaded' | 'success' | 'error';
+type ModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
+type MusicCopyrightStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
 type CoverSourceTab = 'video' | 'upload';
 
 interface VideoFrameOption {
   dataUrl: string;
   timestamp: number;
+}
+
+interface UploadMetadata {
+  title: string;
+  description: string;
+  category?: string;
+  visibility: string;
+  allowComments: boolean;
+  allowEdit: boolean;
+  soundId?: number | null;
+  useAvatarAsSoundCover?: boolean;
 }
 
 const COVER_OUTPUT_WIDTH = 1080;
@@ -73,6 +86,16 @@ export default function UploadVideo() {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [uploadedVideoId, setUploadedVideoId] = useState<number | null>(null);
+  const [moderationResult, setModerationResult] = useState<{
+    moderationStatus: ModerationStatus;
+    reasonCode: string | null;
+    reasonMessage: string | null;
+    riskScore: number | null;
+    musicCopyrightStatus: MusicCopyrightStatus | null;
+    musicCopyrightReasonCode: string | null;
+    musicCopyrightReasonMessage: string | null;
+  } | null>(null);
 
   // Cover
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -196,6 +219,8 @@ export default function UploadVideo() {
   const ffmpegRef = useRef<FFmpeg | null>(null);
   const submitLockRef = useRef(false);
   const uploadMutation = useUploadVideoMutation();
+  const initUploadMutation = useInitVideoUploadMutation();
+  const completeUploadMutation = useCompleteVideoUploadMutation();
   const { data: initialSoundRes } = useSoundDetail(
     Number.isFinite(initialSoundId) && initialSoundId > 0 ? initialSoundId : undefined,
   );
@@ -205,6 +230,42 @@ export default function UploadVideo() {
     const frameId = requestAnimationFrame(() => setSelectedSound(initialSoundRes.data!));
     return () => cancelAnimationFrame(frameId);
   }, [initialSoundRes?.data]);
+
+  useEffect(() => {
+    if (!uploadedVideoId) return;
+
+    const fetchModerationStatus = async () => {
+      try {
+        const { getVideoModerationStatus } = await import('@/services/video-api-service');
+        const res = await getVideoModerationStatus(uploadedVideoId);
+        if (res.data) {
+          setModerationResult({
+            moderationStatus: res.data.moderationStatus as ModerationStatus,
+            reasonCode: res.data.reasonCode,
+            reasonMessage: res.data.reasonMessage,
+            riskScore: res.data.riskScore,
+            musicCopyrightStatus: res.data.musicCopyrightStatus as MusicCopyrightStatus | null,
+            musicCopyrightReasonCode: res.data.musicCopyrightReasonCode,
+            musicCopyrightReasonMessage: res.data.musicCopyrightReasonMessage,
+          });
+          const contentDone = ['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(res.data.moderationStatus);
+          const musicDone = res.data.musicCopyrightStatus
+            ? ['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(res.data.musicCopyrightStatus)
+            : false;
+          if (contentDone && musicDone) {
+            clearInterval(pollInterval);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch video moderation status', error);
+      }
+    };
+
+    const pollInterval = setInterval(fetchModerationStatus, 5000);
+    void fetchModerationStatus();
+
+    return () => clearInterval(pollInterval);
+  }, [uploadedVideoId]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
@@ -705,12 +766,27 @@ export default function UploadVideo() {
       }
     };
     
+    // 3. Prevent browser back button using pushState
+    const handlePopState = () => {
+      if (file && status !== 'success') {
+        // Prevent navigation by pushing state forward
+        window.history.pushState(null, '', window.location.href);
+        setShowLeaveModal(true);
+      }
+    };
+    
+    if (file && status !== 'success') {
+      window.history.pushState(null, '', window.location.href);
+    }
+    
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('click', handleClick, { capture: true });
+    window.addEventListener('popstate', handlePopState);
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('click', handleClick, { capture: true });
+      window.removeEventListener('popstate', handlePopState);
     };
   }, [file, status]);
 
@@ -732,7 +808,8 @@ export default function UploadVideo() {
     return ffmpeg;
   };
 
-  const doUpload = async (fileToProcess: File, metadata?: { title: string; description: string; visibility: string; allowComments: boolean; allowEdit: boolean; soundId?: number | null; useAvatarAsSoundCover?: boolean }) => {
+  const doUpload = async (fileToProcess: File, metadata?: UploadMetadata) => {
+    let directUploadUrl = '';
     try {
       let fileToUpload = fileToProcess;
       const shouldCompress = fileToProcess.size > 10 * 1024 * 1024;
@@ -754,8 +831,24 @@ export default function UploadVideo() {
         if (shouldTrim) {
           args.push('-t', String(trimDuration));
         }
+        // Calculate dynamic bitrate to keep file under ~9.5MB
+        const finalDuration = shouldTrim ? trimDuration : (videoDuration > 0 ? videoDuration : 60);
+        // We want total size < 9.5MB. 9.5MB = 9.5 * 8192 kbps = 77824 kb
+        let targetVBitrate = Math.floor(77824 / finalDuration) - 128;
+        // Keep within reasonable bounds (min 200k, max 5000k)
+        targetVBitrate = Math.max(200, Math.min(5000, targetVBitrate));
+
         if (shouldCompress) {
-          args.push('-vf', 'scale=-2:720', '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-c:a', 'aac');
+          args.push(
+            '-vf', 'scale=-2:720',
+            '-c:v', 'libx264',
+            '-b:v', `${targetVBitrate}k`,
+            '-maxrate', `${Math.floor(targetVBitrate * 1.5)}k`,
+            '-bufsize', `${targetVBitrate * 2}k`,
+            '-preset', 'veryfast',
+            '-c:a', 'aac',
+            '-b:a', '128k'
+          );
         } else {
           args.push('-c:v', 'libx264', '-preset', 'veryfast', '-c:a', 'aac');
         }
@@ -768,9 +861,32 @@ export default function UploadVideo() {
       }
       setStatus('uploading');
       setProgress(0);
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      
+
+      // Step 1: Init R2 Upload Session
+      const initRes = await initUploadMutation.mutateAsync({
+        fileName: fileToUpload.name,
+        contentType: fileToUpload.type || 'video/mp4',
+        sizeBytes: fileToUpload.size,
+      });
+
+      if (!initRes.data || !initRes.data.uploadUrl || !initRes.data.uploadId) {
+        throw new Error('Không thể khởi tạo session upload. Vui lòng thử lại.');
+      }
+
+      const { uploadUrl, uploadId } = initRes.data;
+      directUploadUrl = uploadUrl;
+
+      // Step 2: Upload directly to R2 (presigned URL PUT request)
+      await axios.put(uploadUrl, fileToUpload, {
+        headers: {
+          'Content-Type': fileToUpload.type || 'video/mp4',
+        },
+        onUploadProgress: (progressEvent) => {
+          setProgress(Math.round((progressEvent.loaded * 100) / (progressEvent.total || 100)));
+        },
+      });
+
+      // Step 3: Complete R2 upload via Backend
       const finalMetadata = metadata || { 
         title: fileToProcess.name, 
         description: '', 
@@ -779,25 +895,66 @@ export default function UploadVideo() {
         allowEdit: false,
         soundId: selectedSound?.id ?? null,
       };
-      finalMetadata.useAvatarAsSoundCover = !finalMetadata.soundId && !coverManuallySelected;
-      
-      formData.append('data', new Blob([JSON.stringify(finalMetadata)], { type: 'application/json' }));
-      if (coverFile) formData.append('cover', coverFile);
+      const useAvatarAsSoundCover = !finalMetadata.soundId && !coverManuallySelected;
 
-      await uploadMutation.mutateAsync({
-        formData,
-        onProgress: (progressEvent) => {
-          setProgress(Math.round((progressEvent.loaded * 100) / (progressEvent.total || 100)));
-        }
+      const completePayload = {
+        uploadId,
+        title: finalMetadata.title,
+        description: finalMetadata.description,
+        category: finalMetadata.category,
+        visibility: finalMetadata.visibility as 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+        allowComments: finalMetadata.allowComments,
+        allowEdit: finalMetadata.allowEdit,
+        soundId: finalMetadata.soundId,
+        useAvatarAsSoundCover,
+      };
+
+      const completeRes = await completeUploadMutation.mutateAsync({
+        payload: completePayload,
+        coverFile: coverFile || undefined,
       });
-      setStatus('success'); // Change to success directly if called from handlePost?
-      // Actually, let's just keep it as 'uploaded' and let handlePost finish if needed.
-      // But TikTok style is that Post button triggers everything if it wasn't auto-uploaded.
+
+      if (!completeRes.data || !completeRes.data.id) {
+        throw new Error('Không thể lưu thông tin video. Vui lòng thử lại.');
+      }
+
+      setUploadedVideoId(completeRes.data.id);
+      setModerationResult(completeRes.data.moderationStatus ? {
+        moderationStatus: completeRes.data.moderationStatus,
+        reasonCode: completeRes.data.moderationReasonCode ?? null,
+        reasonMessage: completeRes.data.moderationReasonMessage ?? null,
+        riskScore: null,
+        musicCopyrightStatus: completeRes.data.musicCopyrightStatus ?? null,
+        musicCopyrightReasonCode: completeRes.data.musicCopyrightReasonCode ?? null,
+        musicCopyrightReasonMessage: completeRes.data.musicCopyrightReasonMessage ?? null,
+      } : null);
       setStatus('success');
     } catch (error: unknown) {
       console.error(error);
       setStatus('error');
-      setErrorMessage(axios.isAxiosError(error) ? error.response?.data?.message || 'Upload failed' : 'Upload failed');
+      
+      let msg = t('errorGeneric');
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          if (error.response.status === 413) {
+            msg = t('errorTooLarge');
+          } else if (error.response.status === 429) {
+            msg = t('errorSpam');
+          } else {
+            msg = error.response.data?.message || t('errorServer').replace('{code}', String(error.response.status));
+          }
+        } else if (error.request) {
+          msg = directUploadUrl.includes('r2.cloudflarestorage.com')
+            ? t('errorR2Cors')
+            : t('errorNetwork');
+        } else {
+          msg = error.message;
+        }
+      } else if (error instanceof Error) {
+        msg = error.message;
+      }
+      
+      setErrorMessage(msg);
       throw error; // Re-throw so handlePost knows it failed
     }
   };
@@ -806,6 +963,10 @@ export default function UploadVideo() {
   const handleFileSelect = useCallback((selectedFile: File) => {
     if (!selectedFile.type.startsWith('video/')) {
       setErrorMessage(t('errorVideo'));
+      return;
+    }
+    if (selectedFile.size > 100 * 1024 * 1024) {
+      setErrorMessage(t('errorTooLarge'));
       return;
     }
     clearCover();
@@ -818,6 +979,8 @@ export default function UploadVideo() {
     resetCoverCrop();
     setVideoDuration(0);
     setVideoTrim({ startSeconds: 0, endSeconds: 0 });
+    setUploadedVideoId(null);
+    setModerationResult(null);
     setErrorMessage('');
     // Auto-upload is now disabled as requested
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -842,6 +1005,8 @@ export default function UploadVideo() {
       resetCoverCrop();
       setVideoDuration(0);
       setVideoTrim({ startSeconds: 0, endSeconds: 0 });
+      setUploadedVideoId(null);
+      setModerationResult(null);
       setStatus('idle');
       setProgress(0);
       // Auto-upload is now disabled as requested
@@ -918,6 +1083,7 @@ export default function UploadVideo() {
     revokeCoverObjectUrl();
     setFile(null); setPreview(null); setDescription(''); setStatus('idle');
     setProgress(0); setErrorMessage(''); setCoverFile(null); setCoverPreview(null); setCoverManuallySelected(false);
+    setUploadedVideoId(null); setModerationResult(null);
     setCoverPickerOpen(false); setCoverTab('video'); setVideoFrames([]);
     setSelectedCoverTime(0); setSelectedVideoFramePreview(null); setImportedCoverSource(null); resetCoverCrop(); setVideoDuration(0);
     setVisibility('PUBLIC'); setAllowComments(true); setAllowDuet(true); setAllowStitch(true);
@@ -946,7 +1112,7 @@ export default function UploadVideo() {
       router.push('/toptopstudio/manage?tab=drafts');
     } catch (e) {
       console.error('Failed to save draft', e);
-      setErrorMessage('Không thể lưu bản nháp. Có thể do kích thước quá lớn đối với bộ nhớ trình duyệt.');
+      setErrorMessage(t('errorDraft'));
       setStatus('error');
     } finally {
       submitLockRef.current = false;
@@ -1020,17 +1186,151 @@ export default function UploadVideo() {
     </div>
   );
 
+  const contentModerationStatus = moderationResult?.moderationStatus;
+  const contentCheckPending = isUploading || (status === 'success' && (!contentModerationStatus || contentModerationStatus === 'PENDING'));
+  const contentCheckApproved = contentModerationStatus === 'APPROVED';
+  const contentCheckNeedsReview = contentModerationStatus === 'NEED_REVIEW';
+  const contentCheckRejected = contentModerationStatus === 'REJECTED';
+  const musicCopyrightStatus = moderationResult?.musicCopyrightStatus;
+  const musicCheckPending = isUploading || (status === 'success' && (!musicCopyrightStatus || musicCopyrightStatus === 'PENDING'));
+  const musicCheckApproved = musicCopyrightStatus === 'APPROVED';
+  const musicCheckNeedsReview = musicCopyrightStatus === 'NEED_REVIEW';
+  const musicCheckRejected = musicCopyrightStatus === 'REJECTED';
+  const checksApproved = contentCheckApproved && !musicCheckRejected;
+  const checksRejected = contentCheckRejected || musicCheckRejected;
+  const checksNeedReview = contentCheckNeedsReview || contentCheckPending;
+  const completionTitle = checksApproved
+    ? t('publishedTitle')
+    : checksRejected
+      ? t('rejectedTitle')
+      : t('reviewTitle');
+  const completionMessage = checksApproved
+    ? t('publishedMsg')
+    : checksRejected
+      ? t('rejectedMsg')
+      : checksNeedReview
+        ? t('reviewMsg')
+        : t('successMsg');
+
+  const renderCheckStatus = ({
+    tone,
+    text,
+    spinning = false,
+  }: {
+    tone: 'success' | 'pending' | 'warning' | 'error' | 'muted';
+    text: string;
+    spinning?: boolean;
+  }) => {
+    const toneClass = {
+      success: 'text-emerald-600 dark:text-emerald-400',
+      pending: 'text-text-muted',
+      warning: 'text-amber-600 dark:text-amber-400',
+      error: 'text-red-600 dark:text-red-400',
+      muted: 'text-text-muted',
+    }[tone];
+
+    if (spinning) {
+      return (
+        <p className={`mt-2 flex items-center gap-1.5 text-sm ${toneClass}`}>
+          <RefreshCw size={14} className="animate-spin" />
+          {text}
+        </p>
+      );
+    }
+
+    const Icon = tone === 'success' ? CheckCircle2 : AlertCircle;
+
+    return (
+      <p className={`mt-2 flex items-center gap-1.5 text-sm ${toneClass}`}>
+        <Icon size={14} />
+        {text}
+      </p>
+    );
+  };
+
+  const renderModerationChecks = () => (
+    <section className="mb-8">
+      <h3 className="text-base font-bold text-text-primary mb-4">{t('checkTitle')}</h3>
+      <div className="rounded-xl border border-elevated bg-background px-6 py-5">
+        <div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-text-primary">{t('musicCopyrightCheck')}</span>
+              <AlertCircle size={14} className="text-text-muted" />
+            </div>
+            {musicCheckPending && renderCheckStatus({
+              tone: 'pending',
+              text: t('musicCheckRunning'),
+              spinning: true,
+            })}
+            {!musicCheckPending && musicCheckApproved && renderCheckStatus({
+              tone: 'success',
+              text: t('noIssueDetected'),
+            })}
+            {!musicCheckPending && musicCheckNeedsReview && renderCheckStatus({
+              tone: 'warning',
+              text: moderationResult?.musicCopyrightReasonMessage || t('musicNeedReviewShort'),
+            })}
+            {!musicCheckPending && musicCheckRejected && renderCheckStatus({
+              tone: 'error',
+              text: moderationResult?.musicCopyrightReasonMessage || t('musicRejectedShort'),
+            })}
+            {!musicCheckPending && !musicCheckApproved && !musicCheckNeedsReview && !musicCheckRejected && renderCheckStatus({
+              tone: 'muted',
+              text: t('checkWillRun'),
+            })}
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold text-text-primary">{t('contentSafetyCheck')}</span>
+              <AlertCircle size={14} className="text-text-muted" />
+            </div>
+            {contentCheckPending && renderCheckStatus({
+              tone: 'pending',
+              text: t('contentCheckRunning'),
+              spinning: true,
+            })}
+            {!contentCheckPending && contentCheckApproved && renderCheckStatus({
+              tone: 'success',
+              text: t('noIssueDetected'),
+            })}
+            {!contentCheckPending && contentCheckNeedsReview && renderCheckStatus({
+              tone: 'warning',
+              text: moderationResult?.reasonMessage || t('contentNeedReviewShort'),
+            })}
+            {!contentCheckPending && contentCheckRejected && renderCheckStatus({
+              tone: 'error',
+              text: moderationResult?.reasonMessage || t('contentRejectedShort'),
+            })}
+            {!contentCheckPending && !contentCheckApproved && !contentCheckNeedsReview && !contentCheckRejected && renderCheckStatus({
+              tone: 'muted',
+              text: t('checkWillRun'),
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <div className="w-full max-w-5xl mx-auto">
       {/* SUCCESS OVERLAY */}
       {status === 'success' && (
-        <div className="bg-background rounded-xl border border-elevated p-12 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 size={32} className="text-green-500" />
+        <div className="bg-background rounded-xl border border-elevated p-12 flex flex-col items-center text-center max-w-2xl mx-auto shadow-2xl">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-950/30 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50 dark:ring-green-950/10">
+            <CheckCircle2 size={40} className="text-green-500 animate-bounce" />
           </div>
-          <h2 className="text-xl font-bold mb-2">{t('successTitle')}</h2>
-          <p className="text-text-secondary mb-6">{t('successMsg')}</p>
-          <button onClick={resetAll} className="bg-brand hover:bg-brand-dark text-white font-semibold px-6 py-2.5 rounded-md transition-colors">
+          <h2 className="text-2xl font-bold mb-2 text-text-primary">{completionTitle}</h2>
+          <p className="text-text-secondary mb-8">{completionMessage}</p>
+          
+          <div className="w-full text-left">
+            {renderModerationChecks()}
+          </div>
+
+          <button onClick={resetAll} className="bg-brand hover:bg-brand-dark text-white font-semibold px-8 py-3 rounded-xl transition-all shadow-lg hover:shadow-brand/20 active:scale-95 duration-150">
             {t('uploadNext')}
           </button>
         </div>
@@ -1278,6 +1578,8 @@ export default function UploadVideo() {
                   </div>
                 ))}
               </div>
+
+              {renderModerationChecks()}
 
               {/* Error */}
               {status === 'error' && (
@@ -1622,9 +1924,9 @@ export default function UploadVideo() {
       {showLeaveModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-surface border border-elevated rounded-xl shadow-2xl w-[90%] max-w-md p-6 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-text-primary mb-2">Bạn có chắc muốn huỷ bỏ video không?</h3>
+            <h3 className="text-xl font-bold text-text-primary mb-2">{t('leaveModalTitle')}</h3>
             <p className="text-text-secondary text-sm mb-6 leading-relaxed">
-              Bạn có một video chưa được lưu. Nếu huỷ bỏ hoặc rời khỏi trang này, toàn bộ thay đổi của bạn sẽ bị mất và video sẽ không được lưu.
+              {t('leaveModalDesc')}
             </p>
             <div className="flex items-center gap-3 justify-end">
               <button 
@@ -1634,7 +1936,7 @@ export default function UploadVideo() {
                 }}
                 className="px-6 py-2.5 rounded-md font-semibold text-text-primary hover:bg-elevated transition-colors"
               >
-                Tiếp tục chỉnh sửa
+                {t('leaveModalContinue')}
               </button>
               <button 
                 onClick={() => {
@@ -1647,7 +1949,7 @@ export default function UploadVideo() {
                 }}
                 className="px-6 py-2.5 rounded-md font-semibold bg-brand text-white hover:bg-brand-dark transition-colors shadow-lg shadow-brand/20"
               >
-                Huỷ bỏ
+                {t('leaveModalDiscard')}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMessages, useMarkAsRead } from "@/hooks/chat-hooks";
+import { useDeleteMessage, useMessages, useMarkAsRead } from "@/hooks/chat-hooks";
 import { MessageItem } from "./MessageItem";
 import { ChatInput } from "./ChatInput";
 import { useTranslations } from "next-intl";
@@ -19,6 +19,7 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const markAsRead = useMarkAsRead();
+  const deleteMessage = useDeleteMessage();
 
   const {
     data,
@@ -98,6 +99,7 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
           <MessageItem 
             key={msg.id} 
             message={msg} 
+            onDelete={(messageId) => deleteMessage.mutate({ messageId, conversationId: msg.conversationId })}
             chatVideosStr={messages
               .filter(m => m.type === 'VIDEO_SHARE' && m.attachment?.videoId)
               .map(m => m.attachment!.videoId)

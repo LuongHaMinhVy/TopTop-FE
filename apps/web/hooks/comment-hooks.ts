@@ -106,6 +106,7 @@ export const useDeleteCommentMutation = (videoId: number) => {
     mutationFn: commentService.deleteComment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["comment-replies"] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
     },
   });

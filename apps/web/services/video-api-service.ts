@@ -163,3 +163,95 @@ export const getUserRepostedVideos = async (username: string, page = 0, size = 1
     throw error;
   }
 };
+
+export interface InitVideoUploadPayload {
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface InitVideoUploadResponse {
+  uploadId: string;
+  uploadUrl: string;
+  objectKey: string;
+  method: string;
+}
+
+export interface CompleteVideoUploadPayload {
+  uploadId: string;
+  title: string;
+  description?: string;
+  category?: string;
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  allowComments?: boolean;
+  allowEdit?: boolean;
+  soundId?: number | null;
+  useAvatarAsSoundCover?: boolean;
+}
+
+export const initVideoUpload = async (payload: InitVideoUploadPayload): Promise<ApiResponse<InitVideoUploadResponse>> => {
+  try {
+    const response = await api.post<ApiResponse<InitVideoUploadResponse>>("/videos/init", payload);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const completeVideoUpload = async (
+  payload: CompleteVideoUploadPayload,
+  coverFile?: File
+): Promise<ApiResponse<Video>> => {
+  try {
+    const formData = new FormData();
+    formData.append(
+      "data",
+      new Blob([JSON.stringify(payload)], { type: "application/json" })
+    );
+    if (coverFile) {
+      formData.append("cover", coverFile);
+    }
+    const response = await api.post<ApiResponse<Video>>("/videos/complete", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const getVideoModerationStatus = async (videoId: number): Promise<ApiResponse<{
+  videoId: number;
+  moderationStatus: string;
+  riskScore: number | null;
+  reasonCode: string | null;
+  reasonMessage: string | null;
+  checkedAt: string | null;
+  musicCopyrightStatus: string | null;
+  musicCopyrightReasonCode: string | null;
+  musicCopyrightReasonMessage: string | null;
+  musicCopyrightCheckedAt: string | null;
+}>> => {
+  try {
+    const response = await api.get<ApiResponse<{
+      videoId: number;
+      moderationStatus: string;
+      riskScore: number | null;
+      reasonCode: string | null;
+      reasonMessage: string | null;
+      checkedAt: string | null;
+      musicCopyrightStatus: string | null;
+      musicCopyrightReasonCode: string | null;
+      musicCopyrightReasonMessage: string | null;
+      musicCopyrightCheckedAt: string | null;
+    }>>(`/videos/${videoId}/moderation-status`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};

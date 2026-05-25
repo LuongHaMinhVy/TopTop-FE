@@ -28,6 +28,14 @@ export interface Video {
   deleted?: boolean;
   unavailable?: boolean;
   sound?: VideoSound | null;
+  moderationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
+  moderationCheckedAt?: string;
+  moderationReasonCode?: string;
+  moderationReasonMessage?: string;
+  musicCopyrightStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
+  musicCopyrightCheckedAt?: string;
+  musicCopyrightReasonCode?: string;
+  musicCopyrightReasonMessage?: string;
 }
 
 export interface VideoRepostUser {

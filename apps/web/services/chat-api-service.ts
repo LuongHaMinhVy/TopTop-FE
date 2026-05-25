@@ -55,6 +55,16 @@ export const sendMessage = async (data: { conversationId: number; type: string; 
   }
 };
 
+export const deleteMessage = async (messageId: number): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.delete<ApiResponse<void>>(`/chat/messages/${messageId}`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
 export const markAsRead = async (conversationId: number): Promise<ApiResponse<void>> => {
   try {
     const response = await api.post<ApiResponse<void>>(`/chat/conversations/${conversationId}/read`);

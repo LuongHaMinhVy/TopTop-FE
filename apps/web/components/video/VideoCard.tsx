@@ -26,10 +26,10 @@ import { openAuthModal } from "@/store/slices/authSlice";
 import { VideoOptionsMenu } from "./VideoOptionsMenu";
 import { ShareModal } from "./ShareModal";
 import { RepostBadge } from "./RepostBadge";
-import { SoundBadge } from "@/components/sound/SoundBadge";
 import { IconButton } from "@repo/ui/icon-button";
 import { useTranslations } from "next-intl";
 import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
+import { useDebounceCallback } from "@/hooks/useDebounceCallback";
 import { VideoContextMenu } from "../video-detail/VideoContextMenu";
 import { Avatar } from "@repo/ui/avatar";
 import { Button } from "@repo/ui/button";
@@ -825,6 +825,22 @@ export default function VideoCard({
     videoId,
   ]);
 
+  const debouncedLikeApi = useDebounceCallback((nextLiked: boolean, vidId: number, prevLiked: boolean, prevCount: number) => {
+    const mutation = nextLiked ? likeMutation : unlikeMutation;
+    mutation.mutate(vidId, {
+      onSuccess: (response) => {
+        if (response.data) {
+          setIsLiked(response.data.liked);
+          setLikeCount(response.data.likeCount);
+        }
+      },
+      onError: () => {
+        setIsLiked(prevLiked);
+        setLikeCount(prevCount);
+      },
+    });
+  }, 300);
+
   const handleLike = () => {
     if (!video?.id || likeMutation.isPending || unlikeMutation.isPending) return;
     if (!currentUser) {
@@ -838,19 +854,7 @@ export default function VideoCard({
     setIsLiked(nextLiked);
     setLikeCount((current) => Math.max(0, current + (nextLiked ? 1 : -1)));
 
-    const mutation = nextLiked ? likeMutation : unlikeMutation;
-    mutation.mutate(video.id, {
-      onSuccess: (response) => {
-        if (response.data) {
-          setIsLiked(response.data.liked);
-          setLikeCount(response.data.likeCount);
-        }
-      },
-      onError: () => {
-        setIsLiked(previousLiked);
-        setLikeCount(previousCount);
-      },
-    });
+    debouncedLikeApi(nextLiked, video.id, previousLiked, previousCount);
   };
 
   const handleSave = () => {
@@ -1176,11 +1180,7 @@ export default function VideoCard({
                   <p className="text-[14px] sm:text-[15px] line-clamp-3 leading-relaxed opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] font-medium max-w-[420px]">
                     {renderCaptionWithHashtags(caption)}
                   </p>
-                  <SoundBadge
-                    sound={video?.sound}
-                    fallbackLabel={soundLabel ? undefined : `Âm thanh gốc - @${username}`}
-                    className="pointer-events-auto mt-2 max-w-[360px] rounded-full bg-black/25 px-2.5 py-1 text-[13px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] backdrop-blur-sm"
-                  />
+
                   
                   <div className="mt-2 pointer-events-auto flex items-center gap-4">
                     <button className="text-[12px] font-bold opacity-70 hover:opacity-100 transition-opacity bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-sm">
@@ -1343,7 +1343,7 @@ export default function VideoCard({
       {showRepostToast && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 rounded-full bg-[#222] px-4 py-2.5 text-[14px] font-semibold text-white shadow-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200">
           <Repeat2 className="size-4 text-yellow-400" />
-          Đã đăng lại
+          {t('reposted')}
         </div>
       )}
 

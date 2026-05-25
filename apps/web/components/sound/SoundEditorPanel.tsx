@@ -16,8 +16,6 @@ import {
   Volume2,
   VolumeX,
   X,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -568,16 +566,8 @@ export function SoundEditorPanel({
                 <span className="text-sm font-semibold">{formatDuration(videoCurrentTime)}</span>
                 <span className="text-sm text-text-muted">/ {formatDuration(trimLengthSeconds || videoDuration)}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <ZoomOut size={18} />
-                <div className="h-1 w-24 rounded-full bg-elevated">
-                  <div className="h-full w-4 rounded-full bg-text-muted" />
-                </div>
-                <ZoomIn size={18} />
-              </div>
             </div>
             <div className="relative h-[238px] overflow-hidden px-16 py-10">
-              <div className="mb-8 h-7 border-t border-elevated bg-[linear-gradient(to_right,transparent_0,transparent_39px,#e5e5e5_40px)] bg-[length:80px_1px]" />
               <div className="flex items-center gap-5">
                 <button
                   type="button"
@@ -592,8 +582,8 @@ export function SoundEditorPanel({
                     <div className="absolute inset-0 flex">
                       {Array.from({ length: 10 }).map((_, index) => (
                         <div key={index} className="relative h-full flex-1 overflow-hidden border-r border-black/10 bg-zinc-900">
-                          {previewUrl ? (
-                            <video src={previewUrl} muted preload="metadata" className="size-full object-cover opacity-80" />
+                          {previewUrl && videoDuration > 0 ? (
+                            <video src={`${previewUrl}#t=${Math.max(0.1, (videoDuration / 10) * index)}`} muted preload="metadata" className="size-full object-cover opacity-80" />
                           ) : null}
                         </div>
                       ))}

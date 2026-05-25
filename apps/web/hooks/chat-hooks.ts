@@ -59,6 +59,18 @@ export const useSendMessage = () => {
   });
 };
 
+export const useDeleteMessage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId }: { messageId: number; conversationId: number }) =>
+      chatService.deleteMessage(messageId),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', variables.conversationId], exact: false });
+    },
+  });
+};
+
 export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -139,6 +139,27 @@ export const useUploadVideoMutation = () => {
   });
 };
 
+export const useInitVideoUploadMutation = () => {
+  return useMutation({
+    mutationFn: (payload: videoService.InitVideoUploadPayload) =>
+      videoService.initVideoUpload(payload),
+  });
+};
+
+export const useCompleteVideoUploadMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ payload, coverFile }: { payload: videoService.CompleteVideoUploadPayload; coverFile?: File }) =>
+      videoService.completeVideoUpload(payload, coverFile),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+    },
+  });
+};
+
+
 export const useReportVideoMutation = () => {
   return useMutation({
     mutationFn: ({ videoId, reason }: { videoId: number; reason: string }) => 

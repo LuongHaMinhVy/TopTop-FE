@@ -337,6 +337,7 @@ export default function CommentSection({
                   liked: Boolean(target.liked),
                 });
               }}
+              currentUserId={currentUser?.id}
               forceShowReplies={expandedReplyCommentIds.has(comment.id)}
             />
           ))
@@ -513,6 +514,7 @@ function CommentItem({
   onDelete,
   onReport,
   onLike,
+  currentUserId,
   depth = 0,
   forceShowReplies = false,
 }: {
@@ -521,6 +523,7 @@ function CommentItem({
   onDelete: (commentId: number) => void;
   onReport: (commentId: number) => void;
   onLike: (comment: CommentResponse) => void;
+  currentUserId?: number;
   depth?: number;
   forceShowReplies?: boolean;
 }) {
@@ -541,6 +544,11 @@ function CommentItem({
   const remainingReplies = Math.max(0, totalReplies - visibleReplyCount);
   const nextReplyBatchCount = Math.min(4, remainingReplies);
   const canShowReplies = depth === 0;
+  const canDeleteComment = Boolean(
+    comment.canDelete ||
+      (currentUserId &&
+        (comment.userId === currentUserId || comment.author?.id === currentUserId)),
+  );
 
   const handleShowMoreReplies = () => {
     setVisibleReplyCount((current) => {
@@ -628,11 +636,12 @@ function CommentItem({
                   <Flag size={14} />
                   {t("video.report")}
                 </button>
-                {comment.canDelete && (
+                {canDeleteComment && (
                   <button
                     type="button"
                     onClick={() => {
                       setShowMenu(false);
+                      if (!window.confirm(t("video.deleteCommentConfirm"))) return;
                       onDelete(comment.id);
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-brand hover:bg-hover"
@@ -670,6 +679,7 @@ function CommentItem({
                   onDelete={onDelete}
                   onReport={onReport}
                   onLike={onLike}
+                  currentUserId={currentUserId}
                   depth={depth + 1}
                 />
               ))

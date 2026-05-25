@@ -2,16 +2,22 @@
 
 import type { MessageResponseDTO } from "@/types/chat";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { MoreHorizontal, Play, Trash2 } from "lucide-react";
 import { formatChatTimestamp } from "./chat-time";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import type { ReactNode } from "react";
 
 interface MessageItemProps {
   message: MessageResponseDTO;
   chatVideosStr?: string;
+  onDelete?: (messageId: number) => void;
 }
 
-export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) => {
+export const MessageItem = ({ message, chatVideosStr = "", onDelete }: MessageItemProps) => {
+  const t = useTranslations("Chat");
+  const [menuOpen, setMenuOpen] = useState(false);
   const attachment = message.attachment;
   const messageTime = formatChatTimestamp(message.createdAt);
   const videoHref = attachment?.ownerUsername && attachment.videoId
@@ -20,15 +26,75 @@ export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) =
       ? `/@user/video/${attachment.videoId}`
       : attachment?.url || attachment?.videoUrl || "#";
   const videoTitle = attachment?.title || attachment?.videoTitle || "TikTok Video";
-  const bubbleClassName = `max-w-[70%] px-4 py-2 rounded-2xl text-[15px] ${
+  const canDelete = Boolean(message.mine && onDelete);
+  const bubbleClassName = `max-w-full px-4 py-2 rounded-2xl text-[15px] ${
     message.mine
       ? 'bg-brand text-white rounded-tr-none'
       : 'bg-elevated text-text-primary rounded-tl-none'
   }`;
+  const handleDelete = () => {
+    setMenuOpen(false);
+    if (!window.confirm(t("deleteMessageConfirm"))) return;
+    onDelete?.(message.id);
+  };
+  const renderActions = () => {
+    if (!canDelete) return null;
+
+    return (
+      <div
+        className={`absolute bottom-0 right-full z-20 mr-1 opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100 ${
+          menuOpen ? "opacity-100" : ""
+        }`}
+      >
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setMenuOpen((value) => !value);
+          }}
+          className="grid size-8 place-items-center rounded-full bg-background/80 text-text-muted shadow-sm backdrop-blur hover:bg-elevated hover:text-text-primary"
+          aria-label={t("messageActions")}
+        >
+          <MoreHorizontal size={18} />
+        </button>
+        {menuOpen && (
+          <div className="absolute bottom-10 right-0 z-30 min-w-36 rounded-lg border border-elevated bg-elevated px-2 py-2 shadow-2xl">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDelete();
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-brand hover:bg-background/60"
+            >
+              <Trash2 size={16} />
+              {t("deleteMessage")}
+            </button>
+            <span className="absolute -bottom-2 right-5 size-4 rotate-45 border-b border-r border-elevated bg-elevated" />
+          </div>
+        )}
+      </div>
+    );
+  };
+  const renderShell = (children: ReactNode) => (
+    <div className={`group/message flex w-full ${message.mine ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex max-w-[72%] flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+        <div className="relative max-w-full">
+          {message.mine ? renderActions() : null}
+          <div className={`flex max-w-full flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+            {children}
+          </div>
+        </div>
+        <span className="text-[11px] text-text-muted mt-1 px-1">
+          {messageTime}
+        </span>
+      </div>
+    </div>
+  );
 
   if (message.type === 'VIDEO_SHARE') {
-    return (
-      <div className={`flex flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+    return renderShell(
+      <>
         {message.body && (
           <div className={bubbleClassName}>
             <p className="whitespace-pre-wrap break-words">{message.body}</p>
@@ -38,7 +104,7 @@ export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) =
         {attachment && (
           <Link
             href={`${videoHref}?from=chat&conversationId=${message.conversationId}${chatVideosStr ? '&chatVideos=' + chatVideosStr : ''}`}
-            className="mt-1 block relative overflow-hidden rounded-xl w-[180px] aspect-[9/16] bg-black group"
+            className="group/video mt-1 block relative overflow-hidden rounded-xl w-[180px] aspect-[9/16] bg-black"
           >
             {attachment.thumbnailUrl ? (
               <Image
@@ -46,7 +112,7 @@ export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) =
                 alt="Video cover"
                 fill
                 sizes="180px"
-                className="object-cover opacity-90 transition group-hover:opacity-100"
+                className="object-cover opacity-90 transition group-hover/video:opacity-100"
               />
             ) : (
               <div className="w-full h-full bg-elevated" />
@@ -76,18 +142,14 @@ export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) =
             </div>
           </Link>
         )}
-
-        <span className="text-[11px] text-text-muted mt-1 px-1">
-          {messageTime}
-        </span>
-      </div>
+      </>
     );
   }
 
   if ((message.type === 'IMAGE' || message.type === 'VIDEO') && attachment) {
     const mediaUrl = attachment.url || attachment.videoUrl || "";
-    return (
-      <div className={`flex flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+    return renderShell(
+      <>
         {message.body && (
           <div className={bubbleClassName}>
             <p className="whitespace-pre-wrap break-words">{message.body}</p>
@@ -106,21 +168,15 @@ export const MessageItem = ({ message, chatVideosStr = "" }: MessageItemProps) =
             <video src={mediaUrl} controls className="max-h-[320px] w-full bg-black" />
           )}
         </div>
-        <span className="text-[11px] text-text-muted mt-1 px-1">
-          {messageTime}
-        </span>
-      </div>
+      </>
     );
   }
 
-  return (
-    <div className={`flex flex-col ${message.mine ? 'items-end' : 'items-start'}`}>
+  return renderShell(
+    <>
       <div className={bubbleClassName}>
         {message.type === 'TEXT' && <p>{message.body}</p>}
       </div>
-      <span className="text-[11px] text-text-muted mt-1 px-1">
-        {messageTime}
-      </span>
-    </div>
+    </>
   );
 };

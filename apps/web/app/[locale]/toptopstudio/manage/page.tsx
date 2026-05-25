@@ -101,6 +101,67 @@ const highlightHashtags = (text?: string) => {
   });
 };
 
+const renderVideoStatusBadge = (video: ManagedVideoRow) => {
+  if (video._isDraft) return null;
+  const v = video as PublishedVideoRow;
+
+  const contentStatus = v.moderationStatus;
+  const musicStatus = v.musicCopyrightStatus;
+
+  if (contentStatus === 'REJECTED' || musicStatus === 'REJECTED') {
+    return (
+      <div className="flex flex-col gap-1 mt-1">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 w-fit select-none">
+          <AlertCircle size={10} />
+          Bị từ chối
+        </span>
+      </div>
+    );
+  }
+
+  if (contentStatus === 'NEED_REVIEW') {
+    return (
+      <div className="flex flex-col gap-1 mt-1">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-fit select-none">
+          <AlertCircle size={10} />
+          Chờ xem xét (Ẩn)
+        </span>
+        <span className="text-[11px] text-amber-400 font-medium line-clamp-1">Chỉ bạn có thể xem video này cho đến khi được duyệt.</span>
+      </div>
+    );
+  }
+
+  if (contentStatus === 'PENDING') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700 w-fit select-none mt-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-ping" />
+        Đang kiểm duyệt (Ẩn)
+      </span>
+    );
+  }
+
+  if (musicStatus === 'PENDING' || musicStatus === 'NEED_REVIEW') {
+    return (
+      <div className="flex flex-col gap-1 mt-1">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit select-none">
+          <Check size={10} />
+          Đã xuất bản
+        </span>
+        <span className="text-[11px] text-amber-400 font-medium line-clamp-1">Âm thanh có thể được kiểm tra sau khi đăng.</span>
+      </div>
+    );
+  }
+
+  // If approved
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit select-none mt-1">
+      <Check size={10} />
+      Đã xuất bản
+    </span>
+  );
+};
+
+
 export default function ContentManagementPage() {
   const user = useSelector((state: RootState) => state.auth.user);
   
@@ -618,6 +679,7 @@ export default function ContentManagementPage() {
                             <span className="text-[12px] text-text-muted select-none">
                               {formatVietnameseDate(video.createdAt)}
                             </span>
+                            {renderVideoStatusBadge(video)}
                           </div>
                         </div>
                       </td>
