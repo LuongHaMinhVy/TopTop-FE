@@ -84,7 +84,98 @@ const updateVideoInCache = (queryClient: QueryClient, videoId: number, stats: { 
   });
 };
 
-export { updateVideoInCache };
+const replaceVideoInCache = (queryClient: QueryClient, video: Video) => {
+  const queryKeys = [
+    ["all-videos"],
+    ["infinite-videos"],
+    ["user-videos"],
+    ["liked-videos"],
+    ["user-reposted-videos"],
+    ["video-detail"],
+    ["following-feed"],
+    ["friends-feed"],
+  ];
+
+  queryKeys.forEach((key) => {
+    queryClient.setQueriesData<
+      ApiResponse<Video[]> | ApiResponse<Video> | { pages: ApiResponse<Video[]>[] }
+    >({ queryKey: key }, (oldData) => {
+      if (!oldData) return oldData;
+
+      if ("pages" in oldData) {
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            data: page.data?.map((item) =>
+              item.id === video.id ? { ...item, ...video } : item,
+            ),
+          })),
+        };
+      }
+
+      if (oldData.data && Array.isArray(oldData.data)) {
+        return {
+          ...oldData,
+          data: oldData.data.map((item) =>
+            item.id === video.id ? { ...item, ...video } : item,
+          ),
+        };
+      }
+
+      if (oldData.data && !Array.isArray(oldData.data) && oldData.data.id === video.id) {
+        return {
+          ...oldData,
+          data: { ...oldData.data, ...video },
+        };
+      }
+
+      return oldData;
+    });
+  });
+};
+
+const removeVideoFromCache = (queryClient: QueryClient, videoId: number) => {
+  const queryKeys = [
+    ["all-videos"],
+    ["infinite-videos"],
+    ["user-videos"],
+    ["liked-videos"],
+    ["user-reposted-videos"],
+    ["following-feed"],
+    ["friends-feed"],
+  ];
+
+  queryKeys.forEach((key) => {
+    queryClient.setQueriesData<ApiResponse<Video[]> | { pages: ApiResponse<Video[]>[] }>(
+      { queryKey: key },
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        if ("pages" in oldData) {
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              data: page.data?.filter((video) => video.id !== videoId),
+            })),
+          };
+        }
+
+        if (oldData.data && Array.isArray(oldData.data)) {
+          return {
+            ...oldData,
+            data: oldData.data.filter((video) => video.id !== videoId),
+          };
+        }
+
+        return oldData;
+      },
+    );
+  });
+};
+
+export { removeVideoFromCache, replaceVideoInCache, updateVideoInCache };
 
 export const useAllVideos = () => {
   return useQuery({
@@ -126,8 +217,12 @@ export const useDeleteVideoMutation = (userId?: number) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (videoId: number) => videoService.deleteVideo(videoId),
-    onSuccess: () => {
+    onSuccess: (_response, videoId) => {
+      removeVideoFromCache(queryClient, videoId);
       queryClient.invalidateQueries({ queryKey: ["user-videos", userId] });
+      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["studio-daily-views"] });
     },
   });
 };
@@ -257,10 +352,14 @@ export const useUpdateVideoMutation = (userId?: number) => {
   return useMutation({
     mutationFn: ({ videoId, payload }: { videoId: number; payload: videoService.UpdateVideoPayload }) => 
       videoService.updateVideo(videoId, payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response.data) {
+        replaceVideoInCache(queryClient, response.data);
+      }
       queryClient.invalidateQueries({ queryKey: ["user-videos", userId] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });
       queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["video-detail"] });
     },
   });
 };

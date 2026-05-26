@@ -291,7 +291,7 @@ export default function SignupPage() {
                   value={dob.month}
                   onChange={(e) => updateDob({ month: e.target.value })}
                 >
-                  <option value="" disabled hidden>Tháng</option>
+                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Tháng</option>
                   {months.map((m) => (
                     <option key={m} value={m} className="bg-background text-text-primary">Tháng {m}</option>
                   ))}
@@ -304,7 +304,7 @@ export default function SignupPage() {
                   value={dob.day}
                   onChange={(e) => updateDob({ day: e.target.value })}
                 >
-                  <option value="" disabled hidden>Ngày</option>
+                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Ngày</option>
                   {days.map((d) => (
                     <option key={d} value={d} className="bg-background text-text-primary">{d}</option>
                   ))}
@@ -317,7 +317,7 @@ export default function SignupPage() {
                   value={dob.year}
                   onChange={(e) => updateDob({ year: e.target.value })}
                 >
-                  <option value="" disabled hidden>Năm</option>
+                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Năm</option>
                   {years.map((y) => (
                     <option key={y} value={y} className="bg-background text-text-primary">{y}</option>
                   ))}

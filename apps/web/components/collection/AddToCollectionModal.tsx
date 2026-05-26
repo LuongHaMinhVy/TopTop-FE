@@ -52,7 +52,7 @@ export function AddToCollectionModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-[420px] rounded-t-2xl bg-background text-text-primary shadow-2xl sm:rounded-2xl">
+      <div className="modal-opacity-solid w-full max-w-[420px] rounded-t-2xl bg-background text-text-primary shadow-2xl sm:rounded-2xl">
         <div className="flex h-14 items-center justify-between border-b border-elevated px-4">
           <h2 className="text-[17px] font-bold">{t("addToCollection")}</h2>
           <button

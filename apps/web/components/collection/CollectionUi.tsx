@@ -251,7 +251,7 @@ export function CollectionFormModal({
     <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/70 px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-[450px] rounded-xl bg-[#222] p-7 text-white shadow-2xl"
+        className="modal-opacity-solid w-full max-w-[450px] rounded-xl bg-[#222] p-7 text-white shadow-2xl"
       >
         <div className="mb-7 flex items-center justify-between">
           <h2 className="flex-1 text-center text-[22px] font-bold">{title}</h2>
@@ -348,7 +348,7 @@ export function SelectVideosModal({
 
   return (
     <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/75 px-4">
-      <div className="flex h-[80vh] w-full max-w-[600px] flex-col rounded-xl bg-[#202020] p-4 text-white shadow-2xl">
+      <div className="modal-opacity-solid flex h-[80vh] w-full max-w-[600px] flex-col rounded-xl bg-[#202020] p-4 text-white shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="flex-1 text-center text-[22px] font-bold">
             Chọn video
@@ -441,7 +441,7 @@ export function ShareModal({
 
   return (
     <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-[600px] rounded-xl bg-[#222] p-7 text-white shadow-2xl">
+      <div className="modal-opacity-solid w-full max-w-[600px] rounded-xl bg-[#222] p-7 text-white shadow-2xl">
         <div className="mb-7 flex items-center justify-between">
           <h2 className="flex-1 text-center text-[22px] font-bold">
             Chia sẻ đến

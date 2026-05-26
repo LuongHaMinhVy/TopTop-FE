@@ -26,7 +26,7 @@ export const Modal = ({ isOpen, onClose, children, title, className = "" }: Moda
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" 
@@ -36,11 +36,14 @@ export const Modal = ({ isOpen, onClose, children, title, className = "" }: Moda
       {/* Content */}
       <div 
         className={`
-          relative w-full max-w-[480px] bg-background
+          modal-opacity-solid relative w-full max-w-[480px] bg-background
           rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]
           animate-in zoom-in slide-in-from-bottom-4 duration-300
           ${className}
         `}
+        role="dialog"
+        aria-modal="true"
+        data-modal-panel
       >
         <button 
           onClick={onClose} 

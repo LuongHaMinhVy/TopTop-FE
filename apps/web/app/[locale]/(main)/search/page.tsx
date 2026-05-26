@@ -20,12 +20,13 @@ import { useFollowMutation, useUnfollowMutation } from "@/hooks/user-hooks";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { DocumentTitle, truncateTitle } from "@/components/shared/DocumentTitle";
+import { useTranslations } from "next-intl";
 
-const SEARCH_TABS: Array<{ value: SearchTab; label: string }> = [
-  { value: "top", label: "Top" },
-  { value: "users", label: "Người dùng" },
-  { value: "videos", label: "Video" },
-  { value: "live", label: "LIVE" },
+const SEARCH_TABS: Array<{ value: SearchTab; labelKey: string }> = [
+  { value: "top", labelKey: "tabs.top" },
+  { value: "users", labelKey: "tabs.users" },
+  { value: "videos", labelKey: "tabs.videos" },
+  { value: "live", labelKey: "tabs.live" },
 ];
 
 export default function SearchPage() {
@@ -35,6 +36,7 @@ export default function SearchPage() {
   const activeTab = normalizeTab(searchParams.get("tab"));
   const saveHistory = useSaveSearchHistory();
   const isLoggedIn = useSelector((state: RootState) => Boolean(state.auth.user));
+  const t = useTranslations("searchPage");
 
   const topQuery = useSearchTop(q);
   const usersQuery = useSearchUsers(q, 0, 30, activeTab === "users");
@@ -73,7 +75,7 @@ export default function SearchPage() {
                     activeTab === tab.value ? "text-text-primary" : "text-text-muted hover:text-text-primary"
                   }`}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                   {activeTab === tab.value && (
                     <span className="absolute bottom-0 left-0 h-[2px] w-full bg-text-primary" />
                   )}
@@ -83,7 +85,7 @@ export default function SearchPage() {
           </div>
 
           {!q ? (
-            <SearchEmpty title="Nhập từ khóa để tìm kiếm" />
+            <SearchEmpty title={t("empty.enterKeyword")} />
           ) : activeTab === "top" ? (
             <TopResults
               isLoading={topQuery.isLoading}
@@ -91,20 +93,25 @@ export default function SearchPage() {
               users={topQuery.data?.data?.users ?? []}
               query={q}
               onSeeUsers={() => switchTab("users")}
+              labels={{
+                users: t("sections.users"),
+                seeMore: t("actions.seeMore"),
+                noResults: t("empty.noResults"),
+              }}
             />
           ) : activeTab === "users" ? (
-            <UserResults isLoading={usersQuery.isLoading} users={usersQuery.data?.data ?? []} />
+            <UserResults isLoading={usersQuery.isLoading} users={usersQuery.data?.data ?? []} emptyTitle={t("empty.noUsers")} />
           ) : activeTab === "videos" ? (
-            <VideoResults isLoading={videosQuery.isLoading} videos={videosQuery.data?.data ?? []} query={q} />
+            <VideoResults isLoading={videosQuery.isLoading} videos={videosQuery.data?.data ?? []} query={q} emptyTitle={t("empty.noVideos")} />
           ) : (
-            <LiveResults isLoading={liveQuery.isLoading} count={liveQuery.data?.data?.length ?? 0} />
+            <LiveResults isLoading={liveQuery.isLoading} count={liveQuery.data?.data?.length ?? 0} emptyTitle={t("empty.noMoreResults")} />
           )}
         </main>
 
         <aside className="hidden pt-[104px] lg:block">
           <div className="sticky top-[104px]">
             <h2 className="mb-4 text-[18px] font-extrabold leading-tight text-text-muted">
-              Những người khác tìm kiếm
+              {t("relatedTitle")}
             </h2>
             <div className="flex flex-wrap gap-3">
               {(relatedSearches.length > 0 ? relatedSearches.map((item) => item.keyword) : [q])
@@ -135,17 +142,23 @@ function TopResults({
   users,
   query,
   onSeeUsers,
+  labels,
 }: {
   isLoading: boolean;
   videos: SearchVideo[];
   users: SearchUser[];
   query: string;
   onSeeUsers: () => void;
+  labels: {
+    users: string;
+    seeMore: string;
+    noResults: string;
+  };
 }) {
   if (isLoading) return <SearchSkeleton />;
 
   if (videos.length === 0 && users.length === 0) {
-    return <SearchEmpty title="Không tìm thấy kết quả" />;
+    return <SearchEmpty title={labels.noResults} />;
   }
 
   return (
@@ -154,13 +167,13 @@ function TopResults({
       {users.length > 0 && (
         <section className="border-t border-elevated pt-6">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-[24px] font-extrabold">Người dùng</h2>
+            <h2 className="text-[24px] font-extrabold">{labels.users}</h2>
             <button
               type="button"
               onClick={onSeeUsers}
               className="text-[16px] font-bold hover:underline"
             >
-              Xem thêm
+              {labels.seeMore}
             </button>
           </div>
           <div className="grid gap-x-8 gap-y-5 xl:grid-cols-2">
@@ -174,9 +187,9 @@ function TopResults({
   );
 }
 
-function UserResults({ isLoading, users }: { isLoading: boolean; users: SearchUser[] }) {
+function UserResults({ isLoading, users, emptyTitle }: { isLoading: boolean; users: SearchUser[]; emptyTitle: string }) {
   if (isLoading) return <SearchSkeleton rowsOnly />;
-  if (users.length === 0) return <SearchEmpty title="Không tìm thấy người dùng" />;
+  if (users.length === 0) return <SearchEmpty title={emptyTitle} />;
 
   return (
     <div className="py-8">
@@ -189,9 +202,9 @@ function UserResults({ isLoading, users }: { isLoading: boolean; users: SearchUs
   );
 }
 
-function VideoResults({ isLoading, videos, query }: { isLoading: boolean; videos: SearchVideo[]; query: string }) {
+function VideoResults({ isLoading, videos, query, emptyTitle }: { isLoading: boolean; videos: SearchVideo[]; query: string; emptyTitle: string }) {
   if (isLoading) return <SearchSkeleton />;
-  if (videos.length === 0) return <SearchEmpty title="Không tìm thấy video" />;
+  if (videos.length === 0) return <SearchEmpty title={emptyTitle} />;
 
   return (
     <div className="py-8">
@@ -200,7 +213,7 @@ function VideoResults({ isLoading, videos, query }: { isLoading: boolean; videos
   );
 }
 
-function LiveResults({ isLoading, count }: { isLoading: boolean; count: number }) {
+function LiveResults({ isLoading, count, emptyTitle }: { isLoading: boolean; count: number; emptyTitle: string }) {
   if (isLoading) return <SearchSkeleton />;
   return (
     <div className="py-8">
@@ -208,7 +221,7 @@ function LiveResults({ isLoading, count }: { isLoading: boolean; count: number }
         {count > 0 ? null : (
           <div className="col-span-full flex h-[360px] flex-col items-center justify-center text-text-muted">
             <Radio className="mb-4 size-14" />
-            <p className="text-[22px] font-semibold">Không còn kết quả nào khác</p>
+            <p className="text-[22px] font-semibold">{emptyTitle}</p>
           </div>
         )}
       </div>
@@ -257,6 +270,7 @@ function VideoGrid({ videos, query }: { videos: SearchVideo[]; query: string }) 
 function SearchUserRow({ user, compact = false }: { user: SearchUser; compact?: boolean }) {
   const followMutation = useFollowMutation(user.username);
   const unfollowMutation = useUnfollowMutation(user.username);
+  const t = useTranslations("searchPage");
   const isPending = followMutation.isPending || unfollowMutation.isPending;
 
   return (
@@ -267,8 +281,8 @@ function SearchUserRow({ user, compact = false }: { user: SearchUser; compact?: 
           <h3 className="truncate text-[19px] font-extrabold">{user.displayName || user.username}</h3>
           <p className="truncate text-[16px] font-semibold">{user.username}</p>
           <p className="truncate text-[15px] text-text-secondary">
-            {formatCount(user.followerCount)} Follower <span className="px-1">·</span>
-            {formatCount(user.totalLikeCount)} Lượt thích
+            {formatCount(user.followerCount)} {t("counts.followers")} <span className="px-1">·</span>
+            {formatCount(user.totalLikeCount)} {t("counts.likes")}
           </p>
         </div>
       </Link>
@@ -286,7 +300,7 @@ function SearchUserRow({ user, compact = false }: { user: SearchUser; compact?: 
           user.followed ? "bg-elevated text-text-primary hover:bg-hover" : "bg-brand text-white hover:bg-brand/90"
         }`}
       >
-        {user.followed ? "Following" : "Follow"}
+        {user.followed ? t("actions.following") : t("actions.follow")}
       </button>
     </div>
   );

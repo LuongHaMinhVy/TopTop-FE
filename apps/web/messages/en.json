@@ -66,6 +66,34 @@
     "logout": "Log out",
     "profile": "Profile"
   },
+  "searchPage": {
+    "tabs": {
+      "top": "Top",
+      "users": "Users",
+      "videos": "Videos",
+      "live": "LIVE"
+    },
+    "relatedTitle": "Others searched for",
+    "sections": {
+      "users": "Users"
+    },
+    "actions": {
+      "seeMore": "See more",
+      "follow": "Follow",
+      "following": "Following"
+    },
+    "counts": {
+      "followers": "Followers",
+      "likes": "Likes"
+    },
+    "empty": {
+      "enterKeyword": "Enter a keyword to search",
+      "noResults": "No results found",
+      "noUsers": "No users found",
+      "noVideos": "No videos found",
+      "noMoreResults": "No more results"
+    }
+  },
   "profile": {
     "editProfile": "Edit profile",
     "follow": "Follow",

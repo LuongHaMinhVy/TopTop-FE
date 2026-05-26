@@ -75,7 +75,7 @@ export function SoundPicker({ selectedSound, onSelectSound, onClearSound }: Soun
 
       {isOpen && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 px-4">
-          <div className="flex max-h-[80vh] w-full max-w-[520px] flex-col rounded-xl border border-elevated bg-background shadow-2xl">
+          <div className="modal-opacity-solid flex max-h-[80vh] w-full max-w-[520px] flex-col rounded-xl border border-elevated bg-background shadow-2xl">
             <div className="flex items-center justify-between border-b border-elevated px-5 py-4">
               <h3 className="text-lg font-bold">{t("select")}</h3>
               <button type="button" onClick={() => setIsOpen(false)} className="grid size-8 place-items-center rounded-full hover:bg-hover">

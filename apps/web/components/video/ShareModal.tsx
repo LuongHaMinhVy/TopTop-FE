@@ -18,6 +18,7 @@ interface ShareModalProps {
   isReposted?: boolean;
   simplified?: boolean;
   videoId?: number;
+  showRepost?: boolean;
 }
 
 export function ShareModal({
@@ -29,6 +30,7 @@ export function ShareModal({
   isReposted,
   simplified = false,
   videoId,
+  showRepost = true,
 }: ShareModalProps) {
   const { mutate: shareVideoToChats, isPending: isSharing } = useShareVideoToChats();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -150,7 +152,10 @@ export function ShareModal({
 
       {/* Panel */}
       <div
-        className="relative flex w-full max-w-[540px] flex-col rounded-t-[20px] bg-background text-text-primary shadow-2xl sm:rounded-[16px] border border-elevated animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+        className="modal-opacity-solid relative flex w-full max-w-[540px] flex-col rounded-t-[20px] bg-background text-text-primary shadow-2xl sm:rounded-[16px] border border-elevated animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+        data-modal-panel
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -265,7 +270,7 @@ export function ShareModal({
           {selectedIds.size === 0 && (
             <div className="flex overflow-x-auto px-4 py-4 no-scrollbar gap-4">
               {/* Repost / Remove Repost */}
-            {isReposted ? (
+            {showRepost && (isReposted ? (
               <ActionIcon
                 color="bg-elevated"
                 label="Xóa video đăng lại"
@@ -284,7 +289,7 @@ export function ShareModal({
                 onClick={() => { onRepost?.(); onClose(); }}
                 icon={<Repeat2 className="size-8 text-yellow-400" />}
               />
-            )}
+            ))}
 
             {/* Copy Link */}
             <ActionIcon

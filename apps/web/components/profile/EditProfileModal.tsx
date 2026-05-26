@@ -163,7 +163,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 transition-opacity duration-300">
       {/* Modal Container */}
-      <div className="w-full max-w-[700px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className="modal-opacity-solid w-full max-w-[700px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
         
         {/* Modal Header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">

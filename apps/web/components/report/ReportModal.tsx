@@ -83,7 +83,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportMod
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-[760px] overflow-hidden rounded-xl bg-[#121212] text-white shadow-2xl max-sm:h-[85vh] max-sm:rounded-t-2xl max-sm:rounded-b-none flex flex-col">
+      <div className="modal-opacity-solid w-full max-w-[760px] overflow-hidden rounded-xl bg-[#121212] text-white shadow-2xl max-sm:h-[85vh] max-sm:rounded-t-2xl max-sm:rounded-b-none flex flex-col">
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
           <div className="flex items-center gap-3">
             {canGoBack && (

@@ -297,7 +297,8 @@ export default function VideoCard({
   const autoScroll = useSelector((state: RootState) => state.media.autoScroll);
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  const isOwnVideo = currentUser && video && currentUser.id === video.userId;
+  const isOwnVideo = Boolean(currentUser && video && currentUser.id === video.userId);
+  const canRepost = Boolean(video && !isOwnVideo);
   const isReposted =
     video?.id && repostOverride?.videoId === video.id
       ? repostOverride.value
@@ -409,6 +410,7 @@ export default function VideoCard({
 
   const handleRepost = () => {
     if (!video?.id) return;
+    if (!canRepost) return;
     if (!currentUser) {
       dispatch(openAuthModal("login"));
       return;
@@ -435,6 +437,7 @@ export default function VideoCard({
 
   const handleRemoveRepost = () => {
     if (!video?.id) return;
+    if (!canRepost) return;
     if (repostMutation.isPending || unrepostMutation.isPending) return;
 
     const previousReposted = isReposted;
@@ -1160,8 +1163,8 @@ export default function VideoCard({
                 <div className="absolute bottom-5 left-3 right-20 sm:right-4 z-0 text-white select-none pointer-events-none">
                   <RepostBadge
                     users={repostUsers}
-                    onRepost={!isReposted ? handleRepost : undefined}
-                    onRemove={isReposted ? handleRemoveRepost : undefined}
+                    onRepost={canRepost && !isReposted ? handleRepost : undefined}
+                    onRemove={canRepost && isReposted ? handleRemoveRepost : undefined}
                     className="mb-1.5"
                     popoverPlacement="top"
                   />
@@ -1336,6 +1339,7 @@ export default function VideoCard({
         isReposted={isReposted}
         onRepost={handleRepost}
         onRemoveRepost={handleRemoveRepost}
+        showRepost={canRepost}
         videoId={video?.id}
       />
 

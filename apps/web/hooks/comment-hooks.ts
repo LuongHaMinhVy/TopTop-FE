@@ -104,7 +104,35 @@ export const useDeleteCommentMutation = (videoId: number) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: commentService.deleteComment,
-    onSuccess: () => {
+    onSuccess: (_response, commentId) => {
+      queryClient.setQueriesData<ApiResponse<CommentResponse[]>>(
+        { queryKey: ["comments", videoId] },
+        (current) =>
+          current?.data
+            ? {
+                ...current,
+                data: current.data.filter((comment) => comment.id !== commentId),
+                meta: current.meta
+                  ? {
+                      ...current.meta,
+                      totalElements: Math.max(0, current.meta.totalElements - 1),
+                    }
+                  : current.meta,
+              }
+            : current,
+      );
+
+      queryClient.setQueriesData<ApiResponse<CommentResponse[]>>(
+        { queryKey: ["comment-replies"] },
+        (current) =>
+          current?.data
+            ? {
+                ...current,
+                data: current.data.filter((comment) => comment.id !== commentId),
+              }
+            : current,
+      );
+
       queryClient.invalidateQueries({ queryKey: ["comments", videoId] });
       queryClient.invalidateQueries({ queryKey: ["comment-replies"] });
       queryClient.invalidateQueries({ queryKey: ["all-videos"] });

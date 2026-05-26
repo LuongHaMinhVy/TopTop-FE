@@ -147,7 +147,7 @@ export function CollectionManagePanel({
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 px-4">
           <form
             onSubmit={handleCreate}
-            className="w-full max-w-[450px] rounded-xl bg-[#222] p-7 text-white shadow-2xl"
+            className="modal-opacity-solid w-full max-w-[450px] rounded-xl bg-[#222] p-7 text-white shadow-2xl"
           >
             <div className="mb-7 flex items-center justify-between">
               <h2 className="flex-1 text-center text-[22px] font-bold">{t("newCollectionTitle")}</h2>

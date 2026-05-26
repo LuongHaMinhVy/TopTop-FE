@@ -11,6 +11,7 @@ import { getComments, deleteComment } from '@/services/comment-api-service';
 import { DocumentTitle } from '@/components/shared/DocumentTitle';
 import type { CommentResponse } from '@/types/comment';
 import type { Video } from '@/types/video';
+import type { ApiResponse } from '@/types/api';
 
 type StudioComment = CommentResponse & {
   video?: Video;
@@ -50,7 +51,17 @@ export default function StudioCommentsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteComment,
-    onSuccess: () => {
+    onSuccess: (_response, commentId) => {
+      queryClient.setQueriesData<ApiResponse<CommentResponse[]>>(
+        { queryKey: ['comments'] },
+        (current) =>
+          current?.data
+            ? {
+                ...current,
+                data: current.data.filter((comment) => comment.id !== commentId),
+              }
+            : current,
+      );
       queryClient.invalidateQueries({ queryKey: ['comments'] });
       queryClient.invalidateQueries({ queryKey: ['user-videos', user?.id] });
     },
@@ -115,9 +126,9 @@ export default function StudioCommentsPage() {
               onChange={(event) => setVideoFilter(event.target.value === 'ALL' ? 'ALL' : Number(event.target.value))}
               className="h-11 rounded-lg border border-elevated bg-background px-3 text-sm font-bold text-text-primary outline-none transition-colors focus:border-text-muted"
             >
-              <option value="ALL">Tất cả video</option>
+              <option value="ALL" className="bg-background text-text-primary opacity-100">Tất cả video</option>
               {videos.map((video) => (
-                <option key={video.id} value={video.id}>
+                <option key={video.id} value={video.id} className="bg-background text-text-primary opacity-100">
                   {video.title || video.description || `Video #${video.id}`}
                 </option>
               ))}

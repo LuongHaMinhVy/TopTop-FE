@@ -22,7 +22,9 @@ import {
   ToggleLeft,
   ToggleRight,
   MessageSquare,
-  Video as VideoIcon
+  Video as VideoIcon,
+  Scissors,
+  Music
 } from 'lucide-react';
 import Image from 'next/image';
 import { useUserVideos, useDeleteVideoMutation, useUpdateVideoMutation } from '@/hooks/video-hooks';
@@ -30,6 +32,8 @@ import { useComments, useDeleteCommentMutation } from '@/hooks/comment-hooks';
 import { getDrafts, deleteDraft, type VideoDraft } from '@/utils/draft-db';
 import type { Video } from '@/types/video';
 import { DocumentTitle } from '@/components/shared/DocumentTitle';
+import { SoundEditorPanel } from '@/components/sound/SoundEditorPanel';
+import type { Sound } from '@/types/sound';
 
 type VideoVisibility = NonNullable<Video['visibility']>;
 type DraftWithPreview = VideoDraft & { previewUrl: string };
@@ -57,6 +61,14 @@ const normalizeVisibility = (visibility: string): VideoVisibility => {
 };
 
 const isDraftVideoRow = (video: ManagedVideoRow): video is DraftVideoRow => video._isDraft === true;
+
+const parseQualityIssues = (qualityIssuesJson?: string) => {
+  if (!qualityIssuesJson) return [];
+  return qualityIssuesJson
+    .split(',')
+    .map((issue) => issue.trim().toUpperCase())
+    .filter((issue) => issue === 'WATERMARK' || issue === 'QR_CODE' || issue === 'LOW_QUALITY');
+};
 
 // Custom Date Formatter in Vietnamese matching screenshot: e.g. "1 tháng 4 2025, 10:20 SA"
 const formatVietnameseDate = (dateString?: string) => {
@@ -108,7 +120,7 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
   const contentStatus = v.moderationStatus;
   const musicStatus = v.musicCopyrightStatus;
 
-  if (contentStatus === 'REJECTED' || musicStatus === 'REJECTED') {
+  if (contentStatus === 'REJECTED') {
     return (
       <div className="flex flex-col gap-1 mt-1">
         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 w-fit select-none">
@@ -140,6 +152,26 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
     );
   }
 
+  const hasMusicIssue = musicStatus === 'REJECTED';
+  const hasQualityIssue = parseQualityIssues(v.qualityIssuesJson).length > 0;
+
+  if (hasMusicIssue || hasQualityIssue) {
+    return (
+      <div className="flex flex-col gap-1 mt-1">
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit select-none">
+          <Check size={10} />
+          Đã xuất bản
+        </span>
+        {hasMusicIssue && (
+          <span className="text-[11px] text-amber-500 font-medium line-clamp-1">Trùng bản quyền âm nhạc (Vẫn hiển thị).</span>
+        )}
+        {hasQualityIssue && (
+          <span className="text-[11px] text-amber-500 font-medium line-clamp-1">{v.qualityIssueMessage || "Nội dung chất lượng thấp hoặc trùng lặp."}</span>
+        )}
+      </div>
+    );
+  }
+
   if (musicStatus === 'PENDING' || musicStatus === 'NEED_REVIEW') {
     return (
       <div className="flex flex-col gap-1 mt-1">
@@ -152,7 +184,6 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
     );
   }
 
-  // If approved
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit select-none mt-1">
       <Check size={10} />
@@ -868,12 +899,37 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
   const [title, setTitle] = useState(video.title || '');
   const [description, setDescription] = useState(video.description || '');
   const [allowComments, setAllowComments] = useState(video.allowComments ?? true);
+  const [selectedSound, setSelectedSound] = useState<Sound | null>(video.sound ?? null);
+  const [soundEditorOpen, setSoundEditorOpen] = useState(false);
+  const [soundEditorInitialTool, setSoundEditorInitialTool] = useState<'edit' | 'sound'>('edit');
+  const [videoTrim, setVideoTrim] = useState({ startSeconds: 0, endSeconds: video.duration ?? 0 });
+  const [soundTrim, setSoundTrim] = useState({
+    startSeconds: 0,
+    endSeconds: video.sound?.durationSeconds ?? 0,
+  });
+  const [soundVolume, setSoundVolume] = useState(100);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const [originalAudioVolume, setOriginalAudioVolume] = useState(100);
+  const [soundStartOffset, setSoundStartOffset] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const formatEditorDuration = (seconds?: number | null) => {
+    const safeSeconds = Math.max(0, Math.floor(seconds ?? 0));
+    return `${String(Math.floor(safeSeconds / 60)).padStart(2, '0')}:${String(safeSeconds % 60).padStart(2, '0')}`;
+  };
 
   const isChanged = 
     title !== (video.title || '') ||
     description !== (video.description || '') ||
-    allowComments !== (video.allowComments ?? true);
+    allowComments !== (video.allowComments ?? true) ||
+    selectedSound?.id !== video.sound?.id ||
+    videoTrim.startSeconds > 0 ||
+    (videoTrim.endSeconds > 0 && videoTrim.endSeconds !== (video.duration ?? 0)) ||
+    soundTrim.startSeconds > 0 ||
+    (selectedSound && soundTrim.endSeconds > 0 && soundTrim.endSeconds !== selectedSound.durationSeconds) ||
+    soundVolume !== 100 ||
+    soundMuted ||
+    originalAudioVolume !== 100 ||
+    soundStartOffset > 0;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -890,7 +946,25 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
           title,
           description,
           visibility: video.visibility,
-          allowComments
+          allowComments,
+          soundId: selectedSound?.id ?? null,
+          editInstructions: {
+            videoTrim: {
+              startSeconds: videoTrim.startSeconds,
+              endSeconds: videoTrim.endSeconds || video.duration || 0,
+            },
+            selectedSoundId: selectedSound?.id ?? null,
+            soundTrim: selectedSound ? {
+              startSeconds: soundTrim.startSeconds,
+              endSeconds: soundTrim.endSeconds > 0 ? soundTrim.endSeconds : null,
+            } : null,
+            audioMix: {
+              originalAudioVolume: Math.min(1, originalAudioVolume / 100),
+              soundVolume: selectedSound ? (soundMuted ? 0 : Math.min(1, soundVolume / 100)) : 0,
+              soundStartAtVideoSeconds: soundStartOffset,
+            },
+            coverFrameSeconds: null,
+          },
         }
       });
       onSuccess('Cập nhật chi tiết video thành công!');
@@ -902,8 +976,8 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 select-none">
-      <div className="w-full max-w-[600px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[900] flex items-center justify-center bg-black/70 px-4 select-none">
+      <div className="modal-opacity-solid w-full max-w-[600px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
           <h2 className="text-lg font-bold">Chỉnh sửa chi tiết bài đăng</h2>
@@ -974,6 +1048,63 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
               )}
             </button>
           </div>
+
+          <div className="rounded-lg border border-white/5 bg-[#1d1d1d] p-4">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-white">Chỉnh video và âm thanh</h4>
+                <p className="mt-0.5 text-xs text-white/50">
+                  Cắt đoạn video, chọn nhạc và chỉnh âm lượng cho bài đăng này.
+                </p>
+              </div>
+              <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">
+                Mini editor
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSoundEditorInitialTool('edit');
+                  setSoundEditorOpen(true);
+                }}
+                disabled={updateMutation.isPending}
+                className="flex h-20 flex-col items-center justify-center gap-2 rounded-lg border border-white/10 bg-[#2a2a2a] text-sm font-semibold text-white transition hover:bg-[#333] disabled:opacity-50"
+              >
+                <Scissors size={22} />
+                Cắt video
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSoundEditorInitialTool('sound');
+                  setSoundEditorOpen(true);
+                }}
+                disabled={updateMutation.isPending}
+                className={`flex h-20 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-3 text-sm font-semibold transition disabled:opacity-50 ${
+                  selectedSound
+                    ? 'border-brand bg-brand/10 text-brand'
+                    : 'border-white/10 bg-[#2a2a2a] text-white hover:bg-[#333]'
+                }`}
+              >
+                <Music size={22} />
+                <span>Âm thanh</span>
+                {selectedSound ? (
+                  <span className="max-w-full truncate text-xs text-white/45">{selectedSound.title}</span>
+                ) : null}
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-white/50">
+              <div className="rounded bg-black/20 px-3 py-2">
+                Video: {formatEditorDuration(videoTrim.startSeconds)} - {formatEditorDuration(videoTrim.endSeconds || video.duration)}
+              </div>
+              <div className="rounded bg-black/20 px-3 py-2">
+                Nhạc: {selectedSound ? `${formatEditorDuration(soundTrim.startSeconds)} - ${formatEditorDuration(soundTrim.endSeconds || selectedSound.durationSeconds)}` : 'Chưa chọn'}
+              </div>
+            </div>
+          </div>
         </form>
 
         {/* Footer */}
@@ -1005,6 +1136,31 @@ function EditVideoModal({ video, onClose, onSuccess, userId }: EditVideoModalPro
           </button>
         </div>
       </div>
+
+      <SoundEditorPanel
+        isOpen={soundEditorOpen}
+        initialTool={soundEditorInitialTool}
+        previewUrl={video.fileUrl}
+        description={description}
+        selectedSound={selectedSound}
+        trimStartSeconds={videoTrim.startSeconds}
+        trimEndSeconds={videoTrim.endSeconds}
+        soundTrimStartSeconds={soundTrim.startSeconds}
+        soundTrimEndSeconds={soundTrim.endSeconds}
+        soundVolume={soundVolume}
+        soundMuted={soundMuted}
+        originalAudioVolume={originalAudioVolume}
+        soundStartAtVideoSeconds={soundStartOffset}
+        showTextTool={false}
+        onSelectSound={setSelectedSound}
+        onTrimChange={setVideoTrim}
+        onSoundTrimChange={setSoundTrim}
+        onSoundVolumeChange={setSoundVolume}
+        onSoundMutedChange={setSoundMuted}
+        onOriginalAudioVolumeChange={setOriginalAudioVolume}
+        onSoundStartAtVideoSecondsChange={setSoundStartOffset}
+        onClose={() => setSoundEditorOpen(false)}
+      />
     </div>
   );
 }
@@ -1036,7 +1192,7 @@ function AnalyticsModal({ video, onClose }: AnalyticsModalProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-[650px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className="modal-opacity-solid w-full max-w-[650px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
           <div>
@@ -1203,7 +1359,7 @@ function CommentsModal({ video, onClose, onDeleteSuccess }: CommentsModalProps) 
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4">
-      <div className="w-full max-w-[650px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col h-[80vh] animate-in fade-in zoom-in duration-200">
+      <div className="modal-opacity-solid w-full max-w-[650px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col h-[80vh] animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
           <div>
@@ -1368,7 +1524,7 @@ function PrivacyDropdown({ videoId, value, onChange, disabled }: PrivacyDropdown
 
       {/* Options Menu overlay */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-[36px] z-[999] rounded bg-white dark:bg-[#242424] border border-black/10 dark:border-white/10 shadow-xl overflow-hidden py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="select-options-solid absolute left-0 right-0 top-[36px] z-[999] rounded bg-white dark:bg-[#242424] border border-black/10 dark:border-white/10 shadow-xl overflow-hidden py-1 animate-in fade-in slide-in-from-top-1 duration-150">
           {(['PUBLIC', 'FRIENDS', 'PRIVATE'] as const).map((option) => {
             const config = getVisibilityConfig(option);
             const isSelected = option === value;

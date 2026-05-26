@@ -26,6 +26,21 @@ import type { Sound } from '@/types/sound';
 type UploadStatus = 'idle' | 'compressing' | 'uploading' | 'uploaded' | 'success' | 'error';
 type ModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
 type MusicCopyrightStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NEED_REVIEW';
+
+const TEXT_MODERATION_ERROR_MESSAGE =
+  'Tiêu đề hoặc mô tả video có nội dung không phù hợp. Vui lòng chỉnh lại từ ngữ nhạy cảm, nội dung vi phạm hoặc hashtag không phù hợp rồi đăng lại.';
+
+const toFriendlyUploadErrorMessage = (message: string) => {
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes('video title or description rejected by moderation') ||
+    normalized.includes('mô tả hoặc tiêu đề video bị từ chối') ||
+    normalized.includes('tiêu đề hoặc mô tả video')
+  ) {
+    return TEXT_MODERATION_ERROR_MESSAGE;
+  }
+  return message;
+};
 type CoverSourceTab = 'video' | 'upload';
 
 interface VideoFrameOption {
@@ -95,7 +110,14 @@ export default function UploadVideo() {
     musicCopyrightStatus: MusicCopyrightStatus | null;
     musicCopyrightReasonCode: string | null;
     musicCopyrightReasonMessage: string | null;
+    qualityIssues?: string[] | null;
+    qualityIssueMessage?: string | null;
   } | null>(null);
+
+  // Quality check states
+  const [musicCopyrightCheckEnabled, setMusicCopyrightCheckEnabled] = useState(true);
+  const [fastContentCheckEnabled, setFastContentCheckEnabled] = useState(true);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Cover
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -142,6 +164,11 @@ export default function UploadVideo() {
   const [soundEditorOpen, setSoundEditorOpen] = useState(false);
   const [soundEditorInitialTool, setSoundEditorInitialTool] = useState<'edit' | 'sound'>('edit');
   const [videoTrim, setVideoTrim] = useState({ startSeconds: 0, endSeconds: 0 });
+  const [soundTrim, setSoundTrim] = useState({ startSeconds: 0, endSeconds: 0 });
+  const [soundVolume, setSoundVolume] = useState(100);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const [originalAudioVolume, setOriginalAudioVolume] = useState(100);
+  const [soundStartOffset, setSoundStartOffset] = useState(0);
 
   // Suggestion dropdowns
   const [showHashtagDropdown, setShowHashtagDropdown] = useState(false);
@@ -247,6 +274,8 @@ export default function UploadVideo() {
             musicCopyrightStatus: res.data.musicCopyrightStatus as MusicCopyrightStatus | null,
             musicCopyrightReasonCode: res.data.musicCopyrightReasonCode,
             musicCopyrightReasonMessage: res.data.musicCopyrightReasonMessage,
+            qualityIssues: res.data.qualityIssues,
+            qualityIssueMessage: res.data.qualityIssueMessage,
           });
           const contentDone = ['APPROVED', 'REJECTED', 'NEED_REVIEW'].includes(res.data.moderationStatus);
           const musicDone = res.data.musicCopyrightStatus
@@ -815,8 +844,11 @@ export default function UploadVideo() {
       const shouldCompress = fileToProcess.size > 10 * 1024 * 1024;
       const trimDuration = videoTrim.endSeconds - videoTrim.startSeconds;
       const shouldTrim = trimDuration > 0.2;
+      const blackPaddingSeconds = videoDuration > 0
+        ? Math.max(0, videoTrim.endSeconds - videoDuration)
+        : 0;
 
-      if (shouldCompress || shouldTrim) {
+      if (shouldCompress || shouldTrim || blackPaddingSeconds > 0) {
         setStatus('compressing');
         setProgress(0);
         const ffmpeg = await ensureFfmpeg();
@@ -838,9 +870,19 @@ export default function UploadVideo() {
         // Keep within reasonable bounds (min 200k, max 5000k)
         targetVBitrate = Math.max(200, Math.min(5000, targetVBitrate));
 
+        const vfFilters: string[] = [];
+        if (shouldCompress) {
+          vfFilters.push('scale=-2:720');
+        }
+        if (blackPaddingSeconds > 0) {
+          vfFilters.push(`tpad=stop_mode=add:stop_duration=${blackPaddingSeconds}:color=black`);
+        }
+        if (vfFilters.length > 0) {
+          args.push('-vf', vfFilters.join(','));
+        }
+
         if (shouldCompress) {
           args.push(
-            '-vf', 'scale=-2:720',
             '-c:v', 'libx264',
             '-b:v', `${targetVBitrate}k`,
             '-maxrate', `${Math.floor(targetVBitrate * 1.5)}k`,
@@ -907,6 +949,25 @@ export default function UploadVideo() {
         allowEdit: finalMetadata.allowEdit,
         soundId: finalMetadata.soundId,
         useAvatarAsSoundCover,
+        enableMusicCopyrightCheck: musicCopyrightCheckEnabled,
+        enableContentModerationCheck: fastContentCheckEnabled,
+        editInstructions: {
+          videoTrim: {
+            startSeconds: videoTrim.startSeconds,
+            endSeconds: videoTrim.endSeconds,
+          },
+          selectedSoundId: selectedSound?.id ?? null,
+          soundTrim: selectedSound ? {
+            startSeconds: soundTrim.startSeconds,
+            endSeconds: soundTrim.endSeconds > 0 ? soundTrim.endSeconds : null,
+          } : null,
+          audioMix: {
+            originalAudioVolume: Math.min(1, originalAudioVolume / 100),
+            soundVolume: selectedSound ? (soundMuted ? 0 : Math.min(1, soundVolume / 100)) : 0,
+            soundStartAtVideoSeconds: soundStartOffset,
+          },
+          coverFrameSeconds: selectedCoverTime > 0 ? selectedCoverTime : null,
+        },
       };
 
       const completeRes = await completeUploadMutation.mutateAsync({
@@ -927,10 +988,11 @@ export default function UploadVideo() {
         musicCopyrightStatus: completeRes.data.musicCopyrightStatus ?? null,
         musicCopyrightReasonCode: completeRes.data.musicCopyrightReasonCode ?? null,
         musicCopyrightReasonMessage: completeRes.data.musicCopyrightReasonMessage ?? null,
+        qualityIssues: null,
+        qualityIssueMessage: null,
       } : null);
       setStatus('success');
     } catch (error: unknown) {
-      console.error(error);
       setStatus('error');
       
       let msg = t('errorGeneric');
@@ -941,7 +1003,9 @@ export default function UploadVideo() {
           } else if (error.response.status === 429) {
             msg = t('errorSpam');
           } else {
-            msg = error.response.data?.message || t('errorServer').replace('{code}', String(error.response.status));
+            msg = toFriendlyUploadErrorMessage(
+              error.response.data?.message || t('errorServer').replace('{code}', String(error.response.status)),
+            );
           }
         } else if (error.request) {
           msg = directUploadUrl.includes('r2.cloudflarestorage.com')
@@ -951,7 +1015,7 @@ export default function UploadVideo() {
           msg = error.message;
         }
       } else if (error instanceof Error) {
-        msg = error.message;
+        msg = toFriendlyUploadErrorMessage(error.message);
       }
       
       setErrorMessage(msg);
@@ -1088,6 +1152,7 @@ export default function UploadVideo() {
     setSelectedCoverTime(0); setSelectedVideoFramePreview(null); setImportedCoverSource(null); resetCoverCrop(); setVideoDuration(0);
     setVisibility('PUBLIC'); setAllowComments(true); setAllowDuet(true); setAllowStitch(true);
     setSelectedSound(null); setSoundEditorOpen(false); setSoundEditorInitialTool('edit'); setVideoTrim({ startSeconds: 0, endSeconds: 0 });
+    setSoundTrim({ startSeconds: 0, endSeconds: 0 }); setSoundVolume(100); setSoundMuted(false); setOriginalAudioVolume(100); setSoundStartOffset(0);
   };
 
   const handleSaveDraft = async () => {
@@ -1196,8 +1261,14 @@ export default function UploadVideo() {
   const musicCheckApproved = musicCopyrightStatus === 'APPROVED';
   const musicCheckNeedsReview = musicCopyrightStatus === 'NEED_REVIEW';
   const musicCheckRejected = musicCopyrightStatus === 'REJECTED';
-  const checksApproved = contentCheckApproved && !musicCheckRejected;
-  const checksRejected = contentCheckRejected || musicCheckRejected;
+
+  // Fast content checks (watermark, QR code, quality check)
+  const fastCheckPending = contentCheckPending;
+  const hasFastCheckIssues = Boolean(moderationResult?.qualityIssues && moderationResult.qualityIssues.length > 0);
+  const showCheckToggles = !uploadLocked;
+
+  const checksApproved = contentCheckApproved;
+  const checksRejected = contentCheckRejected;
   const checksNeedReview = contentCheckNeedsReview || contentCheckPending;
   const completionTitle = checksApproved
     ? t('publishedTitle')
@@ -1250,65 +1321,155 @@ export default function UploadVideo() {
 
   const renderModerationChecks = () => (
     <section className="mb-8">
-      <h3 className="text-base font-bold text-text-primary mb-4">{t('checkTitle')}</h3>
-      <div className="rounded-xl border border-elevated bg-background px-6 py-5">
+      <h3 className="text-base font-bold text-text-primary mb-4">Kiểm tra</h3>
+      <div className="rounded-xl border border-elevated bg-background px-6 py-5 space-y-6">
+        {/* Row 1: Music Copyright Check */}
         <div>
-          <div>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-text-primary">{t('musicCopyrightCheck')}</span>
-              <AlertCircle size={14} className="text-text-muted" />
+              <span className="text-sm font-bold text-text-primary">Kiểm tra bản quyền nhạc</span>
+              <span title="Kiểm tra xem âm thanh trong video của bạn có vi phạm bản quyền hay không.">
+                <AlertCircle size={14} className="text-text-muted cursor-help" />
+              </span>
             </div>
-            {musicCheckPending && renderCheckStatus({
+            {showCheckToggles && (
+              <button
+                type="button"
+                onClick={() => setMusicCopyrightCheckEnabled(!musicCopyrightCheckEnabled)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${musicCopyrightCheckEnabled ? 'bg-cyan' : 'bg-elevated'}`}
+              >
+                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${musicCopyrightCheckEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+              </button>
+            )}
+          </div>
+          <div className="mt-1 pl-1">
+            {!musicCopyrightCheckEnabled && renderCheckStatus({
+              tone: 'muted',
+              text: 'Đã tắt kiểm tra bản quyền nhạc.',
+            })}
+            {musicCopyrightCheckEnabled && (
+              <>
+                {musicCheckPending && renderCheckStatus({
+                tone: 'pending',
+                text: t('musicCheckRunning'),
+                spinning: true,
+              })}
+              {!musicCheckPending && musicCheckApproved && renderCheckStatus({
+                tone: 'success',
+                text: t('noIssueDetected'),
+              })}
+              {!musicCheckPending && musicCheckNeedsReview && renderCheckStatus({
+                tone: 'warning',
+                text: moderationResult?.musicCopyrightReasonMessage || t('musicNeedReviewShort'),
+              })}
+              {!musicCheckPending && musicCheckRejected && renderCheckStatus({
+                tone: 'warning',
+                text: moderationResult?.musicCopyrightReasonMessage || t('musicRejectedShort'),
+              })}
+              {!musicCheckPending && !musicCheckApproved && !musicCheckNeedsReview && !musicCheckRejected && renderCheckStatus({
+                tone: 'muted',
+                text: t('checkWillRun'),
+              })}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Text Moderation */}
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-text-primary">Kiểm duyệt văn bản</span>
+            <span title="Kiểm tra tiêu đề, mô tả và hashtag. Mục này chạy theo tùy chọn kiểm tra nội dung nhanh.">
+              <AlertCircle size={14} className="text-text-muted cursor-help" />
+            </span>
+          </div>
+          <div className="mt-1 pl-1">
+            {!fastContentCheckEnabled && renderCheckStatus({
+              tone: 'muted',
+              text: 'Đã tắt theo kiểm tra nội dung nhanh.',
+            })}
+            {fastContentCheckEnabled && contentCheckPending && renderCheckStatus({
               tone: 'pending',
-              text: t('musicCheckRunning'),
+              text: 'Đang kiểm tra tiêu đề, mô tả và hashtag...',
               spinning: true,
             })}
-            {!musicCheckPending && musicCheckApproved && renderCheckStatus({
+            {fastContentCheckEnabled && !contentCheckPending && contentCheckApproved && renderCheckStatus({
               tone: 'success',
-              text: t('noIssueDetected'),
+              text: 'Không phát hiện vấn đề trong văn bản.',
             })}
-            {!musicCheckPending && musicCheckNeedsReview && renderCheckStatus({
+            {fastContentCheckEnabled && !contentCheckPending && contentCheckNeedsReview && renderCheckStatus({
               tone: 'warning',
-              text: moderationResult?.musicCopyrightReasonMessage || t('musicNeedReviewShort'),
+              text: moderationResult?.reasonMessage || 'Văn bản cần được kiểm duyệt thủ công.',
             })}
-            {!musicCheckPending && musicCheckRejected && renderCheckStatus({
+            {fastContentCheckEnabled && !contentCheckPending && contentCheckRejected && renderCheckStatus({
               tone: 'error',
-              text: moderationResult?.musicCopyrightReasonMessage || t('musicRejectedShort'),
+              text: moderationResult?.reasonMessage || 'Văn bản bị từ chối bởi kiểm duyệt.',
             })}
-            {!musicCheckPending && !musicCheckApproved && !musicCheckNeedsReview && !musicCheckRejected && renderCheckStatus({
+            {fastContentCheckEnabled && !contentCheckPending && !moderationResult && renderCheckStatus({
               tone: 'muted',
               text: t('checkWillRun'),
             })}
           </div>
         </div>
 
-        <div className="mt-8">
-          <div>
+        {/* Row 3: Fast Content Check */}
+        <div>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-text-primary">{t('contentSafetyCheck')}</span>
-              <AlertCircle size={14} className="text-text-muted" />
+              <span className="text-sm font-bold text-text-primary">Kiểm tra nội dung nhanh</span>
+              <span title="Kiểm tra chất lượng video, logo/watermark và mã QR.">
+                <AlertCircle size={14} className="text-text-muted cursor-help" />
+              </span>
             </div>
-            {contentCheckPending && renderCheckStatus({
-              tone: 'pending',
-              text: t('contentCheckRunning'),
-              spinning: true,
-            })}
-            {!contentCheckPending && contentCheckApproved && renderCheckStatus({
-              tone: 'success',
-              text: t('noIssueDetected'),
-            })}
-            {!contentCheckPending && contentCheckNeedsReview && renderCheckStatus({
-              tone: 'warning',
-              text: moderationResult?.reasonMessage || t('contentNeedReviewShort'),
-            })}
-            {!contentCheckPending && contentCheckRejected && renderCheckStatus({
-              tone: 'error',
-              text: moderationResult?.reasonMessage || t('contentRejectedShort'),
-            })}
-            {!contentCheckPending && !contentCheckApproved && !contentCheckNeedsReview && !contentCheckRejected && renderCheckStatus({
+            {showCheckToggles && (
+              <button
+                type="button"
+                onClick={() => setFastContentCheckEnabled(!fastContentCheckEnabled)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${fastContentCheckEnabled ? 'bg-cyan' : 'bg-elevated'}`}
+              >
+                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${fastContentCheckEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+              </button>
+            )}
+          </div>
+          <div className="mt-1 pl-1">
+            {!fastContentCheckEnabled && renderCheckStatus({
               tone: 'muted',
-              text: t('checkWillRun'),
+              text: 'Đã tắt kiểm tra nội dung nhanh.',
             })}
+            {fastContentCheckEnabled && (
+              <>
+                {fastCheckPending && renderCheckStatus({
+                tone: 'pending',
+                text: 'Đang tiến hành kiểm tra nội dung nhanh...',
+                spinning: true,
+              })}
+              {!fastCheckPending && moderationResult && !hasFastCheckIssues && renderCheckStatus({
+                tone: 'success',
+                text: 'Không phát hiện vấn đề nào.',
+              })}
+              {!fastCheckPending && moderationResult && hasFastCheckIssues && (
+                <div className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                  <div className="flex items-start gap-1.5">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <p className="leading-relaxed">
+                      Nội dung có thể sẽ bị hạn chế. Bạn vẫn có thể đăng bài, nhưng để cải thiện khả năng hiển thị, bạn nên sửa đổi để tuân thủ nguyên tắc của chúng tôi.{' '}
+                      <button
+                        type="button"
+                        onClick={() => setIsDetailModalOpen(true)}
+                        className="text-red-500 hover:underline font-semibold"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!fastCheckPending && !moderationResult && renderCheckStatus({
+                tone: 'muted',
+                text: t('checkWillRun'),
+              })}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1317,6 +1478,108 @@ export default function UploadVideo() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
+      {/* Detail Modal for Quality Issues */}
+      {isDetailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="modal-opacity-solid relative w-full max-w-2xl bg-surface border border-elevated rounded-2xl shadow-2xl overflow-hidden text-text-primary max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-elevated">
+              <span className="text-lg font-bold">Kiểm tra chi tiết</span>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Warning Header */}
+              <div className="flex flex-col items-center text-center space-y-3 pb-4 border-b border-elevated">
+                <AlertCircle size={48} className="text-amber-500 animate-pulse" />
+                <h3 className="text-xl font-bold">Nội dung có thể sẽ bị hạn chế</h3>
+                <p className="text-sm text-text-secondary max-w-lg leading-relaxed">
+                  Bạn vẫn có thể đăng bài, nhưng để cải thiện khả năng hiển thị, bạn nên sửa đổi để tuân thủ nguyên tắc của chúng tôi.
+                </p>
+              </div>
+
+              {/* Lý do vi phạm */}
+              <div className="bg-background border border-elevated rounded-xl p-5">
+                <h4 className="font-bold text-sm mb-3">Lý do vi phạm</h4>
+                <p className="font-semibold text-sm text-amber-500 mb-2">
+                  {moderationResult?.qualityIssueMessage || "Nội dung không phải là nguyên tác hoặc có chất lượng thấp"}
+                </p>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Để duy trì trải nghiệm tích cực cho người dùng trên nền tảng TopTop, nội dung không phải nguyên tác và có chất lượng thấp sẽ không đủ điều kiện để được đề xuất. Nội dung không phải nguyên tác là nội dung chỉ được nhập hoặc sao chép từ các nguồn khác mà không có sự chỉnh sửa mới mẻ, sáng tạo. Video có thể không phải là nguyên tác nếu có hình mờ hoặc logo trên đó. Nội dung chất lượng thấp bao gồm các video rất ngắn, ảnh tĩnh và video chỉ gồm toàn ảnh GIF.
+                </p>
+              </div>
+
+              {/* Chi tiết vi phạm */}
+              <div>
+                <h4 className="font-bold text-sm mb-3">Chi tiết vi phạm</h4>
+                <p className="text-xs text-text-secondary mb-4">Đã phát hiện một số hành vi vi phạm tiềm ẩn.</p>
+                
+                <div className="flex gap-4 items-start">
+                  <div className="relative aspect-[9/16] w-[140px] rounded-lg overflow-hidden border border-elevated bg-black flex-shrink-0">
+                    {preview ? (
+                      <video src={preview} className="w-full h-full object-cover" muted playsInline />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-text-muted">No Preview</div>
+                    )}
+                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">
+                      00:00-00:48
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
+                      <span className="px-2 py-0.5 bg-elevated rounded">Vi phạm chất lượng</span>
+                      <span>&middot;</span>
+                      <span>Mức độ: Cảnh báo</span>
+                    </div>
+                    <ul className="text-xs text-text-secondary space-y-1.5 list-disc pl-4">
+                      {moderationResult?.qualityIssues?.includes("WATERMARK") && (
+                        <li>Video chứa watermark, hình mờ hoặc logo của nền tảng/ứng dụng chỉnh sửa khác.</li>
+                      )}
+                      {moderationResult?.qualityIssues?.includes("QR_CODE") && (
+                        <li>Phát hiện mã QR code hoặc thông tin quảng cáo hướng ngoại.</li>
+                      )}
+                      {moderationResult?.qualityIssues?.includes("LOW_QUALITY") && (
+                        <li>Video có độ phân giải thấp, mờ nhạt hoặc quá tối.</li>
+                      )}
+                      {(!moderationResult?.qualityIssues || moderationResult.qualityIssues.length === 0) && (
+                        <li>Video có thể chứa watermark hoặc không đủ độ phân giải tiêu chuẩn.</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-elevated bg-background">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-5 py-2 rounded-lg border border-elevated hover:bg-hover font-semibold text-sm transition-colors"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => {
+                  setIsDetailModalOpen(false);
+                  const replaceInput = document.getElementById('video-replace-input');
+                  if (replaceInput) replaceInput.click();
+                }}
+                className="px-5 py-2 bg-brand hover:bg-brand-dark text-white rounded-lg font-semibold text-sm transition-colors"
+              >
+                Thay thế video
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SUCCESS OVERLAY */}
       {status === 'success' && (
         <div className="bg-background rounded-xl border border-elevated p-12 flex flex-col items-center text-center max-w-2xl mx-auto shadow-2xl">
@@ -1419,7 +1682,7 @@ export default function UploadVideo() {
 
                   {/* Hashtag Dropdown */}
                   {showHashtagDropdown && (loadingHashtags || hashtags.length > 0) && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-background border border-elevated rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+                    <div className="select-options-solid absolute left-0 right-0 top-full mt-1 bg-background border border-elevated rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
                       {loadingHashtags ? (
                         <div className="p-4 text-center text-sm text-text-muted">{t('suggestionLoading')}</div>
                       ) : hashtags.map((tag: HashtagSuggestion) => (
@@ -1433,7 +1696,7 @@ export default function UploadVideo() {
 
                   {/* Mention Dropdown */}
                   {showMentionDropdown && (loadingMentions || mentions.length > 0) && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-background border border-elevated rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+                    <div className="select-options-solid absolute left-0 right-0 top-full mt-1 bg-background border border-elevated rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
                       {loadingMentions ? (
                         <div className="p-4 text-center text-sm text-text-muted">{t('suggestionLoading')}</div>
                       ) : mentions.map((u: MentionSuggestion) => (
@@ -1528,7 +1791,8 @@ export default function UploadVideo() {
                   {visibilityDropdownOpen && (
                     <div
                       role="listbox"
-                      className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-elevated bg-surface shadow-2xl"
+                      data-select-menu
+                      className="select-options-solid absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-elevated bg-surface shadow-2xl"
                     >
                       {visibilityOptions.map((option) => {
                         const selected = option.value === visibility;
@@ -1585,9 +1849,12 @@ export default function UploadVideo() {
               {status === 'error' && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3 mb-6">
                   <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
-                </div>
-              )}
+          <div>
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400">Không thể đăng video</p>
+            <p className="mt-0.5 text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+          </div>
+        </div>
+      )}
 
               {/* BOTTOM ACTION BAR */}
               <div className="flex items-center gap-3 pt-4 border-t border-elevated">
@@ -1628,7 +1895,17 @@ export default function UploadVideo() {
                   description={description}
                   username={user?.username || 'you'}
                   soundTitle={selectedSound?.title}
+                  soundUrl={selectedSound?.audioUrl}
+                  soundDurationSeconds={selectedSound?.durationSeconds}
                   paused={soundEditorOpen}
+                  trimStartSeconds={videoTrim.startSeconds}
+                  trimEndSeconds={videoTrim.endSeconds}
+                  soundTrimStartSeconds={soundTrim.startSeconds}
+                  soundTrimEndSeconds={soundTrim.endSeconds}
+                  soundStartAtVideoSeconds={soundStartOffset}
+                  soundVolume={soundVolume}
+                  soundMuted={soundMuted}
+                  originalAudioVolume={originalAudioVolume}
                 />
                 
                 <div className="mt-5 grid grid-cols-3 gap-2">
@@ -1690,14 +1967,25 @@ export default function UploadVideo() {
         selectedSound={selectedSound}
         trimStartSeconds={videoTrim.startSeconds}
         trimEndSeconds={videoTrim.endSeconds}
+        soundTrimStartSeconds={soundTrim.startSeconds}
+        soundTrimEndSeconds={soundTrim.endSeconds}
+        soundVolume={soundVolume}
+        soundMuted={soundMuted}
+        originalAudioVolume={originalAudioVolume}
+        soundStartAtVideoSeconds={soundStartOffset}
         onSelectSound={setSelectedSound}
         onTrimChange={setVideoTrim}
+        onSoundTrimChange={setSoundTrim}
+        onSoundVolumeChange={setSoundVolume}
+        onSoundMutedChange={setSoundMuted}
+        onOriginalAudioVolumeChange={setOriginalAudioVolume}
+        onSoundStartAtVideoSecondsChange={setSoundStartOffset}
         onClose={() => setSoundEditorOpen(false)}
       />
 
       {coverPickerOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 px-4 py-6 backdrop-blur-sm">
-          <div className="flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-elevated bg-background shadow-2xl">
+          <div className="modal-opacity-solid flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-elevated bg-background shadow-2xl">
             <div className="flex items-center justify-between border-b border-elevated px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-text-primary">{t('editCover')}</h3>
@@ -1755,6 +2043,7 @@ export default function UploadVideo() {
                       const video = event.currentTarget;
                       const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
                       setVideoDuration(duration);
+                      setVideoTrim((prev) => prev.endSeconds === 0 ? { startSeconds: 0, endSeconds: Math.min(duration, 60) } : prev);
 
                       const initialTime = selectedCoverTime || Math.min(duration * 0.25, Math.max(duration - 0.1, 0));
                       setSelectedCoverTime(initialTime);
@@ -1923,7 +2212,7 @@ export default function UploadVideo() {
       {/* Leave Confirmation Modal */}
       {showLeaveModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface border border-elevated rounded-xl shadow-2xl w-[90%] max-w-md p-6 animate-in fade-in zoom-in duration-200">
+          <div className="modal-opacity-solid bg-surface border border-elevated rounded-xl shadow-2xl w-[90%] max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-text-primary mb-2">{t('leaveModalTitle')}</h3>
             <p className="text-text-secondary text-sm mb-6 leading-relaxed">
               {t('leaveModalDesc')}

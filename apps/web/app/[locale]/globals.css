@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "livekit/components-styles";
 
 :root {
   --color-brand: #ff3b5c;
@@ -249,7 +250,39 @@ button {
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Force opacity 1 on all select and option elements */
-select, option {
+/* Force solid select/dropdown and modal surfaces. */
+select,
+option,
+optgroup {
+  opacity: 1 !important;
+  background-color: var(--color-background) !important;
+  color: var(--color-text-primary) !important;
+}
+
+select:disabled,
+option:disabled {
+  opacity: 1 !important;
+  color: var(--color-text-muted) !important;
+}
+
+[role="dialog"],
+[role="listbox"],
+[role="option"],
+[role="menu"],
+[data-modal-panel],
+[data-select-menu],
+.modal-opacity-solid,
+.select-options-solid,
+.select-options-solid [role="option"],
+.select-options-solid button,
+.select-options-solid option {
+  opacity: 1 !important;
+}
+
+.fixed.inset-0 > .relative,
+.fixed.inset-0 > [class*="bg-background"],
+.fixed.inset-0 > [class*="bg-surface"],
+.fixed.inset-0 > [class*="bg-elevated"],
+.fixed.inset-0 > [class*="bg-[#121212"] {
   opacity: 1 !important;
 }

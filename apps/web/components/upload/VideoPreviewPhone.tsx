@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Play, Heart, MessageCircle, Share2, Bookmark, Music, Volume2, VolumeX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -11,87 +11,153 @@ interface VideoPreviewPhoneProps {
   description: string;
   username: string;
   soundTitle?: string;
+  soundUrl?: string | null;
+  soundDurationSeconds?: number;
   paused?: boolean;
   trimStartSeconds?: number;
   trimEndSeconds?: number;
+  soundTrimStartSeconds?: number;
+  soundTrimEndSeconds?: number;
+  soundStartAtVideoSeconds?: number;
+  soundVolume?: number;
+  soundMuted?: boolean;
+  originalAudioVolume?: number;
 }
 
-export default function VideoPreviewPhone({ previewUrl, previewMode, onModeChange, description, username, soundTitle, paused = false, trimStartSeconds, trimEndSeconds }: VideoPreviewPhoneProps) {
+export default function VideoPreviewPhone({
+  previewUrl,
+  previewMode,
+  onModeChange,
+  description,
+  username,
+  soundTitle,
+  soundUrl,
+  soundDurationSeconds = 0,
+  paused = false,
+  trimStartSeconds = 0,
+  trimEndSeconds,
+  soundTrimStartSeconds = 0,
+  soundTrimEndSeconds = 0,
+  soundStartAtVideoSeconds = 0,
+  soundVolume = 100,
+  soundMuted = false,
+  originalAudioVolume = 100,
+}: VideoPreviewPhoneProps) {
   const t = useTranslations('Studio.upload');
   const feedVideoRef = useRef<HTMLVideoElement>(null);
   const webVideoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [volume, setVolume] = useState(0.5);
-  const [isMuted, setIsMuted] = useState(true);
+  const [previewMuted, setPreviewMuted] = useState(true);
+  const soundTrimEnd = soundTrimEndSeconds > 0 ? soundTrimEndSeconds : soundDurationSeconds;
+  const soundTrimLength = Math.max(0, soundTrimEnd - soundTrimStartSeconds);
+  const effectiveOriginalVolume = Math.min(1, Math.max(0, originalAudioVolume / 100));
+  const effectiveSoundVolume = soundMuted ? 0 : Math.min(1, Math.max(0, soundVolume / 100));
 
-  const applyVolume = (ref: React.RefObject<HTMLVideoElement | null>, vol: number, muted: boolean) => {
+  const applyEditedVolumes = useCallback((ref: React.RefObject<HTMLVideoElement | null>, muted: boolean) => {
     const v = ref.current;
     if (!v) return;
-    v.volume = vol;
-    v.muted = muted;
+    v.volume = effectiveOriginalVolume;
+    v.muted = muted || effectiveOriginalVolume <= 0;
+    if (audioRef.current) {
+      audioRef.current.volume = effectiveSoundVolume;
+      audioRef.current.muted = muted || effectiveSoundVolume <= 0;
+    }
+  }, [effectiveOriginalVolume, effectiveSoundVolume]);
+
+  const syncSoundToVideo = (video: HTMLVideoElement) => {
+    const audio = audioRef.current;
+    if (!audio || !soundUrl || soundTrimLength <= 0) return;
+
+    const soundStart = Math.max(0, soundStartAtVideoSeconds);
+    const soundEnd = soundStart + soundTrimLength;
+    const inSoundRange = video.currentTime >= soundStart && video.currentTime < soundEnd;
+
+    if (!inSoundRange || video.paused || paused) {
+      audio.pause();
+      return;
+    }
+
+    const nextAudioTime = Math.min(soundTrimEnd, soundTrimStartSeconds + (video.currentTime - soundStart));
+    if (Math.abs(audio.currentTime - nextAudioTime) > 0.25) {
+      audio.currentTime = nextAudioTime;
+    }
+    audio.play().catch(() => {});
   };
 
   const togglePlay = (ref: React.RefObject<HTMLVideoElement | null>) => {
     const video = ref.current;
     if (!video) return;
-    video.muted = false;
-    setIsMuted(false);
+    setPreviewMuted(false);
+    applyEditedVolumes(ref, false);
     if (video.paused) {
       video.play();
+      syncSoundToVideo(video);
       setIsPlaying(true);
     } else {
       video.pause();
+      audioRef.current?.pause();
       setIsPlaying(false);
     }
   };
 
-  const handleVolumeChange = (val: number) => {
-    setVolume(val);
-    setIsMuted(val === 0);
-    applyVolume(feedVideoRef, val, val === 0);
-    applyVolume(webVideoRef, val, val === 0);
-  };
-
   const toggleMute = () => {
-    const next = !isMuted;
-    setIsMuted(next);
-    applyVolume(feedVideoRef, volume, next);
-    applyVolume(webVideoRef, volume, next);
+    const next = !previewMuted;
+    setPreviewMuted(next);
+    applyEditedVolumes(feedVideoRef, next);
+    applyEditedVolumes(webVideoRef, next);
+    const activeVideo = previewMode === 'WEB' ? webVideoRef.current : feedVideoRef.current;
+    if (!next && activeVideo && !activeVideo.paused) {
+      syncSoundToVideo(activeVideo);
+    }
   };
 
   useEffect(() => {
     if (!paused) return;
     feedVideoRef.current?.pause();
     webVideoRef.current?.pause();
+    audioRef.current?.pause();
     const frameId = requestAnimationFrame(() => setIsPlaying(false));
     return () => cancelAnimationFrame(frameId);
   }, [paused]);
+
+  useEffect(() => {
+    applyEditedVolumes(feedVideoRef, previewMuted);
+    applyEditedVolumes(webVideoRef, previewMuted);
+  }, [applyEditedVolumes, previewMuted]);
+
+  useEffect(() => {
+    audioRef.current?.pause();
+  }, [soundUrl, soundTrimStartSeconds, soundTrimEndSeconds, soundStartAtVideoSeconds]);
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
     if (trimEndSeconds && trimEndSeconds > 0) {
       if (video.currentTime >= trimEndSeconds) {
-        video.currentTime = trimStartSeconds || 0;
+        video.currentTime = trimStartSeconds;
+        audioRef.current?.pause();
         video.play().catch(() => {});
       }
-    } else if (trimStartSeconds && trimStartSeconds > 0) {
+    } else if (trimStartSeconds > 0) {
       if (video.currentTime < trimStartSeconds) {
         video.currentTime = trimStartSeconds;
         video.play().catch(() => {});
       }
     }
+    syncSoundToVideo(video);
   };
 
   const handleEnded = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    video.currentTime = trimStartSeconds || 0;
+    video.currentTime = trimStartSeconds;
+    audioRef.current?.pause();
     video.play().catch(() => {});
   };
 
   useEffect(() => {
     const feed = feedVideoRef.current;
     const web = webVideoRef.current;
-    if (trimStartSeconds !== undefined && trimStartSeconds > 0) {
+    if (trimStartSeconds > 0) {
       if (feed && feed.currentTime < trimStartSeconds) feed.currentTime = trimStartSeconds;
       if (web && web.currentTime < trimStartSeconds) web.currentTime = trimStartSeconds;
     }
@@ -119,20 +185,21 @@ export default function VideoPreviewPhone({ previewUrl, previewMode, onModeChang
       {/* Volume Controls */}
       <div className="flex items-center gap-3 w-full max-w-[270px] bg-surface rounded-lg px-3 py-2 border border-elevated">
         <button onClick={toggleMute} className="text-text-secondary hover:text-text-primary transition-colors">
-          {isMuted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {previewMuted || (effectiveOriginalVolume <= 0 && effectiveSoundVolume <= 0) ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
-        <input 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.01" 
-          value={isMuted ? 0 : volume} 
-          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-          className="flex-1 h-1 bg-elevated rounded-lg appearance-none cursor-pointer accent-brand"
-        />
+        <div className="flex flex-1 flex-col gap-1">
+          <div className="h-1 overflow-hidden rounded-full bg-elevated">
+            <div className="h-full rounded-full bg-cyan" style={{ width: `${previewMuted ? 0 : effectiveOriginalVolume * 100}%` }} />
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-elevated">
+            <div className="h-full rounded-full bg-brand" style={{ width: `${previewMuted ? 0 : effectiveSoundVolume * 100}%` }} />
+          </div>
+        </div>
       </div>
 
       {/* Phone Mockup */}
+      {soundUrl ? <audio ref={audioRef} src={soundUrl} preload="metadata" /> : null}
+
       {previewMode === 'FEED' && (
         <div className="w-full max-w-[270px] aspect-[9/16] bg-black rounded-[2.5rem] border-[6px] border-zinc-800 relative overflow-hidden shadow-2xl">
           {/* Status bar */}
@@ -147,7 +214,7 @@ export default function VideoPreviewPhone({ previewUrl, previewMode, onModeChang
 
           {previewUrl ? (
             <div className="w-full h-full relative cursor-pointer" onClick={() => togglePlay(feedVideoRef)}>
-              <video ref={feedVideoRef} src={previewUrl} autoPlay={!paused} muted playsInline onTimeUpdate={handleTimeUpdate} onEnded={handleEnded} className="absolute inset-0 w-full h-full object-contain" />
+              <video ref={feedVideoRef} src={previewUrl} autoPlay={!paused} muted={previewMuted || effectiveOriginalVolume <= 0} playsInline onTimeUpdate={handleTimeUpdate} onEnded={handleEnded} className="absolute inset-0 w-full h-full object-contain" />
               {/* Play/Pause indicator */}
               {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -218,7 +285,7 @@ export default function VideoPreviewPhone({ previewUrl, previewMode, onModeChang
           <div className="bg-black relative cursor-pointer" onClick={() => togglePlay(webVideoRef)}>
             {previewUrl ? (
               <>
-                <video ref={webVideoRef} src={previewUrl} autoPlay={!paused} muted playsInline onTimeUpdate={handleTimeUpdate} onEnded={handleEnded} className="w-full h-auto block" />
+                <video ref={webVideoRef} src={previewUrl} autoPlay={!paused} muted={previewMuted || effectiveOriginalVolume <= 0} playsInline onTimeUpdate={handleTimeUpdate} onEnded={handleEnded} className="w-full h-auto block" />
                 {!isPlaying && (
                   <div className="absolute inset-0 flex items-center justify-center z-10">
                     <div className="w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center">

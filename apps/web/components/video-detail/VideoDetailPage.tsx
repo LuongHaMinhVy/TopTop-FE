@@ -349,6 +349,10 @@ export default function VideoDetailPage() {
   const canFollowAuthor = Boolean(
     currentUser && displayedVideo && currentUser.id !== displayedVideo.userId,
   );
+  const isOwnVideo = Boolean(
+    currentUser && displayedVideo && currentUser.id === displayedVideo.userId,
+  );
+  const canRepost = Boolean(displayedVideo && !isOwnVideo);
   const isReposted =
     displayedVideo?.id && repostOverride?.videoId === displayedVideo.id
       ? repostOverride.value
@@ -543,6 +547,7 @@ export default function VideoDetailPage() {
 
   const handleRepost = () => {
     if (!displayedVideo) return;
+    if (!canRepost) return;
     if (!requireLogin()) return;
     if (repostMutation.isPending || unrepostMutation.isPending) return;
 
@@ -572,6 +577,7 @@ export default function VideoDetailPage() {
 
   const handleRemoveRepost = () => {
     if (!displayedVideo) return;
+    if (!canRepost) return;
     if (repostMutation.isPending || unrepostMutation.isPending) return;
 
     const previousReposted = isReposted;
@@ -904,8 +910,8 @@ export default function VideoDetailPage() {
         {!usesProfileDetailLayout && (
           <RepostBadge
             users={repostUsers}
-            onRepost={!isReposted ? handleRepost : undefined}
-            onRemove={isReposted ? handleRemoveRepost : undefined}
+            onRepost={canRepost && !isReposted ? handleRepost : undefined}
+            onRemove={canRepost && isReposted ? handleRemoveRepost : undefined}
             className="absolute bottom-10 left-12 z-[95]"
             popoverPlacement="top"
           />
@@ -974,8 +980,8 @@ export default function VideoDetailPage() {
             />
             <RepostBadge
               users={repostUsers}
-              onRepost={!isReposted ? handleRepost : undefined}
-              onRemove={isReposted ? handleRemoveRepost : undefined}
+              onRepost={canRepost && !isReposted ? handleRepost : undefined}
+              onRemove={canRepost && isReposted ? handleRemoveRepost : undefined}
               showRemoveButton={!usesProfileDetailLayout}
               className="mt-3"
               popoverPlacement="bottom"
@@ -1012,18 +1018,20 @@ export default function VideoDetailPage() {
               onClick={handleSave}
             />
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={isReposted ? handleRemoveRepost : handleRepost}
-                className={`grid size-8 place-items-center rounded-full transition ${
-                  isReposted
-                    ? "bg-yellow-400/15 text-yellow-400 hover:bg-yellow-400/25"
-                    : "bg-elevated text-yellow-400 hover:bg-hover"
-                }`}
-                title={isReposted ? "Xóa video đăng lại" : "Đăng lại"}
-              >
-                <Repeat2 size={16} />
-              </button>
+              {canRepost && (
+                <button
+                  type="button"
+                  onClick={isReposted ? handleRemoveRepost : handleRepost}
+                  className={`grid size-8 place-items-center rounded-full transition ${
+                    isReposted
+                      ? "bg-yellow-400/15 text-yellow-400 hover:bg-yellow-400/25"
+                      : "bg-elevated text-yellow-400 hover:bg-hover"
+                  }`}
+                  title={isReposted ? "Xóa video đăng lại" : "Đăng lại"}
+                >
+                  <Repeat2 size={16} />
+                </button>
+              )}
               <ShareCircle
                 icon={<LinkIcon size={16} />}
                 onClick={handleCopyLink}

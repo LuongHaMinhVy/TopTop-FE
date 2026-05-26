@@ -36,6 +36,8 @@ export interface Video {
   musicCopyrightCheckedAt?: string;
   musicCopyrightReasonCode?: string;
   musicCopyrightReasonMessage?: string;
+  qualityIssuesJson?: string;
+  qualityIssueMessage?: string;
 }
 
 export interface VideoRepostUser {

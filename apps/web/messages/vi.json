@@ -66,6 +66,34 @@
     "logout": "Đăng xuất",
     "profile": "Hồ sơ"
   },
+  "searchPage": {
+    "tabs": {
+      "top": "Top",
+      "users": "Người dùng",
+      "videos": "Video",
+      "live": "LIVE"
+    },
+    "relatedTitle": "Những người khác tìm kiếm",
+    "sections": {
+      "users": "Người dùng"
+    },
+    "actions": {
+      "seeMore": "Xem thêm",
+      "follow": "Follow",
+      "following": "Following"
+    },
+    "counts": {
+      "followers": "Follower",
+      "likes": "Lượt thích"
+    },
+    "empty": {
+      "enterKeyword": "Nhập từ khóa để tìm kiếm",
+      "noResults": "Không tìm thấy kết quả",
+      "noUsers": "Không tìm thấy người dùng",
+      "noVideos": "Không tìm thấy video",
+      "noMoreResults": "Không còn kết quả nào khác"
+    }
+  },
   "profile": {
     "editProfile": "Sửa hồ sơ",
     "follow": "Follow",

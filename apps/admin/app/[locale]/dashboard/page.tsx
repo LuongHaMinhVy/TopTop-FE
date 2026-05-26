@@ -1,257 +1,795 @@
 "use client";
 
-import { useState } from "react";
+import type { ElementType, ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  Users, Video, ShieldAlert, TrendingUp,
-  Settings, LogOut, LayoutDashboard, BarChart3,
-  Search, Bell, MoreVertical
+  Activity,
+  Bell,
+  BookOpenText,
+  FileWarning,
+  LayoutDashboard,
+  LogOut,
+  Music2,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  Users,
+  Video,
 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { authLogout } from "@/services/auth-api-service";
 import { useTranslations } from "next-intl";
+import { Avatar, Badge, Button, Input } from "@/components/ui";
+import { authLogout } from "@/services/auth-api-service";
+import { getVideoModerationQueue } from "@/services/moderation-api-service";
+import { getAdminSounds } from "@/services/sound-api-service";
+import type { ModerationQueueItem, SoundItem } from "@/types/admin";
+
+type SectionKey = "overview" | "moderation" | "sounds" | "docs";
+
+const featureDocs = [
+  {
+    name: "Upload, R2 va video editor",
+    files: 4,
+    status: "Core flow",
+    detail:
+      "Upload truc tiep len R2, xu ly metadata, preview, trim/mix/caption va editor CapCut Lite.",
+  },
+  {
+    name: "Discovery va social graph",
+    files: 5,
+    status: "Feed/Search",
+    detail:
+      "Following feed, search, friends, profile, like/comment/share va collection/favorite.",
+  },
+  {
+    name: "Trust & Safety",
+    files: 4,
+    status: "Admin critical",
+    detail:
+      "Report, video moderation, text moderation, copyright check, audit log va review queue.",
+  },
+  {
+    name: "Messaging va notifications",
+    files: 2,
+    status: "Realtime",
+    detail:
+      "Realtime chat, message requests, share video qua chat va notification unread state.",
+  },
+  {
+    name: "Platform base",
+    files: 7,
+    status: "Foundation",
+    detail:
+      "SRS, implementation notes, README, AGENTS/CLAUDE rules, eslint va app conventions.",
+  },
+];
+
+const statusOptions = [
+  "PENDING",
+  "NEED_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "FAILED",
+];
+
+const emptyModerationItems: ModerationQueueItem[] = [];
+const emptySoundItems: SoundItem[] = [];
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
   const t = useTranslations("Admin.dashboard");
+  const [activeSection, setActiveSection] = useState<SectionKey>("overview");
+  const [moderationStatus, setModerationStatus] = useState("NEED_REVIEW");
+  const [soundKeyword, setSoundKeyword] = useState("");
+
+  const moderationQuery = useQuery({
+    queryKey: ["admin", "moderation", moderationStatus],
+    queryFn: () =>
+      getVideoModerationQueue({
+        status: moderationStatus,
+        page: 0,
+        size: 8,
+      }),
+  });
+
+  const soundsQuery = useQuery({
+    queryKey: ["admin", "sounds", soundKeyword],
+    queryFn: () =>
+      getAdminSounds({
+        keyword: soundKeyword.trim() || undefined,
+        page: 0,
+        size: 6,
+      }),
+  });
 
   const logoutMutation = useMutation({
     mutationFn: authLogout,
     onSuccess: () => router.push("/login"),
   });
 
-  const stats = [
-    { label: t("stats.totalCreators"),   value: "1.2M",  icon: Users,       color: "bg-blue-500",    trend: "+12%" },
-    { label: t("stats.totalVideos"),     value: "85.4M", icon: Video,       color: "bg-[#FE2C55]",   trend: "+8%"  },
-    { label: t("stats.activityReports"), value: "2.4K",  icon: ShieldAlert, color: "bg-orange-500",  trend: "-5%"  },
-    { label: t("stats.dailyUsers"),      value: "450K",  icon: TrendingUp,  color: "bg-green-500",   trend: "+15%" },
-  ];
+  const moderationItems =
+    moderationQuery.data?.data?.content ?? emptyModerationItems;
+  const soundItems = soundsQuery.data?.data ?? emptySoundItems;
+  const moderationTotal =
+    moderationQuery.data?.data?.totalElements ?? moderationItems.length;
+
+  const stats = useMemo(
+    () => [
+      {
+        label: t("stats.totalCreators"),
+        value: "Live",
+        hint: "Auth, profile, follow graph",
+        icon: Users,
+        tone: "bg-cyan/15 text-cyan",
+      },
+      {
+        label: t("stats.totalVideos"),
+        value: String(moderationTotal),
+        hint: "Trong queue moderation hien tai",
+        icon: Video,
+        tone: "bg-brand/10 text-brand",
+      },
+      {
+        label: t("stats.activityReports"),
+        value: String(
+          moderationItems.reduce(
+            (sum, item) => sum + Number(item.reportCount ?? 0),
+            0,
+          ),
+        ),
+        hint: "Report gan voi video can duyet",
+        icon: ShieldAlert,
+        tone: "bg-amber-100 text-amber-700",
+      },
+      {
+        label: "Tai lieu da tong hop",
+        value: "20",
+        hint: "Root, web, admin, back va packages",
+        icon: BookOpenText,
+        tone: "bg-blue-100 text-blue-700",
+      },
+    ],
+    [moderationItems, moderationTotal, t],
+  );
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]">
-      {/* Sidebar */}
-      <div className="w-64 bg-black text-white flex flex-col shadow-2xl">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <span className="text-white  font-extrabold text-2xl italic tracking-tighter absolute z-10">t</span>
-            <span className="text-[#25F4EE] font-extrabold text-2xl italic tracking-tighter absolute z-0 -translate-x-[1px] -translate-y-[1px]">t</span>
-            <span className="text-[#FE2C55] font-extrabold text-2xl italic tracking-tighter absolute z-0  translate-x-[1px]  translate-y-[1px]">t</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight">TopTop Admin</span>
-        </div>
-
-        <nav className="flex-1 px-4 py-4 space-y-2">
-          <SidebarItem icon={LayoutDashboard} label={t("nav.overview")}  active={activeTab === "overview"}  onClick={() => setActiveTab("overview")}  />
-          <SidebarItem icon={Users}           label={t("nav.creators")}  active={activeTab === "creators"}  onClick={() => setActiveTab("creators")}  />
-          <SidebarItem icon={Video}           label={t("nav.content")}   active={activeTab === "content"}   onClick={() => setActiveTab("content")}   />
-          <SidebarItem icon={BarChart3}       label={t("nav.analytics")} active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")} />
-          <SidebarItem icon={ShieldAlert}     label={t("nav.safety")}    active={activeTab === "safety"}    onClick={() => setActiveTab("safety")}    />
-
-          <div className="pt-8 pb-2">
-            <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {t("nav.system")}
+    <div className="flex min-h-screen bg-[#f7f8fa] text-text-primary">
+      <aside className="hidden w-[260px] shrink-0 border-r border-elevated bg-background px-4 py-5 lg:block">
+        <div className="mb-7 flex items-center gap-3 px-2">
+          <TopTopMark />
+          <div>
+            <p className="text-lg font-black leading-tight">TopTop Admin</p>
+            <p className="text-xs font-semibold uppercase text-text-muted">
+              {t("ops.trustOperations")}
             </p>
           </div>
-          <SidebarItem icon={Settings} label={t("nav.settings")} active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+        </div>
+
+        <nav className="space-y-1">
+          <SidebarItem
+            icon={LayoutDashboard}
+            label={t("nav.overview")}
+            active={activeSection === "overview"}
+            onClick={() => setActiveSection("overview")}
+          />
+          <SidebarItem
+            icon={ShieldAlert}
+            label={t("ops.moderation")}
+            active={activeSection === "moderation"}
+            onClick={() => setActiveSection("moderation")}
+          />
+          <SidebarItem
+            icon={Music2}
+            label={t("ops.sounds")}
+            active={activeSection === "sounds"}
+            onClick={() => setActiveSection("sounds")}
+          />
+          <SidebarItem
+            icon={BookOpenText}
+            label={t("ops.docs")}
+            active={activeSection === "docs"}
+            onClick={() => setActiveSection("docs")}
+          />
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <button
-            onClick={() => logoutMutation.mutate()}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">{t("logout")}</span>
-          </button>
+        <div className="mt-8 rounded-lg border border-elevated bg-surface p-4">
+          <p className="text-sm font-bold">{t("ops.sharedBase")}</p>
+          <p className="mt-1 text-xs leading-5 text-text-muted">
+            {t("ops.sharedBaseDesc")}
+          </p>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
-          <div className="relative w-96">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder={t("header.searchPlaceholder")}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-black transition-all"
-            />
+        <button
+          onClick={() => logoutMutation.mutate()}
+          className="mt-6 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold text-text-muted transition hover:bg-hover hover:text-text-primary"
+        >
+          <LogOut className="h-4 w-4" />
+          {t("logout")}
+        </button>
+      </aside>
+
+      <main className="min-w-0 flex-1">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-elevated bg-background/85 px-4 backdrop-blur-xl md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="lg:hidden">
+              <TopTopMark />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-black md:text-2xl">
+                {t("title")}
+              </h1>
+              <p className="hidden text-sm text-text-muted md:block">
+                {t("ops.subtitle")}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-all">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FE2C55] rounded-full border-2 border-white" />
+          <div className="flex items-center gap-2">
+            <button className="flex h-10 w-10 items-center justify-center rounded-lg text-text-muted hover:bg-hover">
+              <Search className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-              <div className="text-right">
-                <p className="text-sm font-bold text-gray-900">{t("header.adminTeam")}</p>
-                <p className="text-xs text-gray-500">{t("header.adminRole")}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FE2C55] to-black flex items-center justify-center text-white font-bold shadow-lg">
-                A
+            <button className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted hover:bg-hover">
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-brand" />
+            </button>
+            <div className="hidden items-center gap-3 border-l border-elevated pl-4 md:flex">
+              <Avatar alt="Admin" size="md" />
+              <div>
+                <p className="text-sm font-bold">{t("header.adminTeam")}</p>
+                <p className="text-xs text-text-muted">{t("header.adminRole")}</p>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Main */}
-        <main className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-end justify-between">
-              <div>
-                <h1 className="text-2xl font-black text-gray-900">{t("title")}</h1>
-                <p className="text-gray-500">{t("welcome")}</p>
-              </div>
-              <div className="flex gap-3">
-                <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-all">
-                  {t("downloadReport")}
-                </button>
-                <button className="px-4 py-2 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-900 transition-all">
-                  {t("liveMonitor")}
-                </button>
-              </div>
-            </div>
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 md:px-8">
+          <MobileNav activeSection={activeSection} onChange={setActiveSection} />
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className={`${stat.color} p-3 rounded-xl text-white`}>
-                      <stat.icon className="w-6 h-6" />
-                    </div>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.trend.startsWith("+") ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
-                      {stat.trend}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
-                    <h3 className="text-3xl font-black text-gray-900">{stat.value}</h3>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <StatTile key={stat.label} {...stat} />
+            ))}
+          </section>
 
-            {/* Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Reports Table */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="font-bold text-gray-900">{t("recentReports.title")}</h3>
-                  <button className="text-sm text-[#FE2C55] font-bold hover:underline">{t("recentReports.viewAll")}</button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
-                        <th className="px-6 py-4 font-semibold">{t("recentReports.colUser")}</th>
-                        <th className="px-6 py-4 font-semibold">{t("recentReports.colType")}</th>
-                        <th className="px-6 py-4 font-semibold">{t("recentReports.colStatus")}</th>
-                        <th className="px-6 py-4 font-semibold">{t("recentReports.colAction")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      <TableRow user="@creative_mind"  type={t("reportTypes.inappropriate")} status="Pending"      />
-                      <TableRow user="@dance_king_99"  type={t("reportTypes.copyright")}     status="In Review"    />
-                      <TableRow user="@tech_guru"      type={t("reportTypes.spam")}           status="Resolved"     />
-                      <TableRow user="@morning_vibes"  type={t("reportTypes.harassment")}     status="High Priority"/>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          {activeSection === "overview" && (
+            <OverviewSection
+              moderationItems={moderationItems}
+              soundItems={soundItems}
+              isModerationLoading={moderationQuery.isLoading}
+              isSoundLoading={soundsQuery.isLoading}
+            />
+          )}
 
-              {/* Platform Health */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="font-bold text-gray-900 mb-6">{t("platformHealth.title")}</h3>
-                <div className="space-y-6">
-                  <HealthBar label={t("platformHealth.cdn")}        value={98} color="bg-green-500"   />
-                  <HealthBar label={t("platformHealth.api")}        value={92} color="bg-[#FE2C55]"   />
-                  <HealthBar label={t("platformHealth.moderation")} value={45} color="bg-orange-500"  />
-                  <HealthBar label={t("platformHealth.storage")}    value={78} color="bg-blue-500"    />
-                </div>
-                <div className="mt-8 p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 leading-relaxed">{t("platformHealth.systemNote")}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+          {activeSection === "moderation" && (
+            <ModerationSection
+              items={moderationItems}
+              status={moderationStatus}
+              onStatusChange={setModerationStatus}
+              isLoading={moderationQuery.isLoading}
+              isError={moderationQuery.isError}
+            />
+          )}
+
+          {activeSection === "sounds" && (
+            <SoundsSection
+              items={soundItems}
+              keyword={soundKeyword}
+              onKeywordChange={setSoundKeyword}
+              isLoading={soundsQuery.isLoading}
+              isError={soundsQuery.isError}
+            />
+          )}
+
+          {activeSection === "docs" && <DocsSection />}
+        </div>
+      </main>
     </div>
   );
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
+function OverviewSection({
+  moderationItems,
+  soundItems,
+  isModerationLoading,
+  isSoundLoading,
+}: {
+  moderationItems: ModerationQueueItem[];
+  soundItems: SoundItem[];
+  isModerationLoading: boolean;
+  isSoundLoading: boolean;
+}) {
+  const t = useTranslations("Admin.dashboard");
 
-function SidebarItem({ icon: Icon, label, active, onClick }: {
-  icon: React.ElementType; label: string; active?: boolean; onClick: () => void;
+  return (
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+      <Panel
+        title={t("ops.moderationQueueTitle")}
+        description={t("ops.moderationQueueDesc")}
+        action={<Badge variant="warning">Live API</Badge>}
+      >
+        <ModerationList items={moderationItems.slice(0, 5)} isLoading={isModerationLoading} />
+      </Panel>
+
+      <Panel
+        title={t("ops.newSoundsTitle")}
+        description={t("ops.newSoundsDesc")}
+        action={<Badge variant="info">Admin sounds</Badge>}
+      >
+        <SoundList items={soundItems.slice(0, 4)} isLoading={isSoundLoading} />
+      </Panel>
+
+      <Panel
+        title={t("ops.docsMapTitle")}
+        description={t("ops.docsMapDesc")}
+        className="xl:col-span-2"
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {featureDocs.map((doc) => (
+            <div key={doc.name} className="rounded-lg border border-elevated bg-surface p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Badge variant="brand" size="sm">
+                  {doc.files} files
+                </Badge>
+                <span className="text-xs font-bold text-text-muted">{doc.status}</span>
+              </div>
+              <p className="text-sm font-black">{doc.name}</p>
+              <p className="mt-2 text-xs leading-5 text-text-muted">{doc.detail}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </section>
+  );
+}
+
+function ModerationSection({
+  items,
+  status,
+  onStatusChange,
+  isLoading,
+  isError,
+}: {
+  items: ModerationQueueItem[];
+  status: string;
+  onStatusChange: (status: string) => void;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  const t = useTranslations("Admin.dashboard");
+
+  return (
+    <Panel
+      title={t("ops.videoModerationTitle")}
+      description={t("ops.videoModerationDesc")}
+      action={
+        <select
+          value={status}
+          onChange={(event) => onStatusChange(event.target.value)}
+          className="h-10 rounded-lg border border-elevated bg-background px-3 text-sm font-bold outline-none focus:border-brand"
+        >
+          {statusOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      }
+    >
+      {isError ? (
+        <EmptyState
+          icon={FileWarning}
+          title={t("ops.moderationLoadErrorTitle")}
+          detail={t("ops.moderationLoadErrorDesc")}
+        />
+      ) : (
+        <ModerationList items={items} isLoading={isLoading} expanded />
+      )}
+    </Panel>
+  );
+}
+
+function SoundsSection({
+  items,
+  keyword,
+  onKeywordChange,
+  isLoading,
+  isError,
+}: {
+  items: SoundItem[];
+  keyword: string;
+  onKeywordChange: (keyword: string) => void;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  const t = useTranslations("Admin.dashboard");
+
+  return (
+    <Panel
+      title={t("ops.soundManagementTitle")}
+      description={t("ops.soundManagementDesc")}
+      action={
+        <div className="w-full max-w-xs">
+          <Input
+            value={keyword}
+            onChange={(event) => onKeywordChange(event.target.value)}
+            placeholder={t("ops.soundSearchPlaceholder")}
+            className="h-10 rounded-lg px-4 py-2"
+          />
+        </div>
+      }
+    >
+      {isError ? (
+        <EmptyState
+          icon={Music2}
+          title={t("ops.soundsLoadErrorTitle")}
+          detail={t("ops.soundsLoadErrorDesc")}
+        />
+      ) : (
+        <SoundList items={items} isLoading={isLoading} expanded />
+      )}
+    </Panel>
+  );
+}
+
+function DocsSection() {
+  const t = useTranslations("Admin.dashboard");
+
+  return (
+    <Panel
+      title={t("ops.docsSummaryTitle")}
+      description={t("ops.docsSummaryDesc")}
+      action={
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          leftIcon={<BookOpenText className="h-4 w-4" />}
+        >
+          20 MD files
+        </Button>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {featureDocs.map((doc) => (
+          <div key={doc.name} className="rounded-lg border border-elevated p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <Sparkles className="h-5 w-5 text-brand" />
+              <Badge variant="info">{doc.status}</Badge>
+            </div>
+            <h3 className="text-base font-black">{doc.name}</h3>
+            <p className="mt-2 text-sm leading-6 text-text-muted">{doc.detail}</p>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function ModerationList({
+  items,
+  isLoading,
+  expanded = false,
+}: {
+  items: ModerationQueueItem[];
+  isLoading: boolean;
+  expanded?: boolean;
+}) {
+  const t = useTranslations("Admin.dashboard");
+
+  if (isLoading) {
+    return <LoadingRows count={expanded ? 6 : 4} />;
+  }
+
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title={t("ops.emptyModerationTitle")}
+        detail={t("ops.emptyModerationDesc")}
+      />
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-elevated">
+      {items.map((item) => (
+        <div
+          key={item.videoId}
+          className="grid grid-cols-[72px_1fr] gap-4 border-b border-elevated bg-background p-4 last:border-b-0 md:grid-cols-[84px_1fr_180px]"
+        >
+          <div className="relative h-24 overflow-hidden rounded-lg bg-black">
+            {item.coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.coverUrl}
+                alt={item.caption ?? `Video ${item.videoId}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Video className="h-6 w-6 text-white/50" />
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Badge variant={statusVariant(item.moderationStatus)}>
+                {item.moderationStatus}
+              </Badge>
+              {(item.reportCount ?? 0) > 0 && (
+                <Badge variant="error">{item.reportCount} reports</Badge>
+              )}
+              {typeof item.riskScore === "number" && (
+                <Badge variant={item.riskScore >= 0.7 ? "error" : "warning"}>
+                  risk {(item.riskScore * 100).toFixed(0)}%
+                </Badge>
+              )}
+            </div>
+            <p className="truncate text-sm font-black">
+              {item.caption || `Video #${item.videoId}`}
+            </p>
+            <p className="mt-1 text-sm text-text-muted">
+              @{item.authorUsername || "unknown"} · {formatDate(item.createdAt)}
+            </p>
+            {expanded && item.categories && item.categories.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.categories.map((category) => (
+                  <span
+                    key={category}
+                    className="rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-text-muted"
+                  >
+                    {category}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden items-center justify-end gap-2 md:flex">
+            <Button type="button" variant="secondary" size="sm">
+              {t("ops.detail")}
+            </Button>
+            <Button type="button" size="sm">
+              {t("ops.review")}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SoundList({
+  items,
+  isLoading,
+  expanded = false,
+}: {
+  items: SoundItem[];
+  isLoading: boolean;
+  expanded?: boolean;
+}) {
+  const t = useTranslations("Admin.dashboard");
+
+  if (isLoading) {
+    return <LoadingRows count={expanded ? 6 : 4} />;
+  }
+
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={Music2}
+        title={t("ops.emptySoundsTitle")}
+        detail={t("ops.emptySoundsDesc")}
+      />
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((sound) => (
+        <div key={sound.id} className="rounded-lg border border-elevated bg-background p-4">
+          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-cyan/10 text-cyan">
+            <Music2 className="h-5 w-5" />
+          </div>
+          <p className="truncate text-sm font-black">
+            {sound.title || sound.name || `Sound #${sound.id}`}
+          </p>
+          <p className="mt-1 truncate text-sm text-text-muted">
+            {sound.artistName || sound.authorUsername || "TopTop sound"}
+          </p>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <Badge variant="brand" size="sm">
+              {sound.type || "SOUND"}
+            </Badge>
+            <span className="text-xs font-bold text-text-muted">
+              {sound.usageCount ?? 0} uses
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  description,
+  action,
+  children,
+  className = "",
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-lg border border-elevated bg-background ${className}`}>
+      <div className="flex flex-col gap-4 border-b border-elevated p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-lg font-black">{title}</h2>
+          <p className="mt-1 text-sm text-text-muted">{description}</p>
+        </div>
+        {action}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: ElementType;
+  tone: string;
+}) {
+  return (
+    <div className="rounded-lg border border-elevated bg-background p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <Activity className="h-4 w-4 text-text-muted" />
+      </div>
+      <p className="text-sm font-bold text-text-muted">{label}</p>
+      <p className="mt-1 text-2xl font-black">{value}</p>
+      <p className="mt-2 text-xs leading-5 text-text-muted">{hint}</p>
+    </div>
+  );
+}
+
+function SidebarItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 w-full rounded-xl transition-all ${
-        active ? "bg-[#FE2C55] text-white shadow-lg shadow-[#FE2C55]/20" : "text-gray-400 hover:text-white hover:bg-white/5"
+      className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
+        active
+          ? "bg-brand text-white shadow-lg shadow-brand/20"
+          : "text-text-muted hover:bg-hover hover:text-text-primary"
       }`}
     >
-      <Icon className="w-5 h-5" />
-      <span className="font-medium">{label}</span>
+      <Icon className="h-5 w-5" />
+      {label}
     </button>
   );
 }
 
-function TableRow({ user, type, status }: { user: string; type: string; status: string }) {
-  const t = useTranslations("Admin.dashboard.status");
-
-  const statusColors: Record<string, string> = {
-    "Pending":       "bg-gray-100 text-gray-600",
-    "In Review":     "bg-blue-100 text-blue-600",
-    "Resolved":      "bg-green-100 text-green-600",
-    "High Priority": "bg-red-100 text-red-600",
-  };
-
-  const statusKeys: Record<string, string> = {
-    "Pending":       "pending",
-    "In Review":     "inReview",
-    "Resolved":      "resolved",
-    "High Priority": "highPriority",
-  };
+function MobileNav({
+  activeSection,
+  onChange,
+}: {
+  activeSection: SectionKey;
+  onChange: (section: SectionKey) => void;
+}) {
+  const t = useTranslations("Admin.dashboard");
+  const items: { key: SectionKey; label: string; icon: ElementType }[] = [
+    { key: "overview", label: t("nav.overview"), icon: LayoutDashboard },
+    { key: "moderation", label: t("ops.moderation"), icon: ShieldAlert },
+    { key: "sounds", label: t("ops.sounds"), icon: Music2 },
+    { key: "docs", label: t("ops.docs"), icon: BookOpenText },
+  ];
 
   return (
-    <tr className="hover:bg-gray-50 transition-all group">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-200" />
-          <span className="text-sm font-semibold text-gray-900">{user}</span>
-        </div>
-      </td>
-      <td className="px-6 py-4 text-sm text-gray-500">{type}</td>
-      <td className="px-6 py-4">
-        <span className={`text-[10px] uppercase font-black px-2 py-1 rounded ${statusColors[status] ?? "bg-gray-100"}`}>
-          {t(statusKeys[status] ?? status)}
-        </span>
-      </td>
-      <td className="px-6 py-4">
-        <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-all">
-          <MoreVertical className="w-4 h-4" />
-        </button>
-      </td>
-    </tr>
+    <div className="grid grid-cols-4 gap-2 lg:hidden">
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.key}
+            onClick={() => onChange(item.key)}
+            className={`flex h-12 items-center justify-center gap-2 rounded-lg border text-xs font-black ${
+              activeSection === item.key
+                ? "border-brand bg-brand text-white"
+                : "border-elevated bg-background text-text-muted"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
-function HealthBar({ label, value, color }: { label: string; value: number; color: string }) {
+function EmptyState({
+  icon: Icon,
+  title,
+  detail,
+}: {
+  icon: ElementType;
+  title: string;
+  detail: string;
+}) {
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs font-bold">
-        <span className="text-gray-600">{label}</span>
-        <span className="text-gray-900">{value}%</span>
-      </div>
-      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} transition-all duration-1000 ease-out`} style={{ width: `${value}%` }} />
-      </div>
+    <div className="flex min-h-44 flex-col items-center justify-center rounded-lg border border-dashed border-elevated bg-surface p-8 text-center">
+      <Icon className="h-8 w-8 text-text-muted" />
+      <p className="mt-3 text-sm font-black">{title}</p>
+      <p className="mt-1 max-w-md text-sm leading-6 text-text-muted">{detail}</p>
     </div>
   );
+}
+
+function LoadingRows({ count }: { count: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, index) => (
+        <div key={index} className="h-20 animate-pulse rounded-lg bg-surface" />
+      ))}
+    </div>
+  );
+}
+
+function TopTopMark() {
+  return (
+    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
+      <span className="absolute z-10 text-2xl font-extrabold italic tracking-tighter text-white">
+        t
+      </span>
+      <span className="absolute -translate-x-px -translate-y-px text-2xl font-extrabold italic tracking-tighter text-cyan">
+        t
+      </span>
+      <span className="absolute translate-x-px translate-y-px text-2xl font-extrabold italic tracking-tighter text-brand">
+        t
+      </span>
+    </div>
+  );
+}
+
+function statusVariant(status: string): "success" | "warning" | "error" | "info" | "brand" {
+  if (status === "APPROVED") return "success";
+  if (status === "REJECTED" || status === "FAILED") return "error";
+  if (status === "NEED_REVIEW") return "warning";
+  if (status === "PENDING") return "info";
+  return "brand";
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "No timestamp";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }

@@ -17,7 +17,6 @@ export const getAllVideos = async (page = 0, size = 2): Promise<ApiResponse<Vide
     });
     return response.data;
   } catch (error) {
-    handleErrorResponse(error as AxiosError);
     throw error;
   }
 };
@@ -128,6 +127,8 @@ export interface UpdateVideoPayload {
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   allowComments?: boolean;
   allowEdit?: boolean;
+  soundId?: number | null;
+  editInstructions?: VideoEditInstructionsPayload | null;
 }
 
 export const updateVideo = async (videoId: number, payload: UpdateVideoPayload): Promise<ApiResponse<Video>> => {
@@ -177,6 +178,24 @@ export interface InitVideoUploadResponse {
   method: string;
 }
 
+export interface VideoEditInstructionsPayload {
+  videoTrim?: {
+    startSeconds: number;
+    endSeconds: number;
+  };
+  selectedSoundId?: number | null;
+  soundTrim?: {
+    startSeconds: number;
+    endSeconds: number | null;
+  } | null;
+  audioMix?: {
+    originalAudioVolume: number;
+    soundVolume: number;
+    soundStartAtVideoSeconds: number;
+  };
+  coverFrameSeconds?: number | null;
+}
+
 export interface CompleteVideoUploadPayload {
   uploadId: string;
   title: string;
@@ -187,6 +206,9 @@ export interface CompleteVideoUploadPayload {
   allowEdit?: boolean;
   soundId?: number | null;
   useAvatarAsSoundCover?: boolean;
+  enableMusicCopyrightCheck?: boolean;
+  enableContentModerationCheck?: boolean;
+  editInstructions?: VideoEditInstructionsPayload | null;
 }
 
 export const initVideoUpload = async (payload: InitVideoUploadPayload): Promise<ApiResponse<InitVideoUploadResponse>> => {
@@ -235,6 +257,8 @@ export const getVideoModerationStatus = async (videoId: number): Promise<ApiResp
   musicCopyrightReasonCode: string | null;
   musicCopyrightReasonMessage: string | null;
   musicCopyrightCheckedAt: string | null;
+  qualityIssues: string[] | null;
+  qualityIssueMessage: string | null;
 }>> => {
   try {
     const response = await api.get<ApiResponse<{
@@ -248,6 +272,8 @@ export const getVideoModerationStatus = async (videoId: number): Promise<ApiResp
       musicCopyrightReasonCode: string | null;
       musicCopyrightReasonMessage: string | null;
       musicCopyrightCheckedAt: string | null;
+      qualityIssues: string[] | null;
+      qualityIssueMessage: string | null;
     }>>(`/videos/${videoId}/moderation-status`);
     return response.data;
   } catch (error) {

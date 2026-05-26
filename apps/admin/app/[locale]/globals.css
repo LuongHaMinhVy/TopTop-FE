@@ -1,1 +1,78 @@
 @import "tailwindcss";
+
+:root {
+  --color-brand: #ff3b5c;
+  --color-brand-dark: #e03550;
+  --color-cyan: #25f4ee;
+  --color-background: #ffffff;
+  --color-surface: rgba(0, 0, 0, 0.04);
+  --color-elevated: rgba(0, 0, 0, 0.12);
+  --color-hover: rgba(0, 0, 0, 0.08);
+  --color-text-primary: rgba(0, 0, 0, 0.9);
+  --color-text-secondary: rgba(0, 0, 0, 0.75);
+  --color-text-muted: rgba(0, 0, 0, 0.5);
+  --color-surface-secondary: #f1f1f1;
+  --font-sans: "IBM Plex Sans", TikTokFont, Arial, Tahoma, PingFangSC, sans-serif;
+}
+
+@theme inline {
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-cyan: var(--color-cyan);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-elevated: var(--color-elevated);
+  --color-hover: var(--color-hover);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-surface-secondary: var(--color-surface-secondary);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
