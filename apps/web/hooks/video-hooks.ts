@@ -194,9 +194,11 @@ export const useInfiniteVideos = (pageSize = 3) => {
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       const meta = lastPage.meta;
-      if (!meta) return undefined;
-      const nextPage = meta.page + 1;
-      return nextPage < meta.totalPages ? nextPage : undefined;
+      const loadedCount = lastPage.data?.length ?? 0;
+      const nextPage = (meta?.page ?? 0) + 1;
+      if (meta && nextPage < meta.totalPages) return nextPage;
+      if (loadedCount === pageSize) return nextPage;
+      return undefined;
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -259,6 +261,20 @@ export const useReportVideoMutation = () => {
   return useMutation({
     mutationFn: ({ videoId, reason }: { videoId: number; reason: string }) => 
       videoService.reportVideo(videoId, reason),
+  });
+};
+
+export const useNotInterestedVideoMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (videoId: number) => videoService.markVideoNotInterested(videoId),
+    onSuccess: (_response, videoId) => {
+      removeVideoFromCache(queryClient, videoId);
+      queryClient.invalidateQueries({ queryKey: ["all-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["following-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["friends-feed"] });
+    },
   });
 };
 

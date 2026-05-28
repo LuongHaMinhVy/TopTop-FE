@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Download, Info, Link2, Send } from "lucide-react";
+import { Ban, Download, HeartOff, Info, Link2, Send } from "lucide-react";
 
 export interface ContextMenuPosition {
   x: number;
@@ -15,6 +15,7 @@ interface VideoContextMenuProps {
   onSendToFriends: () => void;
   onCopyLink: () => void;
   onViewDetails: () => void;
+  onNotInterested?: () => void;
   onBlockUser?: () => void;
   blockLabel?: string;
 }
@@ -27,8 +28,7 @@ export function VideoContextMenu({
   onSendToFriends,
   onCopyLink,
   onViewDetails,
-  onBlockUser,
-  blockLabel = "Chặn",
+  onNotInterested,
 }: VideoContextMenuProps) {
   if (!isOpen) return null;
 
@@ -57,16 +57,12 @@ export function VideoContextMenu({
       onClick: onViewDetails,
       disabled: false,
     },
-    ...(onBlockUser
-      ? [
-          {
-            label: blockLabel,
-            icon: Ban,
-            onClick: onBlockUser,
-            disabled: false,
-          },
-        ]
-      : []),
+    ...(onNotInterested ? [{
+      label: "Không quan tâm",
+      icon: HeartOff,
+      onClick: onNotInterested,
+      disabled: false,
+    }] : []),
   ];
 
   return (

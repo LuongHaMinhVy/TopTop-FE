@@ -86,6 +86,7 @@ const getClampedImagePosition = ({
 export default function UploadVideo() {
   const t = useTranslations('Studio.upload');
   const user = useSelector((state: RootState) => state.auth.user);
+  const defaultAllowComments = user?.privacySettings?.allowComments ?? true;
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSoundId = Number(searchParams.get('soundId'));
@@ -156,7 +157,7 @@ export default function UploadVideo() {
   // Settings
   const [visibility, setVisibility] = useState('PUBLIC');
   const [visibilityDropdownOpen, setVisibilityDropdownOpen] = useState(false);
-  const [allowComments, setAllowComments] = useState(true);
+  const [allowComments, setAllowComments] = useState(defaultAllowComments);
   const [allowDuet, setAllowDuet] = useState(true);
   const [allowStitch, setAllowStitch] = useState(true);
   const [previewMode, setPreviewMode] = useState<'FEED' | 'PROFILE' | 'WEB'>('FEED');
@@ -933,7 +934,7 @@ export default function UploadVideo() {
         title: fileToProcess.name, 
         description: '', 
         visibility: 'PUBLIC', 
-        allowComments: true, 
+        allowComments, 
         allowEdit: false,
         soundId: selectedSound?.id ?? null,
       };
@@ -1150,7 +1151,7 @@ export default function UploadVideo() {
     setUploadedVideoId(null); setModerationResult(null);
     setCoverPickerOpen(false); setCoverTab('video'); setVideoFrames([]);
     setSelectedCoverTime(0); setSelectedVideoFramePreview(null); setImportedCoverSource(null); resetCoverCrop(); setVideoDuration(0);
-    setVisibility('PUBLIC'); setAllowComments(true); setAllowDuet(true); setAllowStitch(true);
+    setVisibility('PUBLIC'); setAllowComments(defaultAllowComments); setAllowDuet(true); setAllowStitch(true);
     setSelectedSound(null); setSoundEditorOpen(false); setSoundEditorInitialTool('edit'); setVideoTrim({ startSeconds: 0, endSeconds: 0 });
     setSoundTrim({ startSeconds: 0, endSeconds: 0 }); setSoundVolume(100); setSoundMuted(false); setOriginalAudioVolume(100); setSoundStartOffset(0);
   };
@@ -1480,8 +1481,8 @@ export default function UploadVideo() {
     <div className="w-full max-w-5xl mx-auto">
       {/* Detail Modal for Quality Issues */}
       {isDetailModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="modal-opacity-solid relative w-full max-w-2xl bg-surface border border-elevated rounded-2xl shadow-2xl overflow-hidden text-text-primary max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="modal-opacity-solid relative w-full max-w-2xl bg-background border border-elevated rounded-2xl shadow-2xl overflow-hidden text-text-primary max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-elevated">
               <span className="text-lg font-bold">Kiểm tra chi tiết</span>
@@ -1792,7 +1793,7 @@ export default function UploadVideo() {
                     <div
                       role="listbox"
                       data-select-menu
-                      className="select-options-solid absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-elevated bg-surface shadow-2xl"
+                      className="select-options-solid absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-elevated bg-background shadow-2xl"
                     >
                       {visibilityOptions.map((option) => {
                         const selected = option.value === visibility;
@@ -1984,7 +1985,7 @@ export default function UploadVideo() {
       />
 
       {coverPickerOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 px-4 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 px-4 py-6">
           <div className="modal-opacity-solid flex max-h-[90dvh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-elevated bg-background shadow-2xl">
             <div className="flex items-center justify-between border-b border-elevated px-5 py-4">
               <div>
@@ -2211,8 +2212,8 @@ export default function UploadVideo() {
 
       {/* Leave Confirmation Modal */}
       {showLeaveModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="modal-opacity-solid bg-surface border border-elevated rounded-xl shadow-2xl w-[90%] max-w-md p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60">
+          <div className="modal-opacity-solid bg-background border border-elevated rounded-xl shadow-2xl w-[90%] max-w-md p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-text-primary mb-2">{t('leaveModalTitle')}</h3>
             <p className="text-text-secondary text-sm mb-6 leading-relaxed">
               {t('leaveModalDesc')}

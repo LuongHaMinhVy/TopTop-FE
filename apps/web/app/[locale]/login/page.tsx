@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLoginMutation } from "@/hooks/auth-hooks";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import AuthModal from "@/components/auth/AuthModal";
+import { AccountReactivationDialog } from "@/components/auth/AccountReactivationDialog";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
 
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
+  const [reactivationAuthData, setReactivationAuthData] = useState<AuthResponse | null>(null);
 
   useEffect(() => {
     const channel = new BroadcastChannel("oauth_channel");
@@ -42,6 +44,10 @@ export default function LoginPage() {
       if (authEvent.type === "AUTH_SUCCESS") {
         const { data } = authEvent;
         const responseData = data as AuthResponse;
+        if (responseData.reactivationRequired) {
+          setReactivationAuthData(responseData);
+          return;
+        }
         const user = responseData && 'user' in responseData ? responseData.user : responseData;
         if (user && user.onboarded === false) {
           setTempAuthData(responseData);
@@ -71,7 +77,11 @@ export default function LoginPage() {
     return () => channel.close();
   }, [dispatch, router, queryClient]);
 
-  const loginMutation = useLoginMutation(() => {
+  const loginMutation = useLoginMutation((response) => {
+    if (response.data?.reactivationRequired) {
+      setReactivationAuthData(response.data);
+      return;
+    }
     setSuccessMsg("Đăng nhập thành công");
     setTimeout(() => {
       window.location.href = "/";
@@ -222,8 +232,24 @@ export default function LoginPage() {
       {tempAuthData && (
         <AuthModal 
           onClose={() => setTempAuthData(null)}
-          initialMethod="onboard_dob"
+          initialMethod="onboard_password"
           tempAuthData={tempAuthData}
+        />
+      )}
+      {reactivationAuthData && (
+        <AccountReactivationDialog
+          authData={reactivationAuthData}
+          onActivated={() => {
+            setReactivationAuthData(null);
+            setSuccessMsg("Kích hoạt lại tài khoản thành công");
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 700);
+          }}
+          onCancelled={() => {
+            setReactivationAuthData(null);
+            setErrorMsg("Bạn cần kích hoạt lại tài khoản để tiếp tục đăng nhập.");
+          }}
         />
       )}
     </div>

@@ -4,8 +4,16 @@ export interface PrivacySettings {
   allowStitch?: boolean;
   allowDownload?: boolean;
   allowMessageFromEveryone?: boolean;
+  defaultCommentPermission?: "EVERYONE" | "NO_ONE";
   commentFilter?: string;
   messagePrivacy?: string;
+}
+
+export interface ContentFilterTag {
+  id: number;
+  tag: string;
+  sampleThumbnailUrl?: string | null;
+  createdAt?: string;
 }
 
 export interface RelationshipStatus {
@@ -43,4 +51,5 @@ export interface UserInfo {
   roles: string[];
   onboarded?: boolean;
   createdAt?: string;
+  deletedAt?: string | null;
 }

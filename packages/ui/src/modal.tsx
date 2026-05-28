@@ -29,7 +29,7 @@ export const Modal = ({ isOpen, onClose, children, title, className = "" }: Moda
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" 
+        className="absolute inset-0 bg-black/60 animate-in fade-in duration-300" 
         onClick={onClose} 
       />
       

@@ -15,6 +15,17 @@
   --font-sans: "IBM Plex Sans", TikTokFont, Arial, Tahoma, PingFangSC, sans-serif;
 }
 
+.dark {
+  --color-background: #0f1117;
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-elevated: rgba(255, 255, 255, 0.14);
+  --color-hover: rgba(255, 255, 255, 0.1);
+  --color-text-primary: rgba(255, 255, 255, 0.92);
+  --color-text-secondary: rgba(255, 255, 255, 0.76);
+  --color-text-muted: rgba(255, 255, 255, 0.54);
+  --color-surface-secondary: #171a23;
+}
+
 @theme inline {
   --color-brand: var(--color-brand);
   --color-brand-dark: var(--color-brand-dark);
@@ -68,6 +79,14 @@ button:disabled {
   background: rgba(0, 0, 0, 0.25);
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -75,4 +94,40 @@ button:disabled {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+select,
+option,
+optgroup {
+  opacity: 1 !important;
+  background-color: var(--color-background) !important;
+  color: var(--color-text-primary) !important;
+}
+
+select:disabled,
+option:disabled {
+  opacity: 1 !important;
+  color: var(--color-text-muted) !important;
+}
+
+[role="dialog"],
+[role="listbox"],
+[role="option"],
+[role="menu"],
+[data-modal-panel],
+[data-select-menu],
+.modal-opacity-solid,
+.select-options-solid,
+.select-options-solid [role="option"],
+.select-options-solid button,
+.select-options-solid option {
+  opacity: 1 !important;
+}
+
+[data-select-menu],
+.select-options-solid {
+  background-color: var(--color-background) !important;
+  color: var(--color-text-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }

@@ -68,6 +68,16 @@ export const reportVideo = async (videoId: number, reason: string): Promise<ApiR
   }
 };
 
+export const markVideoNotInterested = async (videoId: number): Promise<ApiResponse<void>> => {
+  try {
+    const response = await api.post<ApiResponse<void>>(`/videos/${videoId}/not-interested`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
 export const recordVideoView = async (videoId: number): Promise<ApiResponse<VideoStatsResponse>> => {
   try {
     const response = await api.post<ApiResponse<VideoStatsResponse>>(`/videos/${videoId}/view`);

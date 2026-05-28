@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "livekit/components-styles";
+@import "../../node_modules/@livekit/components-styles/dist/general/index.css";
 
 :root {
   --color-brand: #ff3b5c;
@@ -277,6 +277,14 @@ option:disabled {
 .select-options-solid button,
 .select-options-solid option {
   opacity: 1 !important;
+}
+
+[data-select-menu],
+.select-options-solid {
+  background-color: var(--color-background) !important;
+  color: var(--color-text-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .fixed.inset-0 > .relative,

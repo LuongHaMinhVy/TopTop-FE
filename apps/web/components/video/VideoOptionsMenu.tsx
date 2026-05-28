@@ -16,26 +16,47 @@ import { useTranslations } from 'next-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { setAutoScroll } from '@/store/slices/mediaSlice';
+import { openAuthModal } from '@/store/slices/authSlice';
+import { useNotInterestedVideoMutation } from '@/hooks/video-hooks';
 
 interface VideoOptionsMenuProps {
   onClose: () => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   videoId?: number;
   username?: string;
+  description?: string;
+  thumbnailUrl?: string | null;
+  isLiked?: boolean;
+  isSaved?: boolean;
   canBlock?: boolean;
   onReportClick?: () => void;
   onBlockClick?: () => void;
+  onNotInterested?: () => void;
 }
 
 type MenuMode = 'main' | 'quality';
 
-export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false, onReportClick, onBlockClick }: VideoOptionsMenuProps) {
+export function VideoOptionsMenu({
+  onClose,
+  videoRef,
+  videoId,
+  username,
+  isLiked = false,
+  isSaved = false,
+  canBlock = false,
+  onReportClick,
+  onBlockClick,
+  onNotInterested
+}: VideoOptionsMenuProps) {
   const t = useTranslations('video');
   const dispatch = useDispatch();
   const autoScroll = useSelector((state: RootState) => state.media.autoScroll);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   
   const [mode, setMode] = useState<MenuMode>('main');
   const [quality, setQuality] = useState('1080P');
+
+  const notInterestedMutation = useNotInterestedVideoMutation();
 
   const handleReport = () => {
     if (onReportClick) {
@@ -47,6 +68,26 @@ export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false
   const handleBlock = () => {
     if (onBlockClick) {
       onBlockClick();
+    }
+    onClose();
+  };
+
+  const handleNotInterested = () => {
+    if (isLiked || isSaved) {
+      onClose();
+      return;
+    }
+    if (onNotInterested) {
+      onNotInterested();
+      return;
+    }
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      onClose();
+      return;
+    }
+    if (videoId) {
+      notInterestedMutation.mutate(videoId);
     }
     onClose();
   };
@@ -84,14 +125,20 @@ export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false
       onToggle: () => dispatch(setAutoScroll(!autoScroll))
     },
     { icon: <PictureInPicture size={20} />, label: t('pip'), action: 'pip' },
-    { icon: <HeartOff size={20} />, label: t('notInterested') },
+    {
+      icon: <HeartOff size={20} />,
+      label: t('notInterested'),
+      action: 'notInterested',
+      disabled: isLiked || isSaved,
+      rightText: isLiked || isSaved ? t('alreadyInterested') : undefined,
+    },
     { icon: <Flag size={20} />, label: t('report'), action: 'report' },
     ...(canBlock ? [{ icon: <Ban size={20} />, label: `${t('blockUser')} @${username}`, action: 'block' }] : []),
-  ], [t, quality, autoScroll, dispatch, canBlock, username]);
+  ], [t, quality, autoScroll, dispatch, canBlock, username, isLiked, isSaved]);
 
   if (mode === 'quality') {
     return (
-      <div className="absolute top-full right-0 mt-2 w-64 bg-background/95 backdrop-blur-2xl border border-elevated rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
+      <div className="select-options-solid absolute top-full right-0 mt-2 w-64 bg-background border border-elevated rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
         <div className="absolute -top-2 right-4 w-4 h-4 bg-background border-l border-t border-elevated rotate-45 z-[-1]" />
         
         <div className="flex flex-col py-1.5">
@@ -123,7 +170,7 @@ export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false
   }
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-64 bg-background/95 backdrop-blur-2xl border border-elevated rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
+    <div className="select-options-solid absolute top-full right-0 mt-2 w-64 bg-background border border-elevated rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-visible animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
       {/* Small arrow at the top */}
       <div className="absolute -top-2 right-4 w-4 h-4 bg-background border-l border-t border-elevated rotate-45 z-[-1]" />
       
@@ -131,14 +178,18 @@ export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false
         {mainItems.map((item, index) => (
           <button
             key={index}
+            disabled={item.disabled}
             onClick={(e) => {
               e.stopPropagation();
+              if (item.disabled) return;
               if (item.action === 'pip') {
                 togglePip();
               } else if (item.action === 'report') {
                 handleReport();
               } else if (item.action === 'block') {
                 handleBlock();
+              } else if (item.action === 'notInterested') {
+                handleNotInterested();
               } else if (item.onToggle) {
                 item.onToggle();
               } else if (item.onClick) {
@@ -147,7 +198,7 @@ export function VideoOptionsMenu({ onClose, videoRef, username, canBlock = false
                 onClose();
               }
             }}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors text-text-primary text-left w-full group"
+            className="flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors text-text-primary text-left w-full group disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
           >
             <div className="text-text-muted group-hover:text-text-primary transition-colors">
               {item.icon}

@@ -1452,8 +1452,8 @@ export function SoundEditorPanel({
       </div>
 
       {showCancelModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="modal-opacity-solid bg-surface border border-elevated rounded-xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 px-4">
+          <div className="modal-opacity-solid bg-background border border-elevated rounded-xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in duration-200">
             <h3 className="text-xl font-bold text-text-primary mb-2">Huỷ chỉnh sửa?</h3>
             <p className="text-text-secondary text-sm mb-6 leading-relaxed">
               Bạn có những thay đổi chưa được lưu. Bạn có chắc chắn muốn huỷ bỏ các thay đổi này không?

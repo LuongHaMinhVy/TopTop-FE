@@ -250,40 +250,42 @@ export default function ExplorePage() {
   const tags = ["Trending", "Music", "Dance", "Gaming", "Food", "Fashion"];
 
   return (
-    <div className="p-4 sm:p-6 pb-24 lg:pb-6">
+    <div className="h-full overflow-y-auto bg-background text-text-primary no-scrollbar">
       <DocumentTitle title="Explore | TopTop" />
 
-      <header className="mb-6">
-        <h1 className="text-[24px] font-bold mb-3">{t("sidebar.explore")}</h1>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {tags.map((tag) => (
-            <button
-              key={tag}
-              className="px-4 py-1.5 rounded-full bg-elevated/50 hover:bg-elevated text-[14px] font-semibold transition-colors whitespace-nowrap"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </header>
+      <div className="p-4 pb-24 sm:p-6 lg:pb-6">
+        <header className="mb-6">
+          <h1 className="text-[24px] font-bold mb-3">{t("sidebar.explore")}</h1>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {tags.map((tag) => (
+              <button
+                key={tag}
+                className="px-4 py-1.5 rounded-full bg-elevated/50 hover:bg-elevated text-[14px] font-semibold transition-colors whitespace-nowrap"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        </header>
 
-      {isLoading ? (
-        <ExploreSkeleton />
-      ) : (
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {videos.map((video, index) => (
-            <ExploreVideoCard
-              key={video.id}
-              video={video}
-              isFirst={index === 0}
-              isActive={displayedActiveVideoId === video.id}
-              isMuted={isMuted}
-              onActivate={() => setActiveVideoId(video.id)}
-              onToggleMute={() => setIsMuted((m) => !m)}
-            />
-          ))}
-        </div>
-      )}
+        {isLoading ? (
+          <ExploreSkeleton />
+        ) : (
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {videos.map((video, index) => (
+              <ExploreVideoCard
+                key={video.id}
+                video={video}
+                isFirst={index === 0}
+                isActive={displayedActiveVideoId === video.id}
+                isMuted={isMuted}
+                onActivate={() => setActiveVideoId(video.id)}
+                onToggleMute={() => setIsMuted((m) => !m)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

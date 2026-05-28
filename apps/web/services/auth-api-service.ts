@@ -38,6 +38,16 @@ export const authLogout = async (): Promise<ApiResponse<void>> => {
   }
 };
 
+export const authReactivate = async (): Promise<ApiResponse<AuthResponse>> => {
+  try {
+    const response = await api.post<ApiResponse<AuthResponse>>("/auth/reactivate");
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
 export const authVerifyEmail = async (token: string): Promise<ApiResponse<void>> => {
   try {
     const response = await api.post<ApiResponse<void>>("/auth/verify-email", null, {
@@ -107,7 +117,7 @@ export const oauth2Exchange = async (state: string): Promise<ApiResponse<AuthRes
 };
 
 export const oauth2Onboard = async (
-  payload: { username: string; dateOfBirth: string },
+  payload: { username: string; dateOfBirth: string; password: string },
   accessToken?: string
 ): Promise<ApiResponse<AuthResponse>> => {
   try {

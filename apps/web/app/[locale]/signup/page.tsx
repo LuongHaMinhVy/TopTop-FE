@@ -374,7 +374,7 @@ export default function SignupPage() {
       {tempAuthData && (
         <AuthModal 
           onClose={() => setTempAuthData(null)}
-          initialMethod="onboard_dob"
+          initialMethod="onboard_password"
           tempAuthData={tempAuthData}
         />
       )}

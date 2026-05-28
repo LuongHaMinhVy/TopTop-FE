@@ -1,5 +1,11 @@
-import { get } from "@/services/base-api-service";
-import type { ModerationQueueItem, PageResponse } from "@/types/admin";
+import { get, post } from "@/services/base-api-service";
+import type {
+  ModerationQueueItem,
+  PageResponse,
+  VideoModerationDetail,
+  ReviewVideoModerationRequest,
+  VideoModerationSummary,
+} from "@/types/admin";
 
 export const getVideoModerationQueue = async (params?: {
   status?: string;
@@ -14,5 +20,19 @@ export const getVideoModerationQueue = async (params?: {
 
   return get<PageResponse<ModerationQueueItem>>(
     `/admin/moderation/videos?${searchParams.toString()}`,
+  );
+};
+
+export const getVideoModerationDetail = async (videoId: number) => {
+  return get<VideoModerationDetail>(`/admin/moderation/videos/${videoId}`);
+};
+
+export const reviewVideoModeration = async (
+  videoId: number,
+  request: ReviewVideoModerationRequest,
+) => {
+  return post<VideoModerationSummary>(
+    `/admin/moderation/videos/${videoId}/review`,
+    request,
   );
 };

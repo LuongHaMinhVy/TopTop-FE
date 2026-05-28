@@ -2,13 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import { authLogin, authRegister, authLogout, authVerifyEmail, oauth2Onboard } from "@/services/auth-api-service";
+import { authLogin, authRegister, authLogout, authReactivate, authVerifyEmail, oauth2Onboard } from "@/services/auth-api-service";
 import { getBackendBaseUrl } from "@/utils/axios-instance";
 import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import type { ApiResponse } from "@/types/api";
 import type { AuthResponse, LoginRequest, RegisterRequest } from "@/types/auth";
 
-export const useLoginMutation = (onSuccessCallback?: () => void) => {
+export const useLoginMutation = (onSuccessCallback?: (response: ApiResponse<AuthResponse>) => void) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -16,6 +16,11 @@ export const useLoginMutation = (onSuccessCallback?: () => void) => {
   return useMutation({
     mutationFn: (payload: LoginRequest) => authLogin(payload),
     onSuccess: (response: ApiResponse<AuthResponse>) => {
+      if (response.data?.reactivationRequired) {
+        onSuccessCallback?.(response);
+        return;
+      }
+
       if (response.data) {
         dispatch(setCredentials(response.data));
         if (response.data.user) {
@@ -24,11 +29,30 @@ export const useLoginMutation = (onSuccessCallback?: () => void) => {
         queryClient.invalidateQueries({ queryKey: ["currentUser"] });
       }
       if (onSuccessCallback) {
-        onSuccessCallback();
+        onSuccessCallback(response);
       } else {
         router.push("/");
         router.refresh();
       }
+    },
+  });
+};
+
+export const useReactivateAccountMutation = (onSuccessCallback?: (response: ApiResponse<AuthResponse>) => void) => {
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: authReactivate,
+    onSuccess: (response: ApiResponse<AuthResponse>) => {
+      if (response.data) {
+        dispatch(setCredentials(response.data));
+        if (response.data.user) {
+          queryClient.setQueryData(["currentUser"], { data: response.data.user });
+        }
+        queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      }
+      onSuccessCallback?.(response);
     },
   });
 };
@@ -98,7 +122,7 @@ export const useOAuth2OnboardMutation = (onSuccessCallback?: (response: ApiRespo
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ payload, accessToken }: { payload: { username: string; dateOfBirth: string }; accessToken?: string }) =>
+    mutationFn: ({ payload, accessToken }: { payload: { username: string; dateOfBirth: string; password: string }; accessToken?: string }) =>
       oauth2Onboard(payload, accessToken),
     onSuccess: (response: ApiResponse<AuthResponse>) => {
       if (response.data) {

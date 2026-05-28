@@ -23,9 +23,33 @@
       "reports": "Báo cáo",
       "settings": "Cài đặt",
       "logout": "Đăng xuất",
+      "pages": {
+        "overview": {
+          "title": "Tổng quan",
+          "description": "Tổng quan vận hành, kiểm duyệt, âm thanh và tài liệu sản phẩm."
+        },
+        "moderation": {
+          "title": "Kiểm duyệt",
+          "description": "Xem xét video trong hàng đợi kiểm duyệt và xử lý nội dung rủi ro."
+        },
+        "users": {
+          "title": "Người dùng",
+          "description": "Quản lý trạng thái tài khoản, tìm kiếm người dùng và xử lý khóa tài khoản."
+        },
+        "reports": {
+          "title": "Báo cáo",
+          "description": "Xem xét báo cáo từ người dùng và cập nhật trạng thái xử lý."
+        },
+        "sounds": {
+          "title": "Âm thanh",
+          "description": "Tra cứu và quản lý âm thanh trong hệ thống."
+        }
+      },
       "nav": {
         "overview": "Tổng quan",
         "creators": "Nhà sáng tạo",
+        "users": "Người dùng",
+        "reports": "Báo cáo",
         "content": "Quản lý nội dung",
         "analytics": "Phân tích",
         "safety": "An toàn & Báo cáo",
@@ -36,7 +60,12 @@
         "totalCreators": "Tổng nhà sáng tạo",
         "totalVideos": "Tổng video",
         "activityReports": "Báo cáo hoạt động",
-        "dailyUsers": "Người dùng hàng ngày"
+        "dailyUsers": "Người dùng hàng ngày",
+        "pendingModeration": "Chờ kiểm duyệt",
+        "totalCreatorsHint": "Tổng số người dùng trên hệ thống",
+        "totalVideosHint": "Tổng số video đã tải lên",
+        "activityReportsHint": "Tổng số báo cáo từ người dùng",
+        "pendingModerationHint": "Video đang chờ duyệt"
       },
       "recentReports": {
         "title": "Báo cáo quan trọng gần đây",
@@ -75,23 +104,18 @@
         "subtitle": "Tổng quan vận hành, kiểm duyệt, âm thanh và tài liệu sản phẩm.",
         "trustOperations": "Vận hành an toàn",
         "moderation": "Kiểm duyệt",
+        "users": "Người dùng",
+        "reports": "Báo cáo",
         "sounds": "Âm thanh",
-        "docs": "Tài liệu MD",
-        "sharedBase": "Base dùng chung",
-        "sharedBaseDesc": "Admin đang dùng token màu, spacing, scrollbar từ web và các component Button/Input/Badge/Avatar lấy từ package UI chung.",
         "moderationQueueTitle": "Hàng đợi cần xử lý",
-        "moderationQueueDesc": "Lấy từ /admin/moderation/videos và ưu tiên video risk cao.",
+        "moderationQueueDesc": "Các video cần kiểm duyệt thủ công, sắp xếp theo mức độ cần xử lý.",
         "newSoundsTitle": "Âm thanh mới",
-        "newSoundsDesc": "Quản lý sound public/original trong hệ thống.",
-        "docsMapTitle": "Bản đồ tài liệu",
-        "docsMapDesc": "Tóm tắt các spec MD thành các nhóm chức năng admin cần theo dõi.",
+        "newSoundsDesc": "Những âm thanh mới được thêm vào hệ thống.",
         "videoModerationTitle": "Kiểm duyệt video",
         "videoModerationDesc": "Dùng endpoint admin moderation hiện có, không hardcode queue sản phẩm.",
         "soundManagementTitle": "Quản lý âm thanh",
         "soundManagementDesc": "Tra cứu danh sách sound admin và chuẩn bị cho thao tác create/update/delete.",
         "soundSearchPlaceholder": "Tìm sound...",
-        "docsSummaryTitle": "Tổng hợp các file MD",
-        "docsSummaryDesc": "File tổng hợp chi tiết đã được tạo tại root: PROJECT_MD_SUMMARY.md.",
         "emptyModerationTitle": "Không có video trong queue này",
         "emptyModerationDesc": "Đổi status khác hoặc kiểm tra backend worker moderation.",
         "moderationLoadErrorTitle": "Chưa tải được moderation queue",
@@ -103,6 +127,120 @@
         "detail": "Chi tiết",
         "review": "Review",
         "noTimestamp": "Không có thời gian"
+      },
+      "theme": {
+        "light": "Sáng",
+        "dark": "Tối",
+        "switchToLight": "Chuyển sang giao diện sáng",
+        "switchToDark": "Chuyển sang giao diện tối"
+      },
+      "common": {
+        "unknown": "không rõ"
+      },
+      "moderation": {
+        "reportCount": "{count} báo cáo",
+        "risk": "risk {percent}%",
+        "videoFallback": "Video #{id}"
+      },
+      "sounds": {
+        "coverAlt": "Ảnh bìa âm thanh",
+        "soundFallback": "Âm thanh #{id}",
+        "defaultType": "SOUND",
+        "usageCount": "{count} lượt dùng",
+        "pageSummary": "Trang {page}/{total} · {count} âm thanh",
+        "previous": "Trước",
+        "next": "Sau"
+      },
+      "users": {
+        "title": "Quản lý người dùng",
+        "description": "Danh sách người dùng kèm thao tác kích hoạt và khóa tài khoản",
+        "searchPlaceholder": "Tìm username, nickname, email...",
+        "loadErrorTitle": "Không tải được danh sách người dùng",
+        "loadErrorDesc": "Kiểm tra kết nối backend",
+        "emptyTitle": "Chưa có người dùng",
+        "emptyDesc": "Không tìm thấy kết quả khớp",
+        "allStatuses": "Tất cả trạng thái",
+        "status": {
+          "ACTIVE": "Hoạt động",
+          "SUSPENDED": "Tạm khóa",
+          "BANNED": "Bị cấm"
+        },
+        "activeCount": "Đang hoạt động",
+        "suspendedCount": "Tạm khóa",
+        "bannedCount": "Bị cấm",
+        "pendingDeleteCount": "Đang ẩn/xóa",
+        "tableUser": "Tài khoản",
+        "tableStatus": "Trạng thái",
+        "tableReach": "Tương tác",
+        "tableCreated": "Ngày tạo",
+        "tableActions": "Thao tác",
+        "followersCount": "{count} followers",
+        "likesCount": "{count} lượt thích",
+        "activate": "Kích hoạt",
+        "ban": "Khóa",
+        "suspend": "Tạm khóa",
+        "view": "Xem",
+        "close": "Đóng",
+        "closeDetail": "Đóng chi tiết người dùng",
+        "hiddenAccount": "Đang ẩn khỏi công khai",
+        "pageSummary": "Trang {page}/{total} · {count} người dùng",
+        "previous": "Trước",
+        "next": "Sau",
+        "statusLabel": "Trạng thái",
+        "statusReasonLabel": "Lý do khóa",
+        "visibilityLabel": "Hiển thị",
+        "private": "Riêng tư",
+        "public": "Công khai",
+        "followingLabel": "Đang follow",
+        "followersLabel": "Follower",
+        "likesLabel": "Lượt thích",
+        "createdLabel": "Ngày tạo",
+        "deletionStateTitle": "Tài khoản đang bị ẩn hoặc chờ xóa",
+        "deletedAt": "Ẩn từ: {value}",
+        "deletionScheduledAt": "Xóa cứng sau: {value}",
+        "confirmActivateTitle": "Kích hoạt lại tài khoản?",
+        "confirmBanTitle": "Khóa tài khoản này?",
+        "confirmSuspendTitle": "Tạm khóa tài khoản này?",
+        "confirmActionDesc": "Thao tác sẽ áp dụng cho @{username}. Lý do khóa sẽ được hiển thị khi người dùng đăng nhập hoặc dùng phiên cũ.",
+        "reasonPlaceholder": "Nhập lý do khóa tài khoản...",
+        "restoreReasonPlaceholder": "Ghi chú khi kích hoạt lại, không bắt buộc...",
+        "reasonRequired": "Bắt buộc nhập lý do khi khóa hoặc tạm khóa tài khoản.",
+        "cancel": "Hủy"
+      },
+      "reportsSection": {
+        "title": "Quản lý báo cáo",
+        "description": "Hàng đợi báo cáo từ người dùng để review và xử lý",
+        "allStatuses": "Tất cả",
+        "loadErrorTitle": "Không tải được báo cáo",
+        "loadErrorDesc": "Kiểm tra kết nối backend",
+        "emptyTitle": "Không có báo cáo",
+        "emptyDesc": "Chưa có báo cáo nào trong trạng thái này",
+        "reportFallback": "Báo cáo #{id}",
+        "targetId": "target ID {id}",
+        "resolve": "Giải quyết",
+        "reject": "Từ chối"
+      },
+      "reviewModal": {
+        "title": "Review Video #{id}",
+        "coverAlt": "Ảnh bìa",
+        "noMedia": "Không có media",
+        "caption": "Caption",
+        "noCaption": "Không có caption",
+        "aiAnalysis": "Phân tích AI",
+        "status": "Trạng thái:",
+        "overallRisk": "Risk tổng:",
+        "categories": "Danh mục:",
+        "manualDecision": "Quyết định thủ công",
+        "approve": "Duyệt",
+        "reject": "Từ chối",
+        "hold": "Giữ lại",
+        "reasonCode": "Mã lý do (tuỳ chọn)",
+        "reasonCodePlaceholder": "VD: SPAM, NUDITY",
+        "reasonMessage": "Ghi chú lý do (tuỳ chọn)",
+        "reasonMessagePlaceholder": "Thêm ghi chú nội bộ...",
+        "cancel": "Huỷ",
+        "submit": "Gửi review",
+        "loadError": "Không tải được chi tiết video."
       }
     }
   }

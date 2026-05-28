@@ -2,7 +2,7 @@
 
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { useOAuth2Exchange } from "@/hooks/useOAuth2Exchange";
 import { AuthResponse } from "@/types/auth";
@@ -12,10 +12,23 @@ function CallbackContent() {
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const state = searchParams.get("state");
+  const error = searchParams.get("error");
+  const errorMessage = searchParams.get("message");
 
-  const { data, isSuccess, isError } = useOAuth2Exchange(state);
+  const { data, isSuccess, isError } = useOAuth2Exchange(error ? null : state);
 
   useEffect(() => {
+    if (error) {
+      const channel = new BroadcastChannel("oauth_channel");
+      channel.postMessage({
+        type: "AUTH_ERROR",
+        error: errorMessage || error,
+      });
+      channel.close();
+      setTimeout(() => window.close(), 700);
+      return;
+    }
+
     if (!state) {
       const channel = new BroadcastChannel("oauth_channel");
       channel.postMessage({ type: "AUTH_ERROR", error: "missing_state" });
@@ -41,23 +54,39 @@ function CallbackContent() {
       channel.close();
       setTimeout(() => window.close(), 300);
     }
-  }, [state, isSuccess, isError, data, router, dispatch]);
+  }, [state, error, errorMessage, isSuccess, isError, data, router, dispatch]);
 
   return null;
 }
 
-export default function OAuth2CallbackPage() {
+function OAuth2CallbackShell() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+  const errorMessage = searchParams.get("message");
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
-      <Loader2 className="w-10 h-10 animate-spin mb-4 text-[#FE2C55]" />
-      <h2 className="text-[20px] font-semibold text-text-primary">Đang xác thực...</h2>
-      <p className="text-[14px] text-gray-400 mt-2">
-        Vui lòng chờ trong giây lát, hệ thống đang đăng nhập cho bạn.
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center text-text-primary">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-surface text-brand">
+        {error ? <AlertCircle className="h-7 w-7" /> : <Loader2 className="h-7 w-7 animate-spin" />}
+      </div>
+      <h2 className="text-xl font-black">
+        {error ? "Không thể đăng nhập" : "Đang xác thực"}
+      </h2>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-text-muted">
+        {error
+          ? errorMessage || "Cửa sổ này sẽ tự đóng, vui lòng thử lại."
+          : "Vui lòng chờ trong giây lát, cửa sổ này sẽ tự đóng khi hoàn tất."}
       </p>
 
-      <Suspense fallback={null}>
-        <CallbackContent />
-      </Suspense>
+      <CallbackContent />
     </div>
+  );
+}
+
+export default function OAuth2CallbackPage() {
+  return (
+    <Suspense fallback={null}>
+      <OAuth2CallbackShell />
+    </Suspense>
   );
 }

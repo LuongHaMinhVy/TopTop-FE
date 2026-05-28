@@ -3,8 +3,71 @@
 import VideoCard from "@/components/video/VideoCard";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useInfiniteVideos } from "@/hooks/video-hooks";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Video } from "@/types/video";
+
+const FEED_PAGE_SIZE = 5;
+const LOAD_MORE_DISTANCE_PX = 220;
+
+function TikTokFeedLoader() {
+  return (
+    <div className="relative h-8 w-14" role="status" aria-label="Đang tải thêm video">
+      <span className="feed-loader-dot feed-loader-dot-cyan" />
+      <span className="feed-loader-dot feed-loader-dot-red" />
+      <style jsx>{`
+        .feed-loader-dot {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 14px;
+          height: 14px;
+          border-radius: 9999px;
+          transform: translate(-50%, -50%);
+          animation: feed-loader-orbit 0.78s ease-in-out infinite;
+          box-shadow: 0 0 14px currentColor;
+        }
+
+        .feed-loader-dot-cyan {
+          color: #25f4ee;
+          background: #25f4ee;
+          animation-delay: -0.39s;
+        }
+
+        .feed-loader-dot-red {
+          color: #fe2c55;
+          background: #fe2c55;
+        }
+
+        @keyframes feed-loader-orbit {
+          0% {
+            transform: translate(calc(-50% - 12px), -50%) scale(0.86);
+            z-index: 1;
+          }
+          50% {
+            transform: translate(calc(-50% + 12px), -50%) scale(1.08);
+            z-index: 2;
+          }
+          100% {
+            transform: translate(calc(-50% - 12px), -50%) scale(0.86);
+            z-index: 1;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function FeedLoadFooter({ ref }: { ref?: React.Ref<HTMLDivElement> }) {
+  return (
+    <div
+      ref={ref}
+      className="flex h-28 w-full items-start justify-center pt-5"
+      style={{ scrollSnapAlign: "none" }}
+    >
+      <TikTokFeedLoader />
+    </div>
+  );
+}
 
 function VideoSkeleton() {
   return (
@@ -32,32 +95,82 @@ export default function FeedPage() {
     fetchNextPage, 
     hasNextPage, 
     isFetchingNextPage 
-  } = useInfiniteVideos(3);
+  } = useInfiniteVideos(FEED_PAGE_SIZE);
 
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const observer = useRef<IntersectionObserver>(null);
-  const lastVideoRef = useCallback((node: HTMLDivElement) => {
-    if (isLoading || isFetchingNextPage) return;
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  const hasNextPageRef = useRef(hasNextPage);
+
+  useEffect(() => {
+    isFetchingNextPageRef.current = isFetchingNextPage;
+  }, [isFetchingNextPage]);
+
+  useEffect(() => {
+    hasNextPageRef.current = hasNextPage;
+  }, [hasNextPage]);
+
+  const requestNextPage = useCallback(() => {
+    if (!hasNextPageRef.current || isFetchingNextPageRef.current) {
+      return;
+    }
+
+    isFetchingNextPageRef.current = true;
+    fetchNextPage().catch(() => {
+      isFetchingNextPageRef.current = false;
+    });
+  }, [fetchNextPage]);
+
+  useEffect(() => {
+    return () => observer.current?.disconnect();
+  }, []);
+
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
+    if (isLoading || !hasNextPage || !node) return;
     
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasNextPage) {
-        fetchNextPage();
-      }
+    observer.current = new IntersectionObserver((entries) => {
+      const [entry] = entries;
+      if (entry?.isIntersecting) requestNextPage();
+    }, {
+      root: scrollContainerRef.current,
+      rootMargin: "320px 0px",
+      threshold: 0.01,
     });
 
-    if (node) observer.current.observe(node);
-  }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
+    observer.current.observe(node);
+  }, [isLoading, hasNextPage, requestNextPage]);
 
-  const allVideos = data?.pages.flatMap((page) => page.data ?? []) ?? [];
+  const handleFeedScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceToBottom <= LOAD_MORE_DISTANCE_PX) {
+      requestNextPage();
+    }
+  }, [requestNextPage]);
+
+  const allVideos = Array.from(
+    new Map(
+      (data?.pages.flatMap((page) => page.data ?? []) ?? [])
+        .filter((video) => video?.id != null)
+        .map((video) => [video.id, video])
+    ).values()
+  );
   return (
     <>
       <DocumentTitle title="TopTop - Make Your Day" />
       <div
+        ref={scrollContainerRef}
+        onScroll={handleFeedScroll}
         className="h-full overflow-y-auto custom-scrollbar relative"
         style={{
           scrollSnapType: "y mandatory",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
+          overflowAnchor: "none",
         } as React.CSSProperties}
       >
         {isLoading && (
@@ -87,18 +200,15 @@ export default function FeedPage() {
           </div>
         )}
 
-        {allVideos.map((video: Video, index: number) => (
+        {allVideos.map((video: Video) => (
           <VideoCard 
             key={video.id} 
             video={video} 
-            ref={allVideos.length === index + 1 ? lastVideoRef : undefined} 
           />
         ))}
 
-        {isFetchingNextPage && (
-          <div className="h-full flex items-center justify-center" style={{ scrollSnapAlign: "center" }}>
-            <VideoSkeleton />
-          </div>
+        {hasNextPage && allVideos.length > 0 && (
+          <FeedLoadFooter ref={loadMoreRef} />
         )}
       </div>
 

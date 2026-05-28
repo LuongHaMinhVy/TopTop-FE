@@ -78,6 +78,18 @@ const processQueue = (error: Error | null, token: string | null = null) => {
     failedQueue = [];
 };
 
+const isAccountStatusError = (message?: string) => {
+    if (!message) return false;
+    const normalized = message.toLowerCase();
+    return (
+        normalized.includes("account is not active") ||
+        normalized.includes("account has been banned") ||
+        normalized.includes("account has been suspended") ||
+        normalized.includes("account is locked") ||
+        normalized.includes("tài khoản")
+    );
+};
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -126,6 +138,16 @@ api.interceptors.response.use(
         }
 
         if (error.response?.status === 401 && (originalRequest?._retry || requestUrl === "/auth/refresh")) {
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("auth:expired"));
+            }
+        }
+
+        if (
+            error.response?.status === 403 &&
+            !isAuthRequest &&
+            isAccountStatusError(error.response?.data?.message)
+        ) {
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("auth:expired"));
             }

@@ -65,7 +65,13 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
               </button>
             )}
 
-            <button className="flex items-center gap-3 px-3 py-2.5 hover:bg-hover rounded-xl transition-all duration-200 text-start group">
+            <button
+              onClick={() => {
+                router.push("/setting");
+                onClose();
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 hover:bg-hover rounded-xl transition-all duration-200 text-start group"
+            >
               <div className="p-1.5 bg-surface rounded-lg group-hover:rotate-45 transition-transform">
                 <Settings size={16} />
               </div>

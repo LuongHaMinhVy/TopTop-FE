@@ -223,7 +223,7 @@ export const ChatInput = ({ conversationId }: ChatInputProps) => {
         </button>
       </div>
       {mediaOpen && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60">
           <div className="modal-opacity-solid w-full max-w-[420px] overflow-hidden rounded-lg border border-elevated bg-background text-text-primary shadow-2xl">
             <div className="flex items-center justify-between border-b border-elevated px-7 py-6">
               <h2 className="text-[28px] font-bold">Gửi tập tin</h2>

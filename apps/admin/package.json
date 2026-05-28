@@ -9,11 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@repo/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
     "axios": "catalog:",
     "lucide-react": "catalog:",
     "next": "catalog:",
     "next-intl": "catalog:",
+    "next-themes": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

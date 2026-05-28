@@ -803,7 +803,7 @@ export default function ContentManagementPage() {
                           {activePopoverVideoId === video.id && (
                             <div 
                               ref={popoverRef}
-                              className="absolute right-0 top-10 z-50 w-44 rounded-lg bg-surface border border-elevated shadow-xl overflow-hidden py-1 text-left animate-in fade-in slide-in-from-top-2 duration-150"
+                              className="select-options-solid absolute right-0 top-10 z-50 w-44 rounded-lg bg-background border border-elevated shadow-xl overflow-hidden py-1 text-left animate-in fade-in slide-in-from-top-2 duration-150"
                             >
                               {!isDraft && (
                                 <>

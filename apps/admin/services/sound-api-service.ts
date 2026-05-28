@@ -10,7 +10,7 @@ export const getAdminSounds = async (params?: {
 
   if (params?.keyword) searchParams.set("keyword", params.keyword);
   searchParams.set("page", String(params?.page ?? 0));
-  searchParams.set("size", String(params?.size ?? 6));
+  searchParams.set("size", String(params?.size ?? 18));
 
   return get<SoundItem[]>(`/admin/sounds?${searchParams.toString()}`);
 };

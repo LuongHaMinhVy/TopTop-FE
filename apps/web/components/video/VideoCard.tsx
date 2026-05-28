@@ -39,6 +39,7 @@ import type { VideoRepostUser } from "@/types/video";
 import { useCommentSidebar } from "@/components/layout/CommentSidebarContext";
 import {
   useLikeVideoMutation,
+  useNotInterestedVideoMutation,
   useRecordVideoViewMutation,
   useRepostVideoMutation,
   useUnlikeVideoMutation,
@@ -333,6 +334,7 @@ export default function VideoCard({
   const unlikeMutation = useUnlikeVideoMutation();
   const repostMutation = useRepostVideoMutation();
   const unrepostMutation = useUnrepostVideoMutation();
+  const notInterestedMutation = useNotInterestedVideoMutation();
   const { mutate: recordVideoView } = useRecordVideoViewMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
@@ -464,6 +466,24 @@ export default function VideoCard({
         anchor.remove();
         closeMenu();
     }
+  };
+
+  const handleNotInterested = () => {
+    if (!video?.id) return;
+    if (isLiked || isSaved) {
+      closeMenu();
+      setShowOptionsMenu(false);
+      return;
+    }
+    if (!currentUser) {
+      dispatch(openAuthModal("login"));
+      closeMenu();
+      setShowOptionsMenu(false);
+      return;
+    }
+    notInterestedMutation.mutate(video.id);
+    closeMenu();
+    setShowOptionsMenu(false);
   };
 
   /** FIX 2 — debounce togglePlay: prevent double-click jitter */
@@ -1221,9 +1241,14 @@ export default function VideoCard({
                     videoRef={videoRef}
                     videoId={video?.id}
                     username={username}
+                    description={caption}
+                    thumbnailUrl={video?.thumbnailUrl}
+                    isLiked={isLiked}
+                    isSaved={isSaved}
                     canBlock={Boolean(video && !isOwnVideo)}
                     onReportClick={() => setIsReportOpen(true)}
                     onBlockClick={handleBlockUser}
+                    onNotInterested={handleNotInterested}
                   />
                 )}
               </div>
@@ -1362,8 +1387,7 @@ export default function VideoCard({
             closeMenu();
             if (video) router.push(videoPath(video.username, video.id, { from: detailSource }));
         }}
-        onBlockUser={video && !isOwnVideo ? handleBlockUser : undefined}
-        blockLabel={`${t("blockUser")} @${username}`}
+        onNotInterested={handleNotInterested}
       />
     </div>
   );

@@ -23,10 +23,13 @@ export interface AuthResponse {
   refreshToken?: string;
   tokenType?: string;
   expiresIn?: number;
+  reactivationRequired?: boolean;
+  reactivationReason?: "DEACTIVATED" | "PENDING_DELETION" | string;
+  deletionScheduledAt?: string | null;
 }
 
 export type AuthType = "login" | "signup";
-export type AuthMethod = "options" | "form" | "onboard_dob" | "onboard_username";
+export type AuthMethod = "options" | "form" | "onboard_dob" | "onboard_password" | "onboard_username";
 
 export interface AuthMessageData {
   type: "AUTH_SUCCESS" | "AUTH_ERROR";

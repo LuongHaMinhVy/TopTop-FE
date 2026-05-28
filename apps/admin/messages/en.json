@@ -23,9 +23,33 @@
       "reports": "Reports",
       "settings": "Settings",
       "logout": "Log out",
+      "pages": {
+        "overview": {
+          "title": "Overview",
+          "description": "Operations overview, moderation, sounds, and product documentation."
+        },
+        "moderation": {
+          "title": "Moderation",
+          "description": "Review videos in the moderation queue and handle risky content."
+        },
+        "users": {
+          "title": "Users",
+          "description": "Manage account status, search users, and handle account restrictions."
+        },
+        "reports": {
+          "title": "Reports",
+          "description": "Review user reports and update handling status."
+        },
+        "sounds": {
+          "title": "Sounds",
+          "description": "Search and manage sounds in the system."
+        }
+      },
       "nav": {
         "overview": "Overview",
         "creators": "Creators",
+        "users": "Users",
+        "reports": "Reports",
         "content": "Content Management",
         "analytics": "Analytics",
         "safety": "Safety & Reports",
@@ -36,7 +60,12 @@
         "totalCreators": "Total Creators",
         "totalVideos": "Total Videos",
         "activityReports": "Activity Reports",
-        "dailyUsers": "Daily Active Users"
+        "dailyUsers": "Daily Active Users",
+        "pendingModeration": "Pending Moderation",
+        "totalCreatorsHint": "Total users in the platform",
+        "totalVideosHint": "Total uploaded videos",
+        "activityReportsHint": "Total user reports",
+        "pendingModerationHint": "Videos waiting for review"
       },
       "recentReports": {
         "title": "Recent Important Reports",
@@ -75,23 +104,18 @@
         "subtitle": "Operations overview, moderation, sounds, and product documentation.",
         "trustOperations": "Trust operations",
         "moderation": "Moderation",
+        "users": "Users",
+        "reports": "Reports",
         "sounds": "Sounds",
-        "docs": "MD docs",
-        "sharedBase": "Shared base",
-        "sharedBaseDesc": "Admin uses color tokens, spacing, scrollbar styles from web and Button/Input/Badge/Avatar components from the shared UI package.",
         "moderationQueueTitle": "Queue to handle",
-        "moderationQueueDesc": "Loaded from /admin/moderation/videos and prioritized by high-risk videos.",
+        "moderationQueueDesc": "Videos waiting for manual review, ordered by handling priority.",
         "newSoundsTitle": "New sounds",
-        "newSoundsDesc": "Manage public/original sounds in the system.",
-        "docsMapTitle": "Documentation map",
-        "docsMapDesc": "Summarizes MD specs into admin-facing feature groups.",
+        "newSoundsDesc": "Recently added sounds in the system.",
         "videoModerationTitle": "Video moderation",
         "videoModerationDesc": "Uses the existing admin moderation endpoint without hardcoded production queues.",
         "soundManagementTitle": "Sound management",
         "soundManagementDesc": "Search admin sounds and prepare create/update/delete actions.",
         "soundSearchPlaceholder": "Search sounds...",
-        "docsSummaryTitle": "Markdown file summary",
-        "docsSummaryDesc": "The detailed summary file was created at the repo root: PROJECT_MD_SUMMARY.md.",
         "emptyModerationTitle": "No videos in this queue",
         "emptyModerationDesc": "Switch to another status or check the backend moderation worker.",
         "moderationLoadErrorTitle": "Could not load moderation queue",
@@ -103,6 +127,120 @@
         "detail": "Details",
         "review": "Review",
         "noTimestamp": "No timestamp"
+      },
+      "theme": {
+        "light": "Light",
+        "dark": "Dark",
+        "switchToLight": "Switch to light theme",
+        "switchToDark": "Switch to dark theme"
+      },
+      "common": {
+        "unknown": "unknown"
+      },
+      "moderation": {
+        "reportCount": "{count} reports",
+        "risk": "risk {percent}%",
+        "videoFallback": "Video #{id}"
+      },
+      "sounds": {
+        "coverAlt": "Sound cover",
+        "soundFallback": "Sound #{id}",
+        "defaultType": "SOUND",
+        "usageCount": "{count} uses",
+        "pageSummary": "Page {page}/{total} · {count} sounds",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "users": {
+        "title": "User Management",
+        "description": "User list with account activation and ban actions",
+        "searchPlaceholder": "Search username, nickname, email...",
+        "loadErrorTitle": "Could not load users",
+        "loadErrorDesc": "Check backend connectivity",
+        "emptyTitle": "No users found",
+        "emptyDesc": "No results match the current search",
+        "allStatuses": "All statuses",
+        "status": {
+          "ACTIVE": "Active",
+          "SUSPENDED": "Suspended",
+          "BANNED": "Banned"
+        },
+        "activeCount": "Active",
+        "suspendedCount": "Suspended",
+        "bannedCount": "Banned",
+        "pendingDeleteCount": "Hidden/delete",
+        "tableUser": "Account",
+        "tableStatus": "Status",
+        "tableReach": "Reach",
+        "tableCreated": "Created",
+        "tableActions": "Actions",
+        "followersCount": "{count} followers",
+        "likesCount": "{count} likes",
+        "activate": "Activate",
+        "ban": "Ban",
+        "suspend": "Suspend",
+        "view": "View",
+        "close": "Close",
+        "closeDetail": "Close user detail",
+        "hiddenAccount": "Hidden from public",
+        "pageSummary": "Page {page}/{total} · {count} users",
+        "previous": "Previous",
+        "next": "Next",
+        "statusLabel": "Status",
+        "statusReasonLabel": "Lock reason",
+        "visibilityLabel": "Visibility",
+        "private": "Private",
+        "public": "Public",
+        "followingLabel": "Following",
+        "followersLabel": "Followers",
+        "likesLabel": "Likes",
+        "createdLabel": "Created",
+        "deletionStateTitle": "Account is hidden or pending deletion",
+        "deletedAt": "Hidden since: {value}",
+        "deletionScheduledAt": "Hard delete after: {value}",
+        "confirmActivateTitle": "Reactivate this account?",
+        "confirmBanTitle": "Ban this account?",
+        "confirmSuspendTitle": "Suspend this account?",
+        "confirmActionDesc": "This action will apply to @{username}. The lock reason will be shown when the user logs in or uses an existing session.",
+        "reasonPlaceholder": "Enter the account lock reason...",
+        "restoreReasonPlaceholder": "Optional note for reactivation...",
+        "reasonRequired": "A reason is required when banning or suspending an account.",
+        "cancel": "Cancel"
+      },
+      "reportsSection": {
+        "title": "Report Management",
+        "description": "User reports queue for review and resolution",
+        "allStatuses": "All",
+        "loadErrorTitle": "Could not load reports",
+        "loadErrorDesc": "Check backend connectivity",
+        "emptyTitle": "No reports",
+        "emptyDesc": "There are no reports in this status",
+        "reportFallback": "Report #{id}",
+        "targetId": "target ID {id}",
+        "resolve": "Resolve",
+        "reject": "Reject"
+      },
+      "reviewModal": {
+        "title": "Review Video #{id}",
+        "coverAlt": "Cover",
+        "noMedia": "No media",
+        "caption": "Caption",
+        "noCaption": "No caption",
+        "aiAnalysis": "AI Analysis",
+        "status": "Status:",
+        "overallRisk": "Overall Risk:",
+        "categories": "Categories:",
+        "manualDecision": "Manual Decision",
+        "approve": "Approve",
+        "reject": "Reject",
+        "hold": "Hold",
+        "reasonCode": "Reason Code (Optional)",
+        "reasonCodePlaceholder": "e.g. SPAM, NUDITY",
+        "reasonMessage": "Reason Message (Optional)",
+        "reasonMessagePlaceholder": "Add any internal notes here...",
+        "cancel": "Cancel",
+        "submit": "Submit Review",
+        "loadError": "Failed to load video details."
       }
     }
   }

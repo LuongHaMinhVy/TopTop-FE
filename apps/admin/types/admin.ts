@@ -23,11 +23,146 @@ export type ModerationQueueItem = {
 export type SoundItem = {
   id: number;
   title?: string | null;
-  name?: string | null;
   artistName?: string | null;
-  authorUsername?: string | null;
+  audioUrl?: string | null;
+  coverUrl?: string | null;
   type?: string | null;
+  originalSound?: boolean | null;
+  owner?: SoundAuthor | null;
+  stats?: SoundStats | null;
+  isSaved?: boolean | null;
+  isPublic?: boolean | null;
+  isActive?: boolean | null;
   durationSeconds?: number | null;
-  usageCount?: number | null;
   createdAt?: string | null;
+};
+
+export type SoundAuthor = {
+  id: number;
+  username?: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  isVerified?: boolean | null;
+};
+
+export type SoundStats = {
+  soundId: number;
+  usageCount?: number | null;
+  videoCount?: number | null;
+  savedCount?: number | null;
+  isSaved?: boolean | null;
+};
+
+export type VideoModerationFrame = {
+  frameIndex: number;
+  timestampMs: number;
+  riskScore: number;
+  categoriesJson?: string;
+  qualityIssuesJson?: string;
+};
+
+export type ModerationAuditLog = {
+  id: number;
+  videoId: number;
+  adminId?: number;
+  adminEmail?: string;
+  action: string;
+  reasonCode?: string;
+  reasonMessage?: string;
+  createdAt: string;
+};
+
+export type VideoModerationDetail = {
+  videoId: number;
+  videoPreviewUrl?: string;
+  coverUrl?: string;
+  caption?: string;
+  authorUsername?: string;
+  authorAvatarUrl?: string;
+  moderationStatus: string;
+  riskScore?: number;
+  textRiskScore?: number;
+  imageRiskScore?: number;
+  categories?: string[];
+  qualityIssues?: string[];
+  qualityIssueMessage?: string;
+  frames?: VideoModerationFrame[];
+  auditLogs?: ModerationAuditLog[];
+  reportCount?: number;
+  checkedAt?: string;
+};
+
+export type ReviewVideoModerationRequest = {
+  decision: "APPROVE" | "REJECT" | "NEED_REVIEW";
+  reasonCode?: string;
+  reasonMessage?: string;
+};
+
+export type VideoModerationSummary = {
+  videoId: number;
+  moderationStatus: string;
+  riskScore?: number;
+  reasonCode?: string;
+  reasonMessage?: string;
+  checkedAt?: string;
+  musicCopyrightStatus?: string;
+  musicCopyrightReasonCode?: string;
+  musicCopyrightReasonMessage?: string;
+  musicCopyrightCheckedAt?: string;
+  qualityIssues?: string[];
+  qualityIssueMessage?: string;
+};
+
+export type AdminDashboardStats = {
+  totalUsers: number;
+  totalVideos: number;
+  pendingModerationVideos: number;
+  totalReports: number;
+};
+
+// ── Admin User ────────────────────────────────────────────────────────────────
+export type AdminUser = {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string;
+  avatarUrl?: string | null;
+  followersCount: number;
+  followingCount: number;
+  totalLikes: number;
+  verified: boolean;
+  isPrivate: boolean;
+  status: "ACTIVE" | "SUSPENDED" | "BANNED";
+  statusReason?: string | null;
+  createdAt?: string | null;
+  deletedAt?: string | null;
+  deletionScheduledAt?: string | null;
+};
+
+export type AdminUpdateUserStatusRequest = {
+  status: "ACTIVE" | "SUSPENDED" | "BANNED";
+  reason?: string;
+};
+
+// ── Admin Report ──────────────────────────────────────────────────────────────
+export type AdminReport = {
+  id: number;
+  reporterId?: number | null;
+  reporterUsername?: string | null;
+  reporterAvatarUrl?: string | null;
+  targetType: "VIDEO" | "VIDEO_POST" | "COMMENT" | "USER" | "MESSAGE" | "LIVE";
+  targetId: number;
+  reasonId?: number | null;
+  reasonCode?: string | null;
+  reasonLabel?: string | null;
+  additionalNote?: string | null;
+  status: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+  reviewedBy?: number | null;
+  reviewedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type ReviewReportRequest = {
+  status: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+  note?: string;
 };
