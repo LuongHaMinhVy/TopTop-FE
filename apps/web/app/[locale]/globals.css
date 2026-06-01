@@ -152,6 +152,20 @@ button {
   to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes liveHeartFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-180px) scale(1.5);
+  }
+}
+
 .animate-in.fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
@@ -166,6 +180,10 @@ button {
 
 .animate-in.slide-in-from-right-4 {
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-live-heart-float {
+  animation: liveHeartFloat 1.2s ease-out forwards;
 }
 
 /* Global Custom Scrollbar */

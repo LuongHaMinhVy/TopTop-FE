@@ -614,13 +614,13 @@ export default function MainLayout({
                 )}
 
                 <Link
-                  href="/live"
+                  href="/lives"
                   className={collapsed ? "w-[72px]" : "w-full"}
                 >
                   <TikNavItem
                     icon={<Video size={24} />}
                     label={t("sidebar.live")}
-                    active={!overlayPanelOpen && pathname === "/live"}
+                    active={!overlayPanelOpen && pathname === "/lives"}
                     collapsed={collapsed}
                   />
                 </Link>

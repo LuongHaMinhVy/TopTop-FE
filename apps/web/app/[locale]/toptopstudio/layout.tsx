@@ -69,7 +69,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         </div>
         
         <div className="flex items-center gap-4">
-          <Link href="/toptopstudio/upload" className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-bold transition shadow-sm">
+          <Link href="/toptopstudio/upload" className="flex items-center gap-2 btn-primary hover:btn-primary-hover text-white px-4 py-2 rounded-md font-bold transition shadow-sm">
              <Upload size={18} />
              <span>Upload</span>
           </Link>

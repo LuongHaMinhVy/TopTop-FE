@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, Download, HeartOff, Info, Link2, Send } from "lucide-react";
+import { Download, HeartOff, Info, Link2, Send } from "lucide-react";
 
 export interface ContextMenuPosition {
   x: number;

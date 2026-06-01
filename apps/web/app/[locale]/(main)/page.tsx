@@ -125,6 +125,25 @@ export default function FeedPage() {
     return () => observer.current?.disconnect();
   }, []);
 
+  // Đồng bộ feed với overlay khi người dùng đang lướt trong trình phát nổi
+  useEffect(() => {
+    const handleVideoChange = (e: Event) => {
+      const { videoId } = (e as CustomEvent<{ videoId: number }>).detail;
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const target = container.querySelector(
+        `[data-feed-video-id="${videoId}"]`,
+      );
+      if (target) {
+        target.scrollIntoView({ behavior: "instant", block: "start" });
+      }
+    };
+
+    window.addEventListener("feed:video-change", handleVideoChange);
+    return () =>
+      window.removeEventListener("feed:video-change", handleVideoChange);
+  }, []);
+
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
     if (isLoading || !hasNextPage || !node) return;

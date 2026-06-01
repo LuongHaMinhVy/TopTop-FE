@@ -2,7 +2,7 @@
 
 import type { MessageResponseDTO } from "@/types/chat";
 import Link from "next/link";
-import { MoreHorizontal, Play, Trash2 } from "lucide-react";
+import { MoreHorizontal, Play, Trash2, AlertCircle } from "lucide-react";
 import { formatChatTimestamp } from "./chat-time";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -148,24 +148,42 @@ export const MessageItem = ({ message, chatVideosStr = "", onDelete }: MessageIt
 
   if ((message.type === 'IMAGE' || message.type === 'VIDEO') && attachment) {
     const mediaUrl = attachment.url || attachment.videoUrl || "";
+    const isSending = message.status === 'SENDING';
+    const isFailed = message.status === 'FAILED';
+    
     return renderShell(
       <>
         {message.body && (
-          <div className={bubbleClassName}>
+          <div className={`${bubbleClassName} ${isSending ? 'opacity-70' : ''}`}>
             <p className="whitespace-pre-wrap break-words">{message.body}</p>
           </div>
         )}
-        <div className="mt-1 max-w-[240px] overflow-hidden rounded-xl bg-black">
+        <div className={`mt-1 max-w-[240px] overflow-hidden rounded-xl bg-black relative ${isSending ? 'opacity-70' : ''}`}>
           {message.type === 'IMAGE' ? (
             <Image
               src={mediaUrl}
               alt={attachment.fileName || "Image"}
               width={240}
               height={320}
-              className="max-h-[320px] w-full object-cover"
+              unoptimized={mediaUrl.startsWith("blob:") || mediaUrl.startsWith("data:")}
+              className={`max-h-[320px] w-full object-cover transition-all ${isSending ? 'blur-md' : ''}`}
             />
           ) : (
-            <video src={mediaUrl} controls className="max-h-[320px] w-full bg-black" />
+            <video src={mediaUrl} controls={!isSending} className={`max-h-[320px] w-full bg-black ${isSending ? 'blur-md' : ''}`} />
+          )}
+          
+          {isSending && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="size-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            </div>
+          )}
+          {isFailed && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+              <div className="flex flex-col items-center gap-1 text-brand">
+                <AlertCircle size={24} />
+                <span className="text-[11px] font-semibold text-white">Lỗi gửi file</span>
+              </div>
+            </div>
           )}
         </div>
       </>

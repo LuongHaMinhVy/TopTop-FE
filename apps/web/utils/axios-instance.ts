@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const REQUESTS_DISABLED_ON_PAGE = "REQUESTS_DISABLED_ON_PAGE";
+
 export const getBackendBaseUrl = () => {
     if (typeof window === "undefined") {
         return process.env.NEXT_PUBLIC_BACK_END_URL || "http://localhost:8080";
@@ -52,7 +54,7 @@ api.interceptors.request.use((config) => {
         const isNotFound = !!document.querySelector(".is-not-found-page");
 
         if (path.includes("/maintenance") || isMaintenance || isNotFound) {
-            return Promise.reject(new Error("Requests are disabled on this page"));
+            return Promise.reject(new Error(REQUESTS_DISABLED_ON_PAGE));
         }
     }
     return config;
@@ -93,6 +95,10 @@ const isAccountStatusError = (message?: string) => {
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
+        if (error instanceof Error && error.message === REQUESTS_DISABLED_ON_PAGE) {
+            return Promise.reject(error);
+        }
+
         const originalRequest = error.config;
         const requestUrl = originalRequest?.url || "";
         const isAuthRequest = requestUrl.startsWith("/auth/");

@@ -404,8 +404,7 @@ export default function VideoDetailPage() {
     if (
       !isScrollableDetail ||
       !video ||
-      scrollableVideos.length === 0 ||
-      usesProfileDetailLayout
+      scrollableVideos.length === 0
     )
       return;
     if (initializedScrollableVideoIdRef.current !== video.id) return;
@@ -422,7 +421,6 @@ export default function VideoDetailPage() {
     isScrollableDetail,
     scrollableVideos.length,
     video,
-    usesProfileDetailLayout,
   ]);
 
   const requireLogin = () => {
@@ -620,9 +618,18 @@ export default function VideoDetailPage() {
           "",
           videoPath(nextVideo.username, nextVideo.id, detailScopeParams),
         );
+
+        // Đồng bộ feed phía sau khi overlay đang mở ở chế độ trực tiếp từ feed
+        if (detailMode === "direct") {
+          window.dispatchEvent(
+            new CustomEvent("feed:video-change", {
+              detail: { videoId: nextVideo.id },
+            }),
+          );
+        }
       }
     },
-    [detailScopeParams],
+    [detailScopeParams, detailMode],
   );
 
   const navigateToVideo = useCallback(
@@ -635,7 +642,17 @@ export default function VideoDetailPage() {
 
       const nextIndex = currentIndex + direction;
       if (nextIndex >= 0 && nextIndex < scrollableVideos.length) {
-        handleScrollableVideoActive(scrollableVideos[nextIndex]);
+        const nextVideo = scrollableVideos[nextIndex];
+        handleScrollableVideoActive(nextVideo);
+
+        // Cuộn đến video tiếp theo trong scroll-snap container
+        const container = scrollableContainerRef.current;
+        if (container) {
+          const target = container.querySelector(
+            `[data-detail-video-id="${nextVideo.id}"]`,
+          );
+          target?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       }
     },
     [scrollableVideos, displayedVideo, handleScrollableVideoActive],
@@ -657,25 +674,6 @@ export default function VideoDetailPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [usesProfileDetailLayout, navigateToVideo]);
-
-  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleVideoAreaWheel = (e: React.WheelEvent) => {
-    if (!usesProfileDetailLayout) return;
-
-    if (wheelTimeoutRef.current) return; // Cooldown active
-
-    if (e.deltaY > 30) {
-      navigateToVideo(1);
-      wheelTimeoutRef.current = setTimeout(() => {
-        wheelTimeoutRef.current = null;
-      }, 800);
-    } else if (e.deltaY < -30) {
-      navigateToVideo(-1);
-      wheelTimeoutRef.current = setTimeout(() => {
-        wheelTimeoutRef.current = null;
-      }, 800);
-    }
-  };
 
   useEffect(() => {
     if (
@@ -830,47 +828,8 @@ export default function VideoDetailPage() {
 
       <div
         className={`relative min-w-0 flex-1 ${usesProfileDetailLayout ? "bg-black" : "bg-[#161616]"}`}
-        onWheel={usesProfileDetailLayout ? handleVideoAreaWheel : undefined}
       >
-        {usesProfileDetailLayout ? (
-          <div className="relative h-full w-full">
-            <VideoPlayerContainer
-              {...commonPlayerProps}
-              controlsVariant="profile-detail"
-              className="h-full w-full p-0"
-              isActive={true}
-            />
-            {/* Floating Navigation Buttons */}
-            <div className="absolute right-6 top-1/2 flex -translate-y-1/2 flex-col gap-4 z-50">
-              <button
-                onClick={() => navigateToVideo(-1)}
-                disabled={
-                  scrollableVideos.findIndex(
-                    (v) => v.id === displayedVideo?.id,
-                  ) <= 0
-                }
-                className="grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
-                aria-label="Video trước"
-              >
-                <ChevronUp size={24} />
-              </button>
-
-              <button
-                onClick={() => navigateToVideo(1)}
-                disabled={
-                  scrollableVideos.findIndex(
-                    (v) => v.id === displayedVideo?.id,
-                  ) >=
-                  scrollableVideos.length - 1
-                }
-                className="grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
-                aria-label="Video tiếp theo"
-              >
-                <ChevronDown size={24} />
-              </button>
-            </div>
-          </div>
-        ) : isScrollableDetail && scrollableVideos.length > 0 ? (
+        {isScrollableDetail && scrollableVideos.length > 0 ? (
           <div
             ref={scrollableContainerRef}
             className="h-full overflow-y-auto custom-scrollbar"
@@ -886,8 +845,8 @@ export default function VideoDetailPage() {
                 video={scrollVideo}
                 isActive={displayedVideo?.id === scrollVideo.id}
                 isInitial={scrollVideo.id === Number(params.videoId)}
-                controlsVariant="default"
-                className="h-full w-full px-8 py-0"
+                controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
+                className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
                 onActive={handleScrollableVideoActive}
                 onCopyLink={() => handleCopyVideoLink(scrollVideo)}
                 onBlockUser={
@@ -902,11 +861,43 @@ export default function VideoDetailPage() {
         ) : (
           <VideoPlayerContainer
             {...commonPlayerProps}
-            controlsVariant="default"
-            className="h-full w-full px-8 py-0"
+            controlsVariant={usesProfileDetailLayout ? "profile-detail" : "default"}
+            className={usesProfileDetailLayout ? "h-full w-full p-0" : "h-full w-full px-8 py-0"}
             isActive={true}
           />
         )}
+
+        {/* Floating Navigation Buttons — hiển thị khi xem từ profile/collection/... */}
+        {usesProfileDetailLayout && scrollableVideos.length > 1 && (
+          <div className="pointer-events-none absolute right-6 top-1/2 z-50 flex -translate-y-1/2 flex-col gap-4">
+            <button
+              onClick={() => navigateToVideo(-1)}
+              disabled={
+                scrollableVideos.findIndex(
+                  (v) => v.id === displayedVideo?.id,
+                ) <= 0
+              }
+              className="pointer-events-auto grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
+              aria-label="Video trước"
+            >
+              <ChevronUp size={24} />
+            </button>
+            <button
+              onClick={() => navigateToVideo(1)}
+              disabled={
+                scrollableVideos.findIndex(
+                  (v) => v.id === displayedVideo?.id,
+                ) >=
+                scrollableVideos.length - 1
+              }
+              className="pointer-events-auto grid size-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition"
+              aria-label="Video tiếp theo"
+            >
+              <ChevronDown size={24} />
+            </button>
+          </div>
+        )}
+
         {!usesProfileDetailLayout && (
           <RepostBadge
             users={repostUsers}

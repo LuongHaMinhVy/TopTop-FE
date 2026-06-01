@@ -1263,10 +1263,9 @@ export default function UploadVideo() {
   const musicCheckNeedsReview = musicCopyrightStatus === 'NEED_REVIEW';
   const musicCheckRejected = musicCopyrightStatus === 'REJECTED';
 
-  // Fast content checks (watermark, QR code, quality check)
   const fastCheckPending = contentCheckPending;
   const hasFastCheckIssues = Boolean(moderationResult?.qualityIssues && moderationResult.qualityIssues.length > 0);
-  const showCheckToggles = !uploadLocked;
+  const showCheckToggles = !uploadLocked && status !== 'success';
 
   const checksApproved = contentCheckApproved;
   const checksRejected = contentCheckRejected;

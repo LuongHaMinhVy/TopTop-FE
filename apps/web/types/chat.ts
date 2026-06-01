@@ -32,7 +32,7 @@ export interface MessageResponseDTO {
   senderId: number;
   type: MessageType;
   body?: string;
-  status: 'SENT' | 'DELIVERED' | 'READ' | 'DELETED' | 'FAILED';
+  status: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'DELETED' | 'FAILED';
   attachment?: MessageAttachmentResponseDTO;
   replyToMessageId?: number;
   clientMessageId: string;

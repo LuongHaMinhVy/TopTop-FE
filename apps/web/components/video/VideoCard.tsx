@@ -1018,6 +1018,7 @@ export default function VideoCard({
   return (
     <div
       ref={setRefs}
+      data-feed-video-id={videoId}
       className="flex h-full w-full items-center justify-center px-4 py-4"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >

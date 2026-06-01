@@ -204,12 +204,7 @@ export default function SettingPage() {
     return () => window.clearTimeout(timer);
   }, [otpCooldown]);
 
-  const openAccountStatusFlow = (action: AccountStatusAction) => {
-    setAccountStatusAction(action);
-    setAccountStatusStep("details");
-    setAccountOtp("");
-    setFeedback("");
-  };
+
 
   const closeAccountStatusFlow = () => {
     setAccountStatusAction(null);

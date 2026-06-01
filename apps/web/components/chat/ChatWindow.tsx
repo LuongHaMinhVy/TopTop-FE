@@ -1,13 +1,13 @@
 "use client";
 
-import { useDeleteMessage, useMessages, useMarkAsRead } from "@/hooks/chat-hooks";
+import { useDeleteMessage, useMessages, useMarkAsRead, useChatSocket } from "@/hooks/chat-hooks";
 import { MessageItem } from "./MessageItem";
 import { ChatInput } from "./ChatInput";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import { Info, MessageSquare } from "lucide-react";
 import { Avatar, Spinner } from "@repo/ui";
-import type { ConversationResponseDTO } from "@/types/chat";
+import type { ConversationResponseDTO, MessageResponseDTO } from "@/types/chat";
 import { useRouter } from "@/i18n/routing";
 
 interface ChatWindowProps {
@@ -18,6 +18,8 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
   const t = useTranslations('Chat');
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
+  const prevMessageCountRef = useRef(0);
   const markAsRead = useMarkAsRead();
   const deleteMessage = useDeleteMessage();
 
@@ -28,7 +30,31 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
     isFetchingNextPage,
   } = useMessages(conversation?.id || null);
 
-  const messages = data?.pages.flatMap((page) => page.data || []).reverse() || [];
+  // Connect to websocket STOMP broker for realtime updates
+  useChatSocket(conversation?.id || null);
+
+  // Deduplicate messages by clientMessageId (handles optimistic + WS + poll overlap)
+  const messages = useMemo(() => {
+    const raw = data?.pages.flatMap((page) => page.data || []).reverse() || [];
+    const seen = new Map<string, MessageResponseDTO>();
+    for (const msg of raw) {
+      const key = msg.clientMessageId || String(msg.id);
+      const existing = seen.get(key);
+      // Keep the version with a real (positive) server id when available
+      if (!existing || (typeof msg.id === 'number' && msg.id > 0)) {
+        seen.set(key, msg);
+      }
+    }
+    return Array.from(seen.values());
+  }, [data]);
+
+  // Track whether user is scrolled near bottom
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = 120; // px from bottom
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
 
   useEffect(() => {
     if (conversation?.id && conversation.unreadCount > 0) {
@@ -36,11 +62,21 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
     }
   }, [conversation?.id, conversation?.unreadCount, markAsRead]);
 
+  // Auto-scroll only when near bottom or when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current && messages.length > prevMessageCountRef.current && isNearBottomRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length]);
+
+  // Scroll to bottom on first render of a conversation
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      isNearBottomRef.current = true;
     }
-  }, [messages.length]);
+  }, [conversation?.id]);
 
   if (!conversation) {
     return (
@@ -51,6 +87,12 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
       </div>
     );
   }
+
+  const chatVideosStr = messages
+    .filter(m => m.type === 'VIDEO_SHARE' && m.attachment?.videoId)
+    .map(m => m.attachment!.videoId)
+    .reverse()
+    .join(',');
 
   return (
     <div className="flex flex-col h-full bg-background relative">
@@ -83,6 +125,7 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
       {/* Messages */}
       <div 
         ref={scrollRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar"
       >
         {hasNextPage && (
@@ -97,14 +140,10 @@ export const ChatWindow = ({ conversation }: ChatWindowProps) => {
         
         {messages.map((msg) => (
           <MessageItem 
-            key={msg.id} 
+            key={msg.clientMessageId || msg.id}
             message={msg} 
             onDelete={(messageId) => deleteMessage.mutate({ messageId, conversationId: msg.conversationId })}
-            chatVideosStr={messages
-              .filter(m => m.type === 'VIDEO_SHARE' && m.attachment?.videoId)
-              .map(m => m.attachment!.videoId)
-              .reverse()
-              .join(',')}
+            chatVideosStr={chatVideosStr}
           />
         ))}
       </div>

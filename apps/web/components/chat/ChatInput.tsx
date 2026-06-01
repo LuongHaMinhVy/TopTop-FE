@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useSendMessage } from "@/hooks/chat-hooks";
 import { useRef, useState, KeyboardEvent } from "react";
@@ -6,6 +7,9 @@ import { AlertCircle, Send, Smile, Paperclip, X, Image as ImageIcon, Video, Plus
 import { useTranslations } from "next-intl";
 import { useUploadMediaMutation } from "@/hooks/media-hooks";
 import NextImage from "next/image";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { useQueryClient } from "@tanstack/react-query";
 
 const EMOJIS = ["😂", "🥰", "😍", "😭", "😅", "🔥", "❤️", "👏", "💀", "✨", "😎", "👍"];
 const MAX_MEDIA_FILES = 9;
@@ -31,6 +35,8 @@ export const ChatInput = ({ conversationId }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const sendMessage = useSendMessage();
   const uploadMedia = useUploadMediaMutation();
+  const queryClient = useQueryClient();
+  const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
   const hasInvalidMedia = mediaFiles.some((item) => Boolean(item.error));
   const modalMediaError = mediaError || mediaFiles.find((item) => item.error)?.error || "";
 
@@ -146,29 +152,103 @@ export const ChatInput = ({ conversationId }: ChatInputProps) => {
     if (mediaFiles.length === 0 || hasInvalidMedia) return;
 
     const caption = text.trim();
-    for (let index = 0; index < mediaFiles.length; index += 1) {
-      const item = mediaFiles[index];
-      const uploadResponse = await uploadMedia.mutateAsync({ file: item.file, context: "chat" });
-      const media = uploadResponse.data;
-      if (!media?.url) continue;
+    const filesToUpload = [...mediaFiles];
 
-      await sendMessage.mutateAsync({
-        conversationId,
-        type: item.type,
-        body: index === 0 ? caption || undefined : undefined,
-        mediaUrl: media.url,
-        mediaType: item.type,
-        fileName: media.fileName,
-        fileSize: media.fileSize,
-        clientMessageId: crypto.randomUUID(),
-      });
-    }
-
-    mediaFiles.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    // Close the modal and reset states immediately
     setMediaFiles([]);
     setMediaError("");
     setText("");
     setMediaOpen(false);
+
+    // Process files asynchronously in background
+    for (let index = 0; index < filesToUpload.length; index += 1) {
+      const item = filesToUpload[index];
+      const clientMsgId = crypto.randomUUID();
+
+      if (currentUserId) {
+        const queryKey = ['chat', 'messages', currentUserId, conversationId];
+        const optimisticMessage = {
+          id: Math.round(Math.random() * -1000000), // Temp negative ID
+          conversationId,
+          senderId: currentUserId,
+          type: item.type,
+          body: index === 0 ? caption || undefined : undefined,
+          status: 'SENDING',
+          mine: true,
+          clientMessageId: clientMsgId,
+          createdAt: new Date().toISOString(),
+          attachment: {
+            type: item.type,
+            url: item.previewUrl, // Blob URL
+            fileName: item.file.name,
+            fileSize: item.file.size,
+          }
+        };
+
+        // Inject the optimistic message with blob url directly to UI
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) {
+            return {
+              pages: [{ data: [optimisticMessage], meta: { page: 0, size: 20, totalPages: 1, totalElements: 1 } }],
+              pageParams: [0]
+            };
+          }
+          return {
+            ...old,
+            pages: old.pages.map((page: any, idx: number) => {
+              if (idx === 0) {
+                return {
+                  ...page,
+                  data: [optimisticMessage, ...(page.data || [])]
+                };
+              }
+              return page;
+            })
+          };
+        });
+
+        // Run upload & send in background
+        (async () => {
+          try {
+            const uploadResponse = await uploadMedia.mutateAsync({ file: item.file, context: "chat" });
+            const media = uploadResponse.data;
+            if (!media?.url) throw new Error("File upload failed");
+
+            await sendMessage.mutateAsync({
+              conversationId,
+              type: item.type,
+              body: index === 0 ? caption || undefined : undefined,
+              mediaUrl: media.url,
+              mediaType: item.type,
+              fileName: media.fileName,
+              fileSize: media.fileSize,
+              clientMessageId: clientMsgId,
+            });
+
+            // Successfully sent: revoke URL
+            URL.revokeObjectURL(item.previewUrl);
+          } catch (error) {
+            console.error("Failed to upload/send media in background:", error);
+            
+            // Mark as FAILED in query cache
+            queryClient.setQueryData(queryKey, (old: any) => {
+              if (!old) return old;
+              return {
+                ...old,
+                pages: old.pages.map((page: any) => ({
+                  ...page,
+                  data: page.data?.map((msg: any) => 
+                    msg.clientMessageId === clientMsgId 
+                      ? { ...msg, status: 'FAILED' } 
+                      : msg
+                  )
+                }))
+              };
+            });
+          }
+        })();
+      }
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
