@@ -28,6 +28,7 @@ interface VideoOptionsMenuProps {
   thumbnailUrl?: string | null;
   isLiked?: boolean;
   isSaved?: boolean;
+  canNotInterested?: boolean;
   canBlock?: boolean;
   onReportClick?: () => void;
   onBlockClick?: () => void;
@@ -43,6 +44,7 @@ export function VideoOptionsMenu({
   username,
   isLiked = false,
   isSaved = false,
+  canNotInterested = true,
   canBlock = false,
   onReportClick,
   onBlockClick,
@@ -73,6 +75,10 @@ export function VideoOptionsMenu({
   };
 
   const handleNotInterested = () => {
+    if (!canNotInterested) {
+      onClose();
+      return;
+    }
     if (isLiked || isSaved) {
       onClose();
       return;
@@ -125,16 +131,16 @@ export function VideoOptionsMenu({
       onToggle: () => dispatch(setAutoScroll(!autoScroll))
     },
     { icon: <PictureInPicture size={20} />, label: t('pip'), action: 'pip' },
-    {
+    ...(canNotInterested ? [{
       icon: <HeartOff size={20} />,
       label: t('notInterested'),
       action: 'notInterested',
       disabled: isLiked || isSaved,
       rightText: isLiked || isSaved ? t('alreadyInterested') : undefined,
-    },
+    }] : []),
     { icon: <Flag size={20} />, label: t('report'), action: 'report' },
     ...(canBlock ? [{ icon: <Ban size={20} />, label: `${t('blockUser')} @${username}`, action: 'block' }] : []),
-  ], [t, quality, autoScroll, dispatch, canBlock, username, isLiked, isSaved]);
+  ], [t, quality, autoScroll, dispatch, canBlock, username, isLiked, isSaved, canNotInterested]);
 
   if (mode === 'quality') {
     return (

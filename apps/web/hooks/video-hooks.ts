@@ -278,6 +278,13 @@ export const useNotInterestedVideoMutation = () => {
   });
 };
 
+export const useTranslateVideoDescriptionMutation = () => {
+  return useMutation({
+    mutationFn: ({ videoId, targetLocale }: { videoId: number; targetLocale: string }) =>
+      videoService.translateVideoDescription(videoId, targetLocale),
+  });
+};
+
 export const useRecordVideoViewMutation = () => {
   const queryClient = useQueryClient();
 

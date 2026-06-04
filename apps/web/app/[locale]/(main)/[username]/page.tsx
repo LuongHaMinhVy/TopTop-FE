@@ -333,12 +333,7 @@ export default function ProfilePage() {
                   >
                     {t('editProfile')}
                   </button>
-                  <button
-                    onClick={() => setIsEditProfileOpen(true)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover"
-                  >
-                    <Settings className="size-5" />
-                  </button>
+                  
                   <button className="flex h-9 w-9 items-center justify-center rounded-full bg-elevated transition-colors hover:bg-hover">
                     <Share2 className="size-5" />
                   </button>

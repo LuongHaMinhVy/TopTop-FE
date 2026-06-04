@@ -26,7 +26,7 @@ export function ModerationSection({
   const t = useTranslations("Admin.dashboard");
   const statusSelectOptions = moderationStatusOptions.map((option) => ({
     value: option,
-    label: option,
+    label: t(`moderationStatus.${option}`),
   }));
 
   return (

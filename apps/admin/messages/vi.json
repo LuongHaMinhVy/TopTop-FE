@@ -15,6 +15,7 @@
     },
     "dashboard": {
       "title": "Tổng quan Dashboard",
+      "brandName": "TopTop Admin",
       "welcome": "Chào mừng quay trở lại! Đây là những gì đang diễn ra trên TopTop hôm nay.",
       "downloadReport": "Tải báo cáo",
       "liveMonitor": "Giám sát trực tiếp",
@@ -31,6 +32,10 @@
         "moderation": {
           "title": "Kiểm duyệt",
           "description": "Xem xét video trong hàng đợi kiểm duyệt và xử lý nội dung rủi ro."
+        },
+        "livestreams": {
+          "title": "Livestream",
+          "description": "Theo dõi các phiên live, trạng thái phòng và xử lý kết thúc stream khi cần."
         },
         "users": {
           "title": "Người dùng",
@@ -65,7 +70,9 @@
         "totalCreatorsHint": "Tổng số người dùng trên hệ thống",
         "totalVideosHint": "Tổng số video đã tải lên",
         "activityReportsHint": "Tổng số báo cáo từ người dùng",
-        "pendingModerationHint": "Video đang chờ duyệt"
+        "pendingModerationHint": "Video đang chờ duyệt",
+        "liveData": "Đang cập nhật",
+        "unavailable": "Chưa tải được"
       },
       "recentReports": {
         "title": "Báo cáo quan trọng gần đây",
@@ -104,6 +111,7 @@
         "subtitle": "Tổng quan vận hành, kiểm duyệt, âm thanh và tài liệu sản phẩm.",
         "trustOperations": "Vận hành an toàn",
         "moderation": "Kiểm duyệt",
+        "livestreams": "Livestream",
         "users": "Người dùng",
         "reports": "Báo cáo",
         "sounds": "Âm thanh",
@@ -141,6 +149,78 @@
         "reportCount": "{count} báo cáo",
         "risk": "risk {percent}%",
         "videoFallback": "Video #{id}"
+      },
+      "moderationStatus": {
+        "PENDING": "Đang chờ",
+        "NEED_REVIEW": "Cần review",
+        "APPROVED": "Đã duyệt",
+        "REJECTED": "Từ chối"
+      },
+      "reportStatus": {
+        "PENDING": "Đang chờ",
+        "REVIEWING": "Đang xử lý",
+        "RESOLVED": "Đã giải quyết",
+        "REJECTED": "Từ chối"
+      },
+      "reportResolutionAction": {
+        "NONE": "Không áp dụng hành động",
+        "MARK_VIDEO_NEED_REVIEW": "Đưa video vào hàng đợi kiểm duyệt",
+        "REMOVE_VIDEO": "Gỡ video khỏi hiển thị công khai",
+        "DELETE_COMMENT": "Xóa bình luận",
+        "SUSPEND_USER": "Tạm khóa người dùng",
+        "BAN_USER": "Cấm người dùng"
+      },
+      "reportTargetType": {
+        "VIDEO": "Video",
+        "VIDEO_POST": "Bài video",
+        "COMMENT": "Bình luận",
+        "USER": "Người dùng",
+        "MESSAGE": "Tin nhắn",
+        "LIVE": "Live"
+      },
+      "livestreamStatus": {
+        "SCHEDULED": "Đã tạo",
+        "LIVE": "Đang live",
+        "ENDED": "Đã kết thúc",
+        "CANCELLED": "Đã hủy"
+      },
+      "livestreamVisibility": {
+        "PUBLIC": "Công khai",
+        "FOLLOWERS_ONLY": "Chỉ follower",
+        "PRIVATE": "Riêng tư"
+      },
+      "livestreams": {
+        "title": "Quản lý livestream",
+        "description": "Danh sách live stream, trạng thái phòng và thao tác kết thúc stream từ admin.",
+        "searchPlaceholder": "Tìm tiêu đề, mô tả hoặc host...",
+        "allStatuses": "Tất cả trạng thái",
+        "loadErrorTitle": "Không tải được danh sách livestream",
+        "loadErrorDesc": "Kiểm tra backend, phiên đăng nhập admin hoặc quyền ROLE_ADMIN.",
+        "emptyTitle": "Chưa có livestream phù hợp",
+        "emptyDesc": "Thử đổi bộ lọc trạng thái hoặc keyword.",
+        "tableStream": "Livestream",
+        "tableStatus": "Trạng thái",
+        "tableAudience": "Người xem",
+        "tableStarted": "Thời gian",
+        "tableActions": "Thao tác",
+        "currentViewers": "{count} đang xem",
+        "peakViewers": "đỉnh {count}",
+        "pageSummary": "Trang {page}/{total} · {count} livestream",
+        "previous": "Trước",
+        "next": "Sau",
+        "end": "Kết thúc",
+        "cancel": "Hủy",
+        "streamFallback": "Livestream #{id}",
+        "noCategory": "Không có danh mục",
+        "chatOn": "Chat bật",
+        "chatOff": "Chat tắt",
+        "giftsOn": "Gift bật",
+        "giftsOff": "Gift tắt",
+        "confirmEndTitle": "Kết thúc livestream này?",
+        "confirmEndDesc": "Admin sẽ đóng phòng LiveKit và chuyển \"{title}\" sang trạng thái đã kết thúc.",
+        "endErrorTitle": "Không thể kết thúc livestream",
+        "current": "Hiện tại",
+        "started": "Bắt đầu"
       },
       "sounds": {
         "coverAlt": "Ảnh bìa âm thanh",
@@ -218,7 +298,26 @@
         "reportFallback": "Báo cáo #{id}",
         "targetId": "target ID {id}",
         "resolve": "Giải quyết",
-        "reject": "Từ chối"
+        "reject": "Từ chối",
+        "review": "Xử lý",
+        "reviewTitle": "Xử lý báo cáo #{id}",
+        "reporter": "Người báo cáo",
+        "target": "Đối tượng",
+        "created": "Thời gian tạo",
+        "userNote": "Ghi chú của người báo cáo",
+        "decision": "Quyết định",
+        "action": "Hành động",
+        "actionHelper": "Giải quyết báo cáo phải áp dụng một hành động xử lý.",
+        "actionOnlyResolved": "Hành động chỉ được áp dụng khi quyết định là Đã giải quyết.",
+        "unsupportedAction": "Chưa có hành động xử lý cho loại đối tượng này. Hãy từ chối báo cáo hoặc giữ trạng thái đang xử lý.",
+        "reviewNote": "Ghi chú xử lý",
+        "reviewNotePlaceholder": "Nhập ghi chú nội bộ cho quyết định này...",
+        "reviewNoteHelper": "Ghi chú này chỉ dùng trong admin để theo dõi cách xử lý.",
+        "cancel": "Hủy",
+        "saveReview": "Lưu xử lý",
+        "pageSummary": "Trang {page}/{total} · {count} báo cáo",
+        "previous": "Trước",
+        "next": "Sau"
       },
       "reviewModal": {
         "title": "Review Video #{id}",

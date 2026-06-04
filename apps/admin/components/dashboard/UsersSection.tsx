@@ -291,6 +291,8 @@ function UserMetric({
 }
 
 function UserIdentity({ user }: { user: AdminUser }) {
+  const t = useTranslations("Admin.dashboard");
+
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface">
@@ -311,7 +313,7 @@ function UserIdentity({ user }: { user: AdminUser }) {
           ) : null}
           {user.isPrivate ? (
             <Badge variant="info" size="sm">
-              private
+              {t("users.private")}
             </Badge>
           ) : null}
         </div>

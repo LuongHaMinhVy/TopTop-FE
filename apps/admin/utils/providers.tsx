@@ -16,7 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }));
 
     return (
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
             <QueryClientProvider client={queryClient}>
                 <AuthExpiredHandler>
                     {children}

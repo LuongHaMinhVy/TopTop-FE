@@ -4,9 +4,8 @@ import "./globals.css";
 import StoreProvider from "@/components/providers/StoreProvider";
 import QueryProvider from "@/components/providers/QueryProvider";
 import AuthWrapper from "@/components/auth/AuthWrapper";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/NextThemeProvider";
+import { RuntimeIntlProvider } from "@/components/providers/RuntimeIntlProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +33,6 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const messages = await getMessages();
 
   return (
     <html
@@ -43,7 +41,7 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-text-primary transition-colors duration-300">
-        <NextIntlClientProvider messages={messages} locale={locale}>
+        <RuntimeIntlProvider initialLocale={locale}>
           <ThemeProvider 
             attribute="class" 
             defaultTheme="system" 
@@ -58,7 +56,7 @@ export default async function LocaleLayout({
               </StoreProvider>
             </QueryProvider>
           </ThemeProvider>
-        </NextIntlClientProvider>
+        </RuntimeIntlProvider>
       </body>
     </html>
   );

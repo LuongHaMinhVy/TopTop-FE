@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import Providers from "@/utils/providers";
+import { RuntimeIntlProvider } from "@/components/providers/RuntimeIntlProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,8 +35,6 @@ export default async function RootLayout({
     notFound();
   }
 
-  const messages = await getMessages();
-
   return (
     <html
       lang={locale}
@@ -44,9 +42,20 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider messages={messages}>
+        <Script id="admin-theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              var theme = localStorage.getItem('theme') || 'system';
+              var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              var resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+              document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+              document.documentElement.style.colorScheme = resolvedTheme;
+            } catch (_) {}
+          `}
+        </Script>
+        <RuntimeIntlProvider initialLocale={locale}>
           <Providers>{children}</Providers>
-        </NextIntlClientProvider>
+        </RuntimeIntlProvider>
       </body>
     </html>
   );

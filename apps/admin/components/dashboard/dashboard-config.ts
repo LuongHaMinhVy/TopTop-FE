@@ -2,6 +2,7 @@ import {
   Flag,
   LayoutDashboard,
   Music2,
+  Radio,
   ShieldAlert,
   Users,
 } from "lucide-react";
@@ -10,6 +11,7 @@ import type { ElementType } from "react";
 export type SectionKey =
   | "overview"
   | "moderation"
+  | "livestreams"
   | "users"
   | "reports"
   | "sounds";
@@ -39,6 +41,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     titleKey: "pages.moderation.title",
     descriptionKey: "pages.moderation.description",
     icon: ShieldAlert,
+  },
+  {
+    key: "livestreams",
+    href: "/livestreams",
+    labelKey: "ops.livestreams",
+    titleKey: "pages.livestreams.title",
+    descriptionKey: "pages.livestreams.description",
+    icon: Radio,
   },
   {
     key: "users",
@@ -79,4 +89,12 @@ export const reportStatusOptions = [
   "REVIEWING",
   "RESOLVED",
   "REJECTED",
+] as const;
+
+export const livestreamStatusOptions = [
+  "",
+  "SCHEDULED",
+  "LIVE",
+  "ENDED",
+  "CANCELLED",
 ] as const;

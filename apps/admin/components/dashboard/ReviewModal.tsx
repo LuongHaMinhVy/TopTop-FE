@@ -20,6 +20,7 @@ export function ReviewModal({
   onClose: () => void;
 }) {
   const t = useTranslations("Admin.dashboard.reviewModal");
+  const tDashboard = useTranslations("Admin.dashboard");
   const queryClient = useQueryClient();
   const [decision, setDecision] = useState<ReviewVideoModerationRequest["decision"]>("NEED_REVIEW");
   const [reasonCode, setReasonCode] = useState("");
@@ -54,7 +55,9 @@ export function ReviewModal({
             {t("title", { id: videoId })}
           </h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label={t("cancel")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-text-primary"
           >
             <X className="h-5 w-5" />
@@ -102,7 +105,9 @@ export function ReviewModal({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-text-muted">{t("status")}</span>
-                      <Badge variant="info">{detail.moderationStatus}</Badge>
+                      <Badge variant="info">
+                        {tDashboard(`moderationStatus.${detail.moderationStatus}`)}
+                      </Badge>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted">{t("overallRisk")}</span>

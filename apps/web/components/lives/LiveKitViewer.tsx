@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -10,12 +11,15 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { Avatar, Button } from "@repo/ui";
-import { Loader2, Radio, WifiOff } from "lucide-react";
+import { CheckCircle2, Loader2, Radio, WifiOff } from "lucide-react";
 import { useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { RootState } from "@/store/store";
 import {
   useFollowLiveHost,
   useJoinLivestream,
+  useLeaveStream,
+  useLiveSocket,
   useLivestream,
   useSendReaction,
 } from "@/hooks/live-hooks";
@@ -26,32 +30,60 @@ import LiveActionRail from "./LiveActionRail";
 import LiveChat from "./LiveChat";
 
 const HostVideo = () => {
-  const cameraTracks = useTracks([
+  const videoTracks = useTracks([
+    { source: Track.Source.ScreenShare, withPlaceholder: false },
     { source: Track.Source.Camera, withPlaceholder: false },
-  ]);
-  const cameraTrack = cameraTracks[0];
+  ]).filter(isTrackReference);
 
-  if (!cameraTrack || !isTrackReference(cameraTrack)) {
+  const screenTrack = videoTracks.find(
+    (trackRef) => trackRef.source === Track.Source.ScreenShare,
+  );
+  const cameraTrack = videoTracks.find(
+    (trackRef) => trackRef.source === Track.Source.Camera,
+  );
+  const activeTrack = screenTrack || cameraTrack;
+
+  if (!activeTrack) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-black">
-        <p className="text-sm text-white/60">Host paused video</p>
+        <p className="text-sm text-white/60">Waiting for host video...</p>
       </div>
     );
   }
 
-  return <VideoTrack trackRef={cameraTrack} className="h-full w-full object-cover" />;
+  return (
+    <VideoTrack
+      trackRef={activeTrack}
+      className={`h-full w-full ${
+        activeTrack.source === Track.Source.ScreenShare ? "object-contain" : "object-cover"
+      }`}
+    />
+  );
 };
 
 interface LiveKitViewerProps {
   streamId: number;
   isActive: boolean;
   initialStream?: LivestreamResponse;
+  /**
+   * When true (feed /lives page), shows a "Click to join" overlay instead of
+   * auto-connecting. Interactions (like, gift, chat) are hidden until the user
+   * explicitly taps the join button.
+   */
+  previewMode?: boolean;
 }
 
-export default function LiveKitViewer({ streamId, isActive, initialStream }: LiveKitViewerProps) {
+export default function LiveKitViewer({
+  streamId,
+  isActive,
+  initialStream,
+  previewMode = false,
+}: LiveKitViewerProps) {
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const t = useTranslations("common");
   const { data: streamInfo, isLoading: isInfoLoading, isError } = useLivestream(streamId);
   const joinMutation = useJoinLivestream();
+  const leaveStream = useLeaveStream();
   const sendReaction = useSendReaction();
   const followHost = useFollowLiveHost();
 
@@ -62,31 +94,117 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
   const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [isGiftPanelOpen, setIsGiftPanelOpen] = useState(false);
   const [chatFocusSignal, setChatFocusSignal] = useState(0);
+  const [streamEndedBySocket, setStreamEndedBySocket] = useState(false);
+  const [copyToast, setCopyToast] = useState(false);
+  /** previewMode only: becomes true when user clicks "Click to join" */
+  const [userWantsToJoin, setUserWantsToJoin] = useState(false);
+  const [joinRetryCount, setJoinRetryCount] = useState(0);
+
   const hasAttemptedJoin = useRef(false);
+  const hasJoinedRef = useRef(false);
+  // Keep a stable ref to the mutate fn so the join effect doesn't re-run when
+  // the mutation state changes (idle → loading → settled changes the object identity).
+  const joinMutateRef = useRef(joinMutation.mutate);
+  useEffect(() => {
+    joinMutateRef.current = joinMutation.mutate;
+  });
 
   const stream = streamInfo?.data || initialStream;
   const visibleLikeCount = stream?.likeCount || 0;
 
+  // Leave stream and reset all join state when component becomes inactive (e.g. scrolled away)
   useEffect(() => {
-    if (!isActive || token || hasAttemptedJoin.current || stream?.status !== "LIVE") return;
+    if (!isActive) {
+      setUserWantsToJoin(false);
+      setToken("");
+      setUrl("");
+      setJoinError("");
+      setConnectionError("");
+      setJoinRetryCount(0);
+      hasAttemptedJoin.current = false;
+      if (hasJoinedRef.current) {
+        leaveStream.mutate(streamId);
+        hasJoinedRef.current = false;
+      }
+    }
+  }, [isActive, streamId, leaveStream]);
+
+  // Leave stream on unmount (explicit viewer count decrement)
+  useEffect(() => {
+    return () => {
+      if (hasJoinedRef.current) {
+        leaveStream.mutate(streamId);
+      }
+    };
+    // We want this to fire once on unmount; leaveStream ref is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamId]);
+
+  const handleStreamEnded = useCallback(() => {
+    setStreamEndedBySocket(true);
+    setToken("");
+    setUrl("");
+  }, []);
+
+  // Subscribe to WebSocket events for real-time updates
+  useLiveSocket(
+    isActive ? streamId : null,
+    undefined,
+    handleStreamEnded
+  );
+
+  const MAX_JOIN_RETRIES = 5;
+
+  // Reset join state when the stream status transitions to LIVE so the viewer
+  // automatically connects without a manual reconnect.
+  const prevStatusRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const currentStatus = stream?.status;
+    if (prevStatusRef.current !== currentStatus) {
+      if (currentStatus === "LIVE" && prevStatusRef.current !== undefined) {
+        hasAttemptedJoin.current = false;
+        setJoinError("");
+        setConnectionError("");
+      }
+      prevStatusRef.current = currentStatus;
+    }
+  }, [stream?.status]);
+
+  // In preview mode, only start joining after the user opts in.
+  // In detail mode, join automatically.
+  const shouldAttemptJoin = previewMode ? userWantsToJoin : true;
+
+  useEffect(() => {
+    if (
+      !isActive ||
+      !shouldAttemptJoin ||
+      token ||
+      hasAttemptedJoin.current ||
+      stream?.status !== "LIVE"
+    ) return;
+    if (joinRetryCount >= MAX_JOIN_RETRIES) return;
 
     hasAttemptedJoin.current = true;
-    setJoinError("");
-    setConnectionError("");
-    joinMutation.mutate(streamId, {
+    joinMutateRef.current(streamId, {
       onSuccess: (res) => {
         if (res.data) {
           setToken(res.data.token);
           setUrl(res.data.livekitUrl);
+          setJoinRetryCount(0);
+          hasJoinedRef.current = true;
         }
       },
       onError: (error: unknown) => {
         const maybeError = error as { response?: { data?: { message?: string } } };
-        setJoinError(maybeError.response?.data?.message || "Could not join this live stream.");
+        const msg = maybeError.response?.data?.message || "Could not join this live stream.";
+        setJoinError(msg);
         hasAttemptedJoin.current = false;
+        setJoinRetryCount((c) => c + 1);
       },
     });
-  }, [isActive, joinMutation, stream?.status, streamId, token]);
+  // joinMutateRef is stable — safe to exclude from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, shouldAttemptJoin, stream?.status, streamId, token, joinRetryCount]);
 
   const hostName = useMemo(() => {
     if (!stream?.host) return "Unknown host";
@@ -130,6 +248,8 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
       return;
     }
     await navigator.clipboard?.writeText(shareUrl);
+    setCopyToast(true);
+    window.setTimeout(() => setCopyToast(false), 2500);
   };
 
   if (isInfoLoading && !initialStream) {
@@ -150,10 +270,16 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
     );
   }
 
-  const isLive = stream.status === "LIVE";
+  const isLive = stream.status === "LIVE" && !streamEndedBySocket;
   const isOwnStream = currentUser?.id === stream.host?.id;
   const liveError = connectionError || joinError;
   const shouldConnect = isActive && isLive && Boolean(token && url) && !liveError;
+  // Show the "Click to join" overlay in preview mode before the user opts in
+  const showJoinOverlay = previewMode && isLive && !userWantsToJoin && !token;
+  const showGuestPanel = isActive && !showJoinOverlay;
+  const titleStyle: React.CSSProperties | undefined = showGuestPanel
+    ? { bottom: "min(calc(42% + 1rem), 376px)" }
+    : undefined;
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
@@ -179,6 +305,12 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
             <HostVideo />
             <RoomAudioRenderer />
           </LiveKitRoom>
+        ) : showJoinOverlay ? (
+          <StreamPreviewOverlay
+            stream={stream}
+            title={hostName}
+            onJoin={() => setUserWantsToJoin(true)}
+          />
         ) : (
           <StreamLoadingPoster stream={stream} joinError={liveError} isJoining={joinMutation.isPending} />
         )}
@@ -214,7 +346,12 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
         )}
       </div>
 
-      <div className="absolute bottom-24 left-4 right-24 z-30 text-white md:bottom-8 md:left-6 md:max-w-xl">
+      <div
+        className={`absolute left-4 right-24 z-30 text-white md:left-6 md:max-w-xl ${
+          showGuestPanel ? "" : "bottom-24 md:bottom-8"
+        }`}
+        style={titleStyle}
+      >
         <h2 className="line-clamp-2 text-lg font-bold drop-shadow-md md:text-2xl">{stream.title}</h2>
         {stream.description && (
           <p className="mt-2 line-clamp-2 text-sm text-white/80 drop-shadow-md">{stream.description}</p>
@@ -226,7 +363,8 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
         )}
       </div>
 
-      {isActive && isLive && (
+      {/* Interactive controls — only shown once connected (not in preview overlay mode) */}
+      {isActive && isLive && !showJoinOverlay && (
         <>
           <LiveActionRail
             likeCount={visibleLikeCount}
@@ -246,7 +384,7 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
         </>
       )}
 
-      {isActive && (
+      {showGuestPanel && (
         <div className="absolute bottom-0 left-0 right-16 z-30 h-[42%] max-h-[360px] md:right-auto md:w-[420px]">
           {isLive ? (
             <LiveChat
@@ -260,6 +398,13 @@ export default function LiveKitViewer({ streamId, isActive, initialStream }: Liv
               Chat will be available when the host goes live.
             </div>
           )}
+        </div>
+      )}
+
+      {copyToast && (
+        <div className="absolute left-1/2 top-20 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#222] px-4 py-2.5 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <CheckCircle2 className="size-4 text-green-400" />
+          {t("copyLinkSuccess")}
         </div>
       )}
     </div>
@@ -283,6 +428,50 @@ function StreamPoster({ stream, title }: { stream: LivestreamResponse; title: st
         <p className="mt-2 text-white/70">
           {stream.status === "ENDED" ? "Livestream has ended" : "Waiting for host to go live."}
         </p>
+      </div>
+    </div>
+  );
+}
+
+/** Feed-only: blurred thumbnail preview with a "Click to join" / "Nhấp vào để xem" CTA. */
+function StreamPreviewOverlay({
+  stream,
+  title,
+  onJoin,
+}: {
+  stream: LivestreamResponse;
+  title: string;
+  onJoin: () => void;
+}) {
+  const isVi =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/vi");
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center px-6 text-center text-white">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={stream.thumbnailUrl || stream.host?.avatarUrl || "/placeholder.jpg"}
+        className="absolute inset-0 h-full w-full object-cover opacity-30 blur-md"
+        alt=""
+      />
+      <div className="relative z-10 flex flex-col items-center gap-5">
+        <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white/20 shadow-xl">
+          <Avatar src={stream.host?.avatarUrl || ""} alt={stream.host?.username || "Host"} size="lg" />
+        </div>
+        <div>
+          <p className="text-xl font-bold drop-shadow">{title}</p>
+          <p className="mt-1 text-sm text-white/70">
+            {stream.viewerCount} {isVi ? "người xem" : "viewers"}
+          </p>
+        </div>
+        <button
+          type="button"
+          id="join-live-btn"
+          onClick={onJoin}
+          className="inline-flex items-center gap-2 rounded-full bg-white/90 px-7 py-3 text-sm font-bold text-black shadow-2xl transition hover:bg-white active:scale-95"
+        >
+          <Radio className="h-4 w-4 text-brand" />
+          {isVi ? "Nhấp vào để xem" : "Click to join"}
+        </button>
       </div>
     </div>
   );

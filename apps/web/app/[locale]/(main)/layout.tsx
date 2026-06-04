@@ -53,6 +53,7 @@ import { useChatUnreadCount } from "@/hooks/chat-hooks";
 import type { ConversationStatus } from "@/types/chat";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { useFriendsCount } from "@/hooks/friend-hooks";
+import { useMyLivestreams } from "@/hooks/live-hooks";
 
 const SIDE_PANEL_WIDTH = 360;
 const COMMENT_SIDEBAR_WIDTH = 360;
@@ -98,6 +99,7 @@ export default function MainLayout({
   const chatUnreadCount = chatUnreadData?.data
     ? chatUnreadData.data.totalUnread + chatUnreadData.data.requestUnread
     : 0;
+  const { data: myLivestreamsData } = useMyLivestreams(isLoggedIn);
   const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications(isLoggedIn);
   const markRead = useMarkReadMutation();
   const notifications = notificationsData?.data || [];
@@ -145,6 +147,18 @@ export default function MainLayout({
     if (filter === "FOLLOW") return type === "FOLLOW";
     return ["MENTION", "TAG", "MENTION_TAG", "USER_MENTION", "VIDEO_TAG", "COMMENT_MENTION"].includes(type);
   };
+
+  const activeHostedLivestream = useMemo(() => {
+    const streams = myLivestreamsData?.data ?? [];
+    return (
+      streams.find((stream) => stream.status === "LIVE") ??
+      streams.find((stream) => stream.status === "SCHEDULED") ??
+      null
+    );
+  }, [myLivestreamsData?.data]);
+  const liveHref = activeHostedLivestream
+    ? `/lives/studio/${activeHostedLivestream.id}`
+    : "/lives";
 
   const notificationFilters: { key: NotificationFilter; label: string }[] = [
     { key: "ALL", label: t("notifications.filters.all") },
@@ -614,13 +628,20 @@ export default function MainLayout({
                 )}
 
                 <Link
-                  href="/lives"
+                  href={liveHref}
+                  onClick={() => {
+                    closeSearch();
+                    closeActivity();
+                  }}
                   className={collapsed ? "w-[72px]" : "w-full"}
                 >
                   <TikNavItem
                     icon={<Video size={24} />}
                     label={t("sidebar.live")}
-                    active={!overlayPanelOpen && pathname === "/lives"}
+                    active={
+                      !overlayPanelOpen &&
+                      (pathname === "/lives" || pathname.startsWith("/lives/studio"))
+                    }
                     collapsed={collapsed}
                   />
                 </Link>

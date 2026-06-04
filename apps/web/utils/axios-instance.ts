@@ -56,6 +56,15 @@ api.interceptors.request.use((config) => {
         if (path.includes("/maintenance") || isMaintenance || isNotFound) {
             return Promise.reject(new Error(REQUESTS_DISABLED_ON_PAGE));
         }
+
+        const locale =
+            window.localStorage.getItem("NEXT_LOCALE") ||
+            window.localStorage.getItem("toptop_locale") ||
+            document.documentElement.lang;
+
+        if (locale === "vi" || locale === "en") {
+            config.headers["Accept-Language"] = locale;
+        }
     }
     return config;
 });

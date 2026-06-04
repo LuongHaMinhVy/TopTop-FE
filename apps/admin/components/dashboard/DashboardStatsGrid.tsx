@@ -59,6 +59,7 @@ export function DashboardStatsGrid() {
           key={stat.label}
           stat={stat}
           isLoading={statsQuery.isLoading}
+          isError={statsQuery.isError}
           index={index}
         />
       ))}
@@ -69,12 +70,15 @@ export function DashboardStatsGrid() {
 function OverviewStatCard({
   stat,
   isLoading,
+  isError,
   index,
 }: {
   stat: StatItem;
   isLoading: boolean;
+  isError: boolean;
   index: number;
 }) {
+  const t = useTranslations("Admin.dashboard");
   const Icon = stat.icon;
   const accents = [
     "from-cyan/15 via-cyan/5",
@@ -93,7 +97,7 @@ function OverviewStatCard({
           <Icon className="h-5 w-5" />
         </div>
         <span className="rounded-full border border-elevated bg-background/60 px-2.5 py-1 text-[11px] font-black uppercase text-text-muted">
-          Live
+          {t(isError ? "stats.unavailable" : "stats.liveData")}
         </span>
       </div>
 

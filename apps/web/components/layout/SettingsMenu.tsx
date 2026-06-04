@@ -17,6 +17,10 @@ import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import {
+  requestRuntimeLocaleChange,
+  type AppLocale,
+} from "@/components/providers/RuntimeIntlProvider";
 
 interface SettingsMenuProps {
   onClose: () => void;
@@ -35,14 +39,17 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
   const languages = [
     { code: "vi", name: "Tiếng Việt" },
     { code: "en", name: "English (US)" },
-  ];
+  ] as const;
 
-  const handleLanguageChange = (code: string) => {
-    if (typeof document !== 'undefined') {
-       // eslint-disable-next-line react-hooks/immutability
-       document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=31536000`;
-       window.location.reload();
+  const handleLanguageChange = (code: AppLocale) => {
+    if (code === locale) {
+      setView("main");
+      return;
     }
+
+    requestRuntimeLocaleChange(code);
+    setView("main");
+    onClose();
   };
 
   return (
@@ -153,6 +160,7 @@ export function SettingsMenu({ onClose, onLogout, isLoggedIn }: SettingsMenuProp
               <button 
                 key={lang.code}
                 onClick={() => handleLanguageChange(lang.code)}
+                disabled={locale === lang.code}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-start ${locale === lang.code ? "bg-brand/5 text-brand" : "hover:bg-hover"}`}
               >
                 <span className={`text-[14px] ${locale === lang.code ? "font-black" : "font-bold text-text-secondary"}`}>

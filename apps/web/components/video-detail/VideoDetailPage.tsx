@@ -49,6 +49,8 @@ import {
   Repeat2,
   Copy,
   Play,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -122,6 +124,7 @@ export default function VideoDetailPage() {
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const t = useTranslations("video");
+  const tCommon = useTranslations("common");
 
   const rawUsername = params.username as string;
   const videoIdStr = params.videoId as string;
@@ -197,6 +200,7 @@ export default function VideoDetailPage() {
     value: boolean;
   } | null>(null);
   const [showRepostToast, setShowRepostToast] = useState(false);
+  const [copyToast, setCopyToast] = useState<"success" | "error" | null>(null);
   const initializedScrollableVideoIdRef = useRef<number | null>(null);
   const scrollableContainerRef = useRef<HTMLDivElement | null>(null);
   const displayedVideo = optimisticVideo ?? activeScrollableVideo ?? video;
@@ -540,7 +544,13 @@ export default function VideoDetailPage() {
 
   const handleCopyLink = async () => {
     if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopyToast("success");
+    } catch {
+      setCopyToast("error");
+    }
+    window.setTimeout(() => setCopyToast(null), 2500);
   };
 
   const handleRepost = () => {
@@ -601,7 +611,13 @@ export default function VideoDetailPage() {
 
   const handleCopyVideoLink = async (targetVideo: Video) => {
     const targetUrl = `${window.location.origin}${videoPath(targetVideo.username, targetVideo.id)}`;
-    await navigator.clipboard.writeText(targetUrl);
+    try {
+      await navigator.clipboard.writeText(targetUrl);
+      setCopyToast("success");
+    } catch {
+      setCopyToast("error");
+    }
+    window.setTimeout(() => setCopyToast(null), 2500);
   };
 
   const handleScrollableVideoActive = useCallback(
@@ -1082,6 +1098,21 @@ export default function VideoDetailPage() {
         >
           <Repeat2 className="size-4 text-yellow-400" />
           Đã đăng lại
+        </div>
+      )}
+
+      {copyToast && (
+        <div
+          className={`fixed z-[300] left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-[#222] px-5 py-3 text-[14px] font-semibold text-white shadow-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200 ${
+            usesProfileDetailLayout ? "bottom-24" : "top-20"
+          }`}
+        >
+          {copyToast === "success" ? (
+            <CheckCircle2 className="size-4 text-green-400" />
+          ) : (
+            <AlertCircle className="size-4 text-brand" />
+          )}
+          {copyToast === "success" ? tCommon("copyLinkSuccess") : tCommon("copyLinkError")}
         </div>
       )}
     </div>

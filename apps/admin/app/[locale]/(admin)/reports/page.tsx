@@ -10,13 +10,14 @@ const emptyReportItems: AdminReport[] = [];
 
 export default function AdminReportsPage() {
   const [reportStatus, setReportStatus] = useState("");
+  const [reportPage, setReportPage] = useState(0);
 
   const reportsQuery = useQuery({
-    queryKey: ["admin", "reports", reportStatus],
+    queryKey: ["admin", "reports", reportStatus, reportPage],
     queryFn: () =>
       getAdminReports({
         status: reportStatus || undefined,
-        page: 0,
+        page: reportPage,
         size: 20,
       }),
   });
@@ -27,7 +28,12 @@ export default function AdminReportsPage() {
     <ReportsSection
       items={reportItems}
       status={reportStatus}
-      onStatusChange={setReportStatus}
+      pageInfo={reportsQuery.data?.data}
+      onStatusChange={(nextStatus) => {
+        setReportStatus(nextStatus);
+        setReportPage(0);
+      }}
+      onPageChange={setReportPage}
       isLoading={reportsQuery.isLoading}
       isError={reportsQuery.isError}
     />

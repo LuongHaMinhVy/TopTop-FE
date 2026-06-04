@@ -14,6 +14,8 @@ import {
   MoreHorizontal,
   PictureInPicture,
   Check,
+  CheckCircle,
+  AlertCircle,
   Repeat2,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -27,7 +29,7 @@ import { VideoOptionsMenu } from "./VideoOptionsMenu";
 import { ShareModal } from "./ShareModal";
 import { RepostBadge } from "./RepostBadge";
 import { IconButton } from "@repo/ui/icon-button";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useVideoContextMenu } from "@/hooks/use-video-context-menu";
 import { useDebounceCallback } from "@/hooks/useDebounceCallback";
 import { VideoContextMenu } from "../video-detail/VideoContextMenu";
@@ -42,6 +44,7 @@ import {
   useNotInterestedVideoMutation,
   useRecordVideoViewMutation,
   useRepostVideoMutation,
+  useTranslateVideoDescriptionMutation,
   useUnlikeVideoMutation,
   useUnrepostVideoMutation,
 } from "@/hooks/video-hooks";
@@ -218,6 +221,53 @@ function parseAspectRatio(value: string): number {
   return width / height;
 }
 
+const VIETNAMESE_DIACRITIC_PATTERN = /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i;
+const VIETNAMESE_COMMON_WORDS = [
+  "anh", "ban", "cho", "cua", "duoc", "em", "hay", "khong", "la", "minh",
+  "mot", "nguoi", "nay", "nhung", "toi", "va", "voi",
+];
+const ENGLISH_COMMON_WORDS = [
+  "a", "an", "and", "are", "beautiful", "for", "hello", "in", "is", "like",
+  "love", "me", "my", "not", "of", "on", "that", "the", "this", "to",
+  "today", "trend", "we", "with", "you", "your",
+];
+
+function normalizeTextForLanguageDetection(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[@#][\p{L}\p{N}_]+/gu, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countCommonWords(text: string, words: string[]): number {
+  if (!text) return 0;
+  const tokens = new Set(text.split(/\s+/).filter(Boolean));
+  return words.reduce((count, word) => count + (tokens.has(word) ? 1 : 0), 0);
+}
+
+function isTextLikelyLocale(text: string, locale: string): boolean {
+  const normalizedLocale = locale.toLowerCase();
+  const normalizedText = normalizeTextForLanguageDetection(text);
+  if (!normalizedText) return true;
+
+  const hasVietnameseDiacritics = VIETNAMESE_DIACRITIC_PATTERN.test(normalizedText);
+  const vietnameseMatches = countCommonWords(normalizedText, VIETNAMESE_COMMON_WORDS);
+  const englishMatches = countCommonWords(normalizedText, ENGLISH_COMMON_WORDS);
+
+  if (normalizedLocale.startsWith("vi")) {
+    return hasVietnameseDiacritics || vietnameseMatches >= 2 || (vietnameseMatches >= 1 && englishMatches === 0);
+  }
+
+  if (normalizedLocale.startsWith("en")) {
+    return !hasVietnameseDiacritics && englishMatches >= 1 && vietnameseMatches === 0;
+  }
+
+  return false;
+}
+
 // ─────────────────────────────────────────────
 // VideoCard Props
 // ─────────────────────────────────────────────
@@ -273,7 +323,9 @@ export default function VideoCard({
   const soundLabel = video?.sound?.title;
 
   const t        = useTranslations("video");
+  const tCommon  = useTranslations("common");
   const tCollection = useTranslations("Collection");
+  const locale = useLocale();
   const dispatch = useDispatch();
   const router   = useRouter();
   const pathname = usePathname();
@@ -285,6 +337,9 @@ export default function VideoCard({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [repostOverride, setRepostOverride] = useState<{ videoId: number; value: boolean } | null>(null);
   const [showRepostToast, setShowRepostToast] = useState(false);
+  const [copyToast, setCopyToast] = useState<"success" | "error" | null>(null);
+  const [translatedDescription, setTranslatedDescription] = useState<string | null>(null);
+  const [showTranslatedDescription, setShowTranslatedDescription] = useState(false);
   const {
     activeVideoId: activeCommentVideoId,
     isCommentSidebarAvailable,
@@ -335,6 +390,7 @@ export default function VideoCard({
   const repostMutation = useRepostVideoMutation();
   const unrepostMutation = useUnrepostVideoMutation();
   const notInterestedMutation = useNotInterestedVideoMutation();
+  const translateDescriptionMutation = useTranslateVideoDescriptionMutation();
   const { mutate: recordVideoView } = useRecordVideoViewMutation();
   const saveMutation = useSaveVideoMutation();
   const unsaveMutation = useUnsaveVideoMutation();
@@ -402,10 +458,16 @@ export default function VideoCard({
     }, 220);
   }, []);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (video) {
         const url = `${window.location.origin}${videoPath(video.username, video.id)}`;
-        navigator.clipboard.writeText(url);
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopyToast("success");
+        } catch {
+          setCopyToast("error");
+        }
+        window.setTimeout(() => setCopyToast(null), 2500);
         closeMenu();
     }
   };
@@ -470,6 +532,11 @@ export default function VideoCard({
 
   const handleNotInterested = () => {
     if (!video?.id) return;
+    if (isOwnVideo) {
+      closeMenu();
+      setShowOptionsMenu(false);
+      return;
+    }
     if (isLiked || isSaved) {
       closeMenu();
       setShowOptionsMenu(false);
@@ -586,11 +653,22 @@ export default function VideoCard({
     setIsPlaying(false);
   }, []);
   const likes = formatCount(likeCount);
+  const displayCaption = showTranslatedDescription && translatedDescription
+    ? translatedDescription
+    : caption;
+  const shouldShowTranslationButton = Boolean(
+    videoId && caption.trim() && !isTextLikelyLocale(caption, locale),
+  );
 
   // keep ref in sync
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    setTranslatedDescription(null);
+    setShowTranslatedDescription(false);
+  }, [videoId, caption, locale]);
 
   useEffect(() => {
     if (!video?.id || !isNearViewport || !isPlaying) {
@@ -997,6 +1075,30 @@ export default function VideoCard({
     if (videoRef.current) videoRef.current.volume = newVolume;
   };
 
+  const handleTranslateDescription = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!videoId || !caption.trim() || translateDescriptionMutation.isPending) return;
+
+    if (translatedDescription) {
+      setShowTranslatedDescription((current) => !current);
+      return;
+    }
+
+    translateDescriptionMutation.mutate(
+      { videoId, targetLocale: locale },
+      {
+        onSuccess: (response) => {
+          const translatedText = response.data?.translatedText?.trim();
+          if (!translatedText) return;
+          setTranslatedDescription(translatedText);
+          setShowTranslatedDescription(true);
+        },
+      },
+    );
+  };
+
   const renderCaptionWithHashtags = (text: string) => {
     if (!text) return null;
     const parts = text.split(/(#\w+)/g);
@@ -1202,15 +1304,27 @@ export default function VideoCard({
                   </div>
                   
                   <p className="text-[14px] sm:text-[15px] line-clamp-3 leading-relaxed opacity-95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] font-medium max-w-[420px]">
-                    {renderCaptionWithHashtags(caption)}
+                    {renderCaptionWithHashtags(displayCaption)}
                   </p>
 
                   
-                  <div className="mt-2 pointer-events-auto flex items-center gap-4">
-                    <button className="text-[12px] font-bold opacity-70 hover:opacity-100 transition-opacity bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-sm">
-                      {t("seeTranslation")}
-                    </button>
-                  </div>
+                  {shouldShowTranslationButton ? (
+                    <div className="mt-2 pointer-events-auto flex items-center gap-4">
+                      <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={handleTranslateDescription}
+                        disabled={translateDescriptionMutation.isPending}
+                        className="text-[12px] font-bold opacity-70 hover:opacity-100 transition-opacity bg-black/20 px-2 py-0.5 rounded-md backdrop-blur-sm disabled:cursor-wait disabled:opacity-50"
+                      >
+                        {translateDescriptionMutation.isPending
+                          ? t("translating")
+                          : showTranslatedDescription
+                            ? t("showOriginal")
+                            : t("seeTranslation")}
+                      </button>
+                    </div>
+                  ) : null}
                   
                 </div>
               </div>
@@ -1246,6 +1360,7 @@ export default function VideoCard({
                     thumbnailUrl={video?.thumbnailUrl}
                     isLiked={isLiked}
                     isSaved={isSaved}
+                    canNotInterested={Boolean(video && !isOwnVideo)}
                     canBlock={Boolean(video && !isOwnVideo)}
                     onReportClick={() => setIsReportOpen(true)}
                     onBlockClick={handleBlockUser}
@@ -1377,6 +1492,17 @@ export default function VideoCard({
         </div>
       )}
 
+      {copyToast && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 rounded-full bg-[#222] px-4 py-2.5 text-[14px] font-semibold text-white shadow-xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200">
+          {copyToast === "success" ? (
+            <CheckCircle className="size-4 text-green-400" />
+          ) : (
+            <AlertCircle className="size-4 text-brand" />
+          )}
+          {copyToast === "success" ? tCommon("copyLinkSuccess") : tCommon("copyLinkError")}
+        </div>
+      )}
+
       {/* Context Menu */}
       <VideoContextMenu 
         isOpen={isCtxOpen}
@@ -1388,7 +1514,7 @@ export default function VideoCard({
             closeMenu();
             if (video) router.push(videoPath(video.username, video.id, { from: detailSource }));
         }}
-        onNotInterested={handleNotInterested}
+        onNotInterested={!isOwnVideo ? handleNotInterested : undefined}
       />
     </div>
   );

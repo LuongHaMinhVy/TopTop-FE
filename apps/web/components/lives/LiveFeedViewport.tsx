@@ -125,6 +125,7 @@ export default function LiveFeedViewport() {
                streamId={stream.id} 
                isActive={safeActiveIndex === index} 
                initialStream={stream}
+               previewMode={true}
              />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

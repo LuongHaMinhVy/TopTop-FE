@@ -15,6 +15,7 @@
     },
     "dashboard": {
       "title": "Dashboard Overview",
+      "brandName": "TopTop Admin",
       "welcome": "Welcome back! Here's what's happening on TopTop today.",
       "downloadReport": "Download Report",
       "liveMonitor": "Live Monitor",
@@ -31,6 +32,10 @@
         "moderation": {
           "title": "Moderation",
           "description": "Review videos in the moderation queue and handle risky content."
+        },
+        "livestreams": {
+          "title": "Livestreams",
+          "description": "Monitor live sessions, room status, and force-end streams when needed."
         },
         "users": {
           "title": "Users",
@@ -65,7 +70,9 @@
         "totalCreatorsHint": "Total users in the platform",
         "totalVideosHint": "Total uploaded videos",
         "activityReportsHint": "Total user reports",
-        "pendingModerationHint": "Videos waiting for review"
+        "pendingModerationHint": "Videos waiting for review",
+        "liveData": "Live data",
+        "unavailable": "Unavailable"
       },
       "recentReports": {
         "title": "Recent Important Reports",
@@ -104,6 +111,7 @@
         "subtitle": "Operations overview, moderation, sounds, and product documentation.",
         "trustOperations": "Trust operations",
         "moderation": "Moderation",
+        "livestreams": "Livestreams",
         "users": "Users",
         "reports": "Reports",
         "sounds": "Sounds",
@@ -141,6 +149,78 @@
         "reportCount": "{count} reports",
         "risk": "risk {percent}%",
         "videoFallback": "Video #{id}"
+      },
+      "moderationStatus": {
+        "PENDING": "Pending",
+        "NEED_REVIEW": "Needs review",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "reportStatus": {
+        "PENDING": "Pending",
+        "REVIEWING": "Reviewing",
+        "RESOLVED": "Resolved",
+        "REJECTED": "Rejected"
+      },
+      "reportResolutionAction": {
+        "NONE": "No enforcement action",
+        "MARK_VIDEO_NEED_REVIEW": "Send video to moderation queue",
+        "REMOVE_VIDEO": "Remove video from public feeds",
+        "DELETE_COMMENT": "Delete comment",
+        "SUSPEND_USER": "Suspend user",
+        "BAN_USER": "Ban user"
+      },
+      "reportTargetType": {
+        "VIDEO": "Video",
+        "VIDEO_POST": "Video post",
+        "COMMENT": "Comment",
+        "USER": "User",
+        "MESSAGE": "Message",
+        "LIVE": "Live"
+      },
+      "livestreamStatus": {
+        "SCHEDULED": "Created",
+        "LIVE": "Live",
+        "ENDED": "Ended",
+        "CANCELLED": "Cancelled"
+      },
+      "livestreamVisibility": {
+        "PUBLIC": "Public",
+        "FOLLOWERS_ONLY": "Followers only",
+        "PRIVATE": "Private"
+      },
+      "livestreams": {
+        "title": "Livestream Management",
+        "description": "Livestream list, room status, and admin end-stream actions.",
+        "searchPlaceholder": "Search title, description, or host...",
+        "allStatuses": "All statuses",
+        "loadErrorTitle": "Could not load livestreams",
+        "loadErrorDesc": "Check the backend, admin login session, or ROLE_ADMIN permission.",
+        "emptyTitle": "No matching livestreams",
+        "emptyDesc": "Try another status filter or keyword.",
+        "tableStream": "Livestream",
+        "tableStatus": "Status",
+        "tableAudience": "Audience",
+        "tableStarted": "Time",
+        "tableActions": "Actions",
+        "currentViewers": "{count} watching",
+        "peakViewers": "peak {count}",
+        "pageSummary": "Page {page}/{total} · {count} livestreams",
+        "previous": "Previous",
+        "next": "Next",
+        "end": "End",
+        "cancel": "Cancel",
+        "streamFallback": "Livestream #{id}",
+        "noCategory": "No category",
+        "chatOn": "Chat on",
+        "chatOff": "Chat off",
+        "giftsOn": "Gifts on",
+        "giftsOff": "Gifts off",
+        "confirmEndTitle": "End this livestream?",
+        "confirmEndDesc": "Admin will close the LiveKit room and mark \"{title}\" as ended.",
+        "endErrorTitle": "Could not end livestream",
+        "current": "Current",
+        "started": "Started"
       },
       "sounds": {
         "coverAlt": "Sound cover",
@@ -218,7 +298,26 @@
         "reportFallback": "Report #{id}",
         "targetId": "target ID {id}",
         "resolve": "Resolve",
-        "reject": "Reject"
+        "reject": "Reject",
+        "review": "Review",
+        "reviewTitle": "Review report #{id}",
+        "reporter": "Reporter",
+        "target": "Target",
+        "created": "Created",
+        "userNote": "User note",
+        "decision": "Decision",
+        "action": "Action",
+        "actionHelper": "Resolving a report requires applying one of these actions.",
+        "actionOnlyResolved": "Actions are applied only when the decision is Resolved.",
+        "unsupportedAction": "No enforcement action is available for this target yet. Reject the report or keep it reviewing.",
+        "reviewNote": "Review note",
+        "reviewNotePlaceholder": "Add an internal note for this decision...",
+        "reviewNoteHelper": "This note is only used in admin for handling history.",
+        "cancel": "Cancel",
+        "saveReview": "Save review",
+        "pageSummary": "Page {page}/{total} · {count} reports",
+        "previous": "Previous",
+        "next": "Next"
       },
       "reviewModal": {
         "title": "Review Video #{id}",

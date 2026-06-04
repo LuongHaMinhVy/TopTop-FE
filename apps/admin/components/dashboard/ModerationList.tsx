@@ -65,7 +65,7 @@ export function ModerationList({
           <div className="flex min-w-0 flex-col justify-center">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <Badge variant={statusVariant(item.moderationStatus)}>
-                {item.moderationStatus}
+                {t(`moderationStatus.${item.moderationStatus}`)}
               </Badge>
               {(item.reportCount ?? 0) > 0 && (
                 <Badge variant="error">

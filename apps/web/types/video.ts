@@ -48,6 +48,13 @@ export interface VideoRepostUser {
   isCurrentUser?: boolean;
 }
 
+export interface VideoDescriptionTranslation {
+  videoId: number;
+  sourceText: string;
+  translatedText: string;
+  targetLocale: string;
+}
+
 export interface VideoUploadData {
   title: string;
   description: string;

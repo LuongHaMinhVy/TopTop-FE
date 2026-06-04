@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { authLogin } from "@/services/auth-api-service";
 import { AlertCircle, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { Button, Input } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+import { useTheme } from "@/components/providers/NextThemeProvider";
 
 export default function AdminLoginPage() {
   const router = useRouter();

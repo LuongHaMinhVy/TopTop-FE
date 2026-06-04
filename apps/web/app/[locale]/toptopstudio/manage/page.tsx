@@ -34,6 +34,7 @@ import type { Video } from '@/types/video';
 import { DocumentTitle } from '@/components/shared/DocumentTitle';
 import { SoundEditorPanel } from '@/components/sound/SoundEditorPanel';
 import type { Sound } from '@/types/sound';
+import { useTranslations } from 'next-intl';
 
 type VideoVisibility = NonNullable<Video['visibility']>;
 type DraftWithPreview = VideoDraft & { previewUrl: string };
@@ -113,7 +114,13 @@ const highlightHashtags = (text?: string) => {
   });
 };
 
-const renderVideoStatusBadge = (video: ManagedVideoRow) => {
+interface ManageStatusLabels {
+  musicRecognized: string;
+  musicNotRecognized: string;
+  qualityIssueFallback: string;
+}
+
+const renderVideoStatusBadge = (video: ManagedVideoRow, labels: ManageStatusLabels) => {
   if (video._isDraft) return null;
   const v = video as PublishedVideoRow;
 
@@ -152,21 +159,21 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
     );
   }
 
-  const hasMusicIssue = musicStatus === 'REJECTED';
+  const hasRecognizedMusic = musicStatus === 'REJECTED';
   const hasQualityIssue = parseQualityIssues(v.qualityIssuesJson).length > 0;
 
-  if (hasMusicIssue || hasQualityIssue) {
+  if (hasRecognizedMusic || hasQualityIssue) {
     return (
       <div className="flex flex-col gap-1 mt-1">
         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 w-fit select-none">
           <Check size={10} />
           Đã xuất bản
         </span>
-        {hasMusicIssue && (
-          <span className="text-[11px] text-amber-500 font-medium line-clamp-1">Trùng bản quyền âm nhạc (Vẫn hiển thị).</span>
+        {hasRecognizedMusic && (
+          <span className="text-[11px] text-text-muted font-medium line-clamp-1">{labels.musicRecognized}</span>
         )}
         {hasQualityIssue && (
-          <span className="text-[11px] text-amber-500 font-medium line-clamp-1">{v.qualityIssueMessage || "Nội dung chất lượng thấp hoặc trùng lặp."}</span>
+          <span className="text-[11px] text-amber-500 font-medium line-clamp-1">{v.qualityIssueMessage || labels.qualityIssueFallback}</span>
         )}
       </div>
     );
@@ -179,7 +186,7 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
           <Check size={10} />
           Đã xuất bản
         </span>
-        <span className="text-[11px] text-amber-400 font-medium line-clamp-1">Âm thanh có thể được kiểm tra sau khi đăng.</span>
+        <span className="text-[11px] text-text-muted font-medium line-clamp-1">{labels.musicNotRecognized}</span>
       </div>
     );
   }
@@ -194,6 +201,13 @@ const renderVideoStatusBadge = (video: ManagedVideoRow) => {
 
 
 export default function ContentManagementPage() {
+  const t = useTranslations('Studio.manage');
+  const statusLabels = useMemo<ManageStatusLabels>(() => ({
+    musicRecognized: t('musicRecognized'),
+    musicNotRecognized: t('musicNotRecognized'),
+    qualityIssueFallback: t('qualityIssueFallback'),
+  }), [t]);
+
   const user = useSelector((state: RootState) => state.auth.user);
   
   // Fetch user videos
@@ -710,7 +724,7 @@ export default function ContentManagementPage() {
                             <span className="text-[12px] text-text-muted select-none">
                               {formatVietnameseDate(video.createdAt)}
                             </span>
-                            {renderVideoStatusBadge(video)}
+                            {renderVideoStatusBadge(video, statusLabels)}
                           </div>
                         </div>
                       </td>

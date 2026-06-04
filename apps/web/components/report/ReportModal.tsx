@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import type { ReportReason, ReportTargetType } from '@/types/report';
 import { useReportReasons } from '@/hooks/report/useReportReasons';
@@ -18,6 +18,30 @@ interface ReportModalProps {
 
 type ReportStep = 'REASON_LIST' | 'POLICY' | 'SUCCESS';
 
+function findReasonById(reasons: ReportReason[], reasonId: number): ReportReason | null {
+  for (const reason of reasons) {
+    if (reason.id === reasonId) return reason;
+    const childMatch = findReasonById(reason.children || [], reasonId);
+    if (childMatch) return childMatch;
+  }
+
+  return null;
+}
+
+function findReasonPath(
+  reasons: ReportReason[],
+  reasonId: number,
+  path: ReportReason[][] = [],
+): ReportReason[][] | null {
+  for (const reason of reasons) {
+    if (reason.id === reasonId) return [...path, reasons];
+    const childPath = findReasonPath(reason.children || [], reasonId, [...path, reasons]);
+    if (childPath) return childPath;
+  }
+
+  return null;
+}
+
 export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportModalProps) {
   const t = useTranslations('Report');
   const { data: reasonTree = [], isLoading, isError } = useReportReasons();
@@ -30,6 +54,29 @@ export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportMod
 
   const visibleReasons = useMemo(() => {
     return currentReasons.length > 0 ? currentReasons : reasonTree;
+  }, [currentReasons, reasonTree]);
+
+  useEffect(() => {
+    if (reasonTree.length === 0) return;
+
+    setSelectedReason((current) => {
+      if (!current) return current;
+      return findReasonById(reasonTree, current.id) ?? current;
+    });
+
+    setCurrentReasons((current) => {
+      const firstReason = current[0];
+      if (!firstReason) return current;
+      const path = findReasonPath(reasonTree, firstReason.id);
+      return path && path.length > 0 ? path[path.length - 1] : current;
+    });
+
+    setReasonStack((current) => {
+      const currentFirstReason = currentReasons[0];
+      if (!currentFirstReason) return current;
+      const path = findReasonPath(reasonTree, currentFirstReason.id);
+      return path && path.length > 1 ? path.slice(0, -1) : [];
+    });
   }, [currentReasons, reasonTree]);
 
   if (!isOpen) return null;
@@ -82,8 +129,8 @@ export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportMod
   const canGoBack = step === 'POLICY' || reasonStack.length > 0;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4">
-      <div className="modal-opacity-solid w-full max-w-[760px] overflow-hidden rounded-xl bg-[#121212] text-white shadow-2xl max-sm:h-[85vh] max-sm:rounded-t-2xl max-sm:rounded-b-none flex flex-col">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-4">
+      <div className="modal-opacity-solid flex max-h-[85dvh] min-h-0 w-full max-w-[760px] flex-col overflow-hidden rounded-xl bg-[#121212] text-white shadow-2xl max-sm:h-[85dvh] max-sm:rounded-b-none max-sm:rounded-t-2xl">
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
           <div className="flex items-center gap-3">
             {canGoBack && (
@@ -99,7 +146,7 @@ export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportMod
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
           {isLoading && <p className="text-white/70">{t('loading')}</p>}
           {isError && <p className="text-red-400">{t('loadError')}</p>}
 

@@ -157,12 +157,56 @@ export type AdminReport = {
   reasonLabel?: string | null;
   additionalNote?: string | null;
   status: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+  resolutionAction?: ReportResolutionAction | null;
   reviewedBy?: number | null;
+  reviewNote?: string | null;
   reviewedAt?: string | null;
   createdAt?: string | null;
 };
 
+export type ReportResolutionAction =
+  | "NONE"
+  | "MARK_VIDEO_NEED_REVIEW"
+  | "REMOVE_VIDEO"
+  | "DELETE_COMMENT"
+  | "SUSPEND_USER"
+  | "BAN_USER";
+
 export type ReviewReportRequest = {
   status: "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+  action?: ReportResolutionAction;
   note?: string;
+};
+
+// ── Admin Livestream ─────────────────────────────────────────────────────────
+export type AdminLivestreamStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
+export type AdminLivestreamVisibility = "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
+
+export type AdminLivestreamHost = {
+  id: number;
+  username: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  isFollowing?: boolean | null;
+};
+
+export type AdminLivestream = {
+  id: number;
+  title: string;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  status: AdminLivestreamStatus;
+  visibility: AdminLivestreamVisibility;
+  allowChat: boolean;
+  allowGifts: boolean;
+  roomName?: string | null;
+  viewerCount: number;
+  peakViewerCount: number;
+  likeCount: number;
+  giftCount: number;
+  categoryName?: string | null;
+  host: AdminLivestreamHost;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  createdAt?: string | null;
 };

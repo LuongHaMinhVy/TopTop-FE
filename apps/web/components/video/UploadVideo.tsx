@@ -1262,6 +1262,23 @@ export default function UploadVideo() {
   const musicCheckApproved = musicCopyrightStatus === 'APPROVED';
   const musicCheckNeedsReview = musicCopyrightStatus === 'NEED_REVIEW';
   const musicCheckRejected = musicCopyrightStatus === 'REJECTED';
+  const musicRecognitionMessage = (() => {
+    const reasonCode = moderationResult?.musicCopyrightReasonCode;
+    const reasonMessage = moderationResult?.musicCopyrightReasonMessage?.trim();
+    if ((reasonCode === 'MUSIC_RECOGNIZED' || reasonCode === 'PLATFORM_SOUND_RECOGNIZED') && reasonMessage) {
+      return t('musicRecognizedSong', { value: reasonMessage });
+    }
+    if (
+      reasonCode === 'NO_MUSIC_RECOGNIZED' ||
+      reasonCode === 'ORIGINAL_SOUND_NOT_RECOGNIZED'
+    ) {
+      return t('musicNoSongRecognized');
+    }
+    if (reasonCode) {
+      return t('musicRecognitionUnavailable');
+    }
+    return t('musicNoSongRecognized');
+  })();
 
   const fastCheckPending = contentCheckPending;
   const hasFastCheckIssues = Boolean(moderationResult?.qualityIssues && moderationResult.qualityIssues.length > 0);
@@ -1356,15 +1373,15 @@ export default function UploadVideo() {
               })}
               {!musicCheckPending && musicCheckApproved && renderCheckStatus({
                 tone: 'success',
-                text: t('noIssueDetected'),
+                text: musicRecognitionMessage,
               })}
               {!musicCheckPending && musicCheckNeedsReview && renderCheckStatus({
-                tone: 'warning',
-                text: moderationResult?.musicCopyrightReasonMessage || t('musicNeedReviewShort'),
+                tone: 'muted',
+                text: musicRecognitionMessage,
               })}
               {!musicCheckPending && musicCheckRejected && renderCheckStatus({
-                tone: 'warning',
-                text: moderationResult?.musicCopyrightReasonMessage || t('musicRejectedShort'),
+                tone: 'success',
+                text: musicRecognitionMessage,
               })}
               {!musicCheckPending && !musicCheckApproved && !musicCheckNeedsReview && !musicCheckRejected && renderCheckStatus({
                 tone: 'muted',

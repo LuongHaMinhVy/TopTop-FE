@@ -4,12 +4,12 @@ import {
   type ElementType,
   type ReactNode,
 } from "react";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { Loader2, LogOut, Moon, Sun } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
 import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
+import { useTheme } from "@/components/providers/NextThemeProvider";
 import { dashboardNavItems, type SectionKey } from "./dashboard-config";
 import { TopTopMark } from "./dashboard-common";
 import { authLogout } from "@/services/auth-api-service";
@@ -39,7 +39,7 @@ export function AdminDashboardLayout({
         <div className="mb-7 flex items-center gap-3 px-2">
           <TopTopMark />
           <div>
-            <p className="text-lg font-black leading-tight">TopTop Admin</p>
+            <p className="text-lg font-black leading-tight">{t("brandName")}</p>
             <p className="text-xs font-semibold uppercase text-text-muted">
               {t("ops.trustOperations")}
             </p>
@@ -60,9 +60,14 @@ export function AdminDashboardLayout({
 
         <button
           onClick={() => logoutMutation.mutate()}
+          disabled={logoutMutation.isPending}
           className="mt-auto flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold text-text-muted transition hover:bg-hover hover:text-text-primary"
         >
-          <LogOut className="h-4 w-4" />
+          {logoutMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LogOut className="h-4 w-4" />
+          )}
           {t("logout")}
         </button>
       </aside>
@@ -120,6 +125,7 @@ function SidebarItem({
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold transition ${
         active
           ? "bg-brand text-white shadow-lg shadow-brand/20"
@@ -140,22 +146,26 @@ function MobileNav({
   const t = useTranslations("Admin.dashboard");
 
   return (
-    <div className="grid grid-cols-5 gap-2 lg:hidden">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:hidden">
       {dashboardNavItems.map((item) => {
         const Icon = item.icon;
+        const active = activeSection === item.key;
+        const label = t(item.labelKey);
 
         return (
           <Link
             key={item.key}
             href={item.href}
-            aria-label={t(item.labelKey)}
-            className={`flex h-12 items-center justify-center gap-1 rounded-lg border text-xs font-black ${
-              activeSection === item.key
+            aria-label={label}
+            aria-current={active ? "page" : undefined}
+            className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-[11px] font-black leading-tight ${
+              active
                 ? "border-brand bg-brand text-white"
                 : "border-elevated bg-background text-text-muted"
             }`}
           >
             <Icon className="h-4 w-4" />
+            <span className="max-w-full truncate">{label}</span>
           </Link>
         );
       })}
@@ -164,11 +174,19 @@ function MobileNav({
 }
 
 function getActiveSection(pathname: string): SectionKey {
+  const normalizedPathname = normalizeDashboardPathname(pathname);
   const match = dashboardNavItems.find(
-    (item) => item.href !== "/overview" && pathname.startsWith(item.href),
+    (item) => item.href !== "/overview" && normalizedPathname.startsWith(item.href),
   );
 
   return match?.key ?? "overview";
+}
+
+function normalizeDashboardPathname(pathname: string): string {
+  const normalized = pathname.replace(/^\/(vi|en)(?=\/|$)/, "") || "/";
+  return normalized.endsWith("/") && normalized !== "/"
+    ? normalized.slice(0, -1)
+    : normalized;
 }
 
 function ThemeToggle() {

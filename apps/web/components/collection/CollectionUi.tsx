@@ -24,6 +24,7 @@ import type { VideoCollection } from "@/types/collection";
 import type { Video } from "@/types/video";
 import { formatCount } from "@/utils/format-count";
 import type { Sound } from "@/types/sound";
+import { useTranslations } from "next-intl";
 
 export function FavoriteSoundTile({ sound }: { sound: Sound }) {
   const formatDuration = (seconds?: number | null) => {
@@ -403,14 +404,27 @@ export function ShareModal({
   url: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("common");
+  const [copyToast, setCopyToast] = useState<"success" | "error" | null>(null);
+
   if (!isOpen) return null;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyToast("success");
+    } catch {
+      setCopyToast("error");
+    }
+    window.setTimeout(() => setCopyToast(null), 2500);
+  };
 
   const encodedUrl = encodeURIComponent(url);
   const shareItems = [
     {
       label: "Copy",
       icon: Copy,
-      action: () => navigator.clipboard.writeText(url),
+      action: copyLink,
       className: "bg-violet-600",
     },
     {
@@ -486,6 +500,16 @@ export function ShareModal({
           })}
         </div>
       </div>
+      {copyToast && (
+        <div className="fixed left-1/2 top-6 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#222] px-4 py-2.5 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          {copyToast === "success" ? (
+            <Check className="size-4 text-green-400" />
+          ) : (
+            <X className="size-4 text-brand" />
+          )}
+          {copyToast === "success" ? t("copyLinkSuccess") : t("copyLinkError")}
+        </div>
+      )}
     </div>
   );
 }

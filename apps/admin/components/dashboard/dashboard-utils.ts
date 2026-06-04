@@ -4,8 +4,15 @@ import type { Badge } from "@/components/ui";
 type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
 
 export function statusVariant(status: string): BadgeVariant {
-  if (status === "APPROVED" || status === "RESOLVED") return "success";
-  if (status === "REJECTED" || status === "FAILED" || status === "BANNED") {
+  if (status === "APPROVED" || status === "RESOLVED" || status === "ENDED") {
+    return "success";
+  }
+  if (
+    status === "REJECTED" ||
+    status === "FAILED" ||
+    status === "BANNED" ||
+    status === "CANCELLED"
+  ) {
     return "error";
   }
   if (
@@ -15,7 +22,7 @@ export function statusVariant(status: string): BadgeVariant {
   ) {
     return "warning";
   }
-  if (status === "PENDING") return "info";
+  if (status === "PENDING" || status === "SCHEDULED") return "info";
   if (status === "ACTIVE") return "success";
   return "brand";
 }

@@ -1,4 +1,29 @@
 export type LivestreamStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
+
+/**
+ * Frontend-only startup lifecycle state machine for the host studio.
+ * CREATING  → session row created in DB, not yet started
+ * STARTING  → POST /start sent, waiting for response
+ * READY     → token received, connecting to LiveKit
+ * CONNECTED → LiveKit room connected
+ * LIVE      → fully live (camera/mic published)
+ * FAILED    → unrecoverable error
+ * TIMEOUT   → exceeded max wait time
+ */
+export type LivestreamStartupPhase =
+  | "CREATING"
+  | "STARTING"
+  | "READY"
+  | "CONNECTED"
+  | "LIVE"
+  | "FAILED"
+  | "TIMEOUT";
+
+export interface LivestreamReadinessResponse {
+  id: number;
+  status: LivestreamStatus;
+  roomName: string | null;
+}
 export type LivestreamVisibility = "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
 export type ParticipantRole = "HOST" | "VIEWER" | "MODERATOR";
 export type ChatMessageType = "CHAT" | "SYSTEM" | "GIFT" | "REACTION_SUMMARY" | "MODERATION";

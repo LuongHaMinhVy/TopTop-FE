@@ -2,7 +2,7 @@ import { AxiosError, AxiosProgressEvent } from "axios";
 import api from "@/utils/axios-instance";
 import { handleErrorResponse } from "./handle-error-response";
 import type { ApiResponse } from "@/types/api";
-import type { Video } from "@/types/video";
+import type { Video, VideoDescriptionTranslation } from "@/types/video";
 import type { VideoStatsResponse } from "@/types/video-like";
 
 export interface VideoDailyMetric {
@@ -71,6 +71,22 @@ export const reportVideo = async (videoId: number, reason: string): Promise<ApiR
 export const markVideoNotInterested = async (videoId: number): Promise<ApiResponse<void>> => {
   try {
     const response = await api.post<ApiResponse<void>>(`/videos/${videoId}/not-interested`);
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
+export const translateVideoDescription = async (
+  videoId: number,
+  targetLocale: string
+): Promise<ApiResponse<VideoDescriptionTranslation>> => {
+  try {
+    const response = await api.get<ApiResponse<VideoDescriptionTranslation>>(
+      `/videos/${videoId}/description-translation`,
+      { params: { targetLocale } }
+    );
     return response.data;
   } catch (error) {
     handleErrorResponse(error as AxiosError);
