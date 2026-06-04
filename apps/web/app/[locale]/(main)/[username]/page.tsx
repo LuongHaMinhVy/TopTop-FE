@@ -4,7 +4,6 @@ import { useParams, notFound } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { 
   Lock, 
-  Settings, 
   Share2, 
   MoreHorizontal, 
   Grid3X3, 

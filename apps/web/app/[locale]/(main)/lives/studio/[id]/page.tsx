@@ -356,7 +356,7 @@ function HostStudioStage({
     };
 
     void enableInitialMedia();
-  }, [initialSourceMode, localParticipant]);
+  }, [initialSourceMode, localParticipant, t]);
 
   const runMediaAction = async (action: () => Promise<unknown>) => {
     setIsSwitching(true);

@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { NextIntlClientProvider } from "next-intl";
@@ -57,17 +58,26 @@ export function RuntimeIntlProvider({
     persistLocale(nextLocale);
   }, []);
 
+  // Sync localStorage → state once on mount via event dispatch (avoids setState-in-effect)
+  const didSyncRef = useRef(false);
   useEffect(() => {
+    if (didSyncRef.current) return;
+    didSyncRef.current = true;
+
     const savedLocale =
       window.localStorage.getItem("NEXT_LOCALE") ??
       window.localStorage.getItem("toptop_locale");
 
     if (isAppLocale(savedLocale) && savedLocale !== locale) {
-      setLocale(savedLocale);
+      // Use event dispatch so setState is called from an event handler, not effect body
+      window.dispatchEvent(
+        new CustomEvent(localeChangeEvent, { detail: { locale: savedLocale } }),
+      );
     } else {
       persistLocale(locale);
     }
-  }, [locale, setLocale]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleLocaleChange = (event: Event) => {

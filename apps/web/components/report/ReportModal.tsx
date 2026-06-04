@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, X } from 'lucide-react';
 import type { ReportReason, ReportTargetType } from '@/types/report';
 import { useReportReasons } from '@/hooks/report/useReportReasons';
@@ -59,23 +59,25 @@ export function ReportModal({ isOpen, onClose, targetType, targetId }: ReportMod
   useEffect(() => {
     if (reasonTree.length === 0) return;
 
-    setSelectedReason((current) => {
-      if (!current) return current;
-      return findReasonById(reasonTree, current.id) ?? current;
-    });
+    startTransition(() => {
+      setSelectedReason((current) => {
+        if (!current) return current;
+        return findReasonById(reasonTree, current.id) ?? current;
+      });
 
-    setCurrentReasons((current) => {
-      const firstReason = current[0];
-      if (!firstReason) return current;
-      const path = findReasonPath(reasonTree, firstReason.id);
-      return path && path.length > 0 ? path[path.length - 1] : current;
-    });
+      setCurrentReasons((current) => {
+        const firstReason = current[0];
+        if (!firstReason) return current;
+        const path = findReasonPath(reasonTree, firstReason.id);
+        return path && path.length > 0 ? path[path.length - 1] : current;
+      });
 
-    setReasonStack((current) => {
-      const currentFirstReason = currentReasons[0];
-      if (!currentFirstReason) return current;
-      const path = findReasonPath(reasonTree, currentFirstReason.id);
-      return path && path.length > 1 ? path.slice(0, -1) : [];
+      setReasonStack((current) => {
+        const currentFirstReason = currentReasons[0];
+        if (!currentFirstReason) return current;
+        const path = findReasonPath(reasonTree, currentFirstReason.id);
+        return path && path.length > 1 ? path.slice(0, -1) : [];
+      });
     });
   }, [currentReasons, reasonTree]);
 

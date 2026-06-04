@@ -39,17 +39,20 @@ function applyTheme(theme: Theme, resolvedTheme: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>("light");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "system";
+    const stored = window.localStorage.getItem(storageKey);
+    return isTheme(stored) ? stored : "system";
+  });
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => {
+    const resolved = getSystemTheme();
+    return resolved;
+  });
 
+  // Apply theme to DOM once on mount (after hydration)
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem(storageKey);
-    const initialTheme = isTheme(storedTheme) ? storedTheme : "system";
-    const initialSystemTheme = getSystemTheme();
-
-    setThemeState(initialTheme);
-    setSystemTheme(initialSystemTheme);
-    applyTheme(initialTheme, initialSystemTheme);
+    applyTheme(theme, systemTheme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

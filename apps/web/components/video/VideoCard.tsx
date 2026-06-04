@@ -18,7 +18,7 @@ import {
   AlertCircle,
   Repeat2,
 } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, startTransition } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store/store";
 import { ReportModal } from "@/components/report/ReportModal";
@@ -666,8 +666,10 @@ export default function VideoCard({
   }, [isPlaying]);
 
   useEffect(() => {
-    setTranslatedDescription(null);
-    setShowTranslatedDescription(false);
+    startTransition(() => {
+      setTranslatedDescription(null);
+      setShowTranslatedDescription(false);
+    });
   }, [videoId, caption, locale]);
 
   useEffect(() => {

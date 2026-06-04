@@ -1,7 +1,6 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -115,12 +114,14 @@ export default function LiveKitViewer({
   // Leave stream and reset all join state when component becomes inactive (e.g. scrolled away)
   useEffect(() => {
     if (!isActive) {
-      setUserWantsToJoin(false);
-      setToken("");
-      setUrl("");
-      setJoinError("");
-      setConnectionError("");
-      setJoinRetryCount(0);
+      startTransition(() => {
+        setUserWantsToJoin(false);
+        setToken("");
+        setUrl("");
+        setJoinError("");
+        setConnectionError("");
+        setJoinRetryCount(0);
+      });
       hasAttemptedJoin.current = false;
       if (hasJoinedRef.current) {
         leaveStream.mutate(streamId);
@@ -203,7 +204,6 @@ export default function LiveKitViewer({
       },
     });
   // joinMutateRef is stable — safe to exclude from deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, shouldAttemptJoin, stream?.status, streamId, token, joinRetryCount]);
 
   const hostName = useMemo(() => {
