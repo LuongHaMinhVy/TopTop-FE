@@ -28,6 +28,7 @@ export function SearchOverlay({
   const { data: suggestionsRes } = useSearchSuggestions(normalizedQuery, normalizedQuery.length > 0);
   const { historyQuery, deleteMutation, clearMutation } = useSearchHistory(isLoggedIn);
   const saveHistory = useSaveSearchHistory();
+  const didYouMean = suggestionsRes?.data?.didYouMean?.trim();
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setDebouncedQuery(query), 250);
@@ -102,20 +103,34 @@ export function SearchOverlay({
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 custom-scrollbar">
         <div className="flex flex-col">
           {query.trim() ? (
-            keywords.map((keyword, index) => (
-              <button
-                key={`${keyword}-${index}`}
-                type="button"
-                onClick={() => submitSearch(keyword)}
-                className="group flex h-[50px] items-center gap-4 px-5 text-left hover:bg-hover"
-              >
-                <Search className="size-5 flex-shrink-0 text-text-secondary" />
-                <span className="truncate text-[20px] font-bold">{keyword}</span>
-                {index === keywords.length - 1 && (
-                  <MoreHorizontal className="ml-auto size-5 text-text-muted opacity-70" />
-                )}
-              </button>
-            ))
+            <>
+              {didYouMean && didYouMean.toLowerCase() !== normalizedQuery.toLowerCase() ? (
+                <button
+                  type="button"
+                  onClick={() => submitSearch(didYouMean)}
+                  className="mb-2 flex min-h-[48px] items-center gap-3 rounded-lg bg-elevated px-5 py-3 text-left hover:bg-hover"
+                >
+                  <Search className="size-5 flex-shrink-0 text-brand" />
+                  <span className="min-w-0 text-[17px] font-bold text-text-muted">
+                    Ý bạn là: <span className="text-text-primary">{didYouMean}</span>
+                  </span>
+                </button>
+              ) : null}
+              {keywords.map((keyword, index) => (
+                <button
+                  key={`${keyword}-${index}`}
+                  type="button"
+                  onClick={() => submitSearch(keyword)}
+                  className="group flex h-[50px] items-center gap-4 px-5 text-left hover:bg-hover"
+                >
+                  <Search className="size-5 flex-shrink-0 text-text-secondary" />
+                  <span className="truncate text-[20px] font-bold">{keyword}</span>
+                  {index === keywords.length - 1 && (
+                    <MoreHorizontal className="ml-auto size-5 text-text-muted opacity-70" />
+                  )}
+                </button>
+              ))}
+            </>
           ) : (
             <>
               {isLoggedIn && (historyQuery.data?.data?.length ?? 0) > 0 && (

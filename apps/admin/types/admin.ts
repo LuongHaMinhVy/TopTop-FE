@@ -210,3 +210,58 @@ export type AdminLivestream = {
   endedAt?: string | null;
   createdAt?: string | null;
 };
+
+// ── Admin Commerce ───────────────────────────────────────────────────────────
+export type AdminShop = {
+  id: number;
+  ownerId: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  status: "DRAFT" | "ACTIVE" | "SUSPENDED" | "CLOSED";
+  moderationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NEED_REVIEW";
+};
+
+export type AdminProductMedia = {
+  id: number;
+  url: string;
+  mediaType: "IMAGE" | "VIDEO";
+  sortOrder: number;
+};
+
+export type AdminProduct = {
+  id: number;
+  shopId: number;
+  title: string;
+  slug: string;
+  description?: string | null;
+  categoryId?: number | null;
+  basePrice: number;
+  currency: string;
+  stockQuantity: number;
+  soldCount: number;
+  ratingAvg: number;
+  ratingCount: number;
+  status: "DRAFT" | "ACTIVE" | "OUT_OF_STOCK" | "HIDDEN" | "BANNED";
+  moderationStatus: "PENDING" | "APPROVED" | "REJECTED" | "NEED_REVIEW";
+  media: AdminProductMedia[];
+};
+
+export type AdminCommerceOrder = {
+  id: number;
+  orderCode: string;
+  buyerId: number;
+  shopId: number;
+  shopName: string;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  paymentStatus: string;
+  shippingStatus: string;
+  receiverName: string;
+  receiverPhone: string;
+  receiverAddress: string;
+  createdAt: string;
+};

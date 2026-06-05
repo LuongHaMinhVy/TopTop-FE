@@ -21,6 +21,7 @@ import {
   BellOff,
   AtSign,
   Tag,
+  ShoppingBag,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
@@ -642,6 +643,22 @@ export default function MainLayout({
                       !overlayPanelOpen &&
                       (pathname === "/lives" || pathname.startsWith("/lives/studio"))
                     }
+                    collapsed={collapsed}
+                  />
+                </Link>
+
+                <Link
+                  href="/shop"
+                  onClick={() => {
+                    closeSearch();
+                    closeActivity();
+                  }}
+                  className={collapsed ? "w-[72px]" : "w-full"}
+                >
+                  <TikNavItem
+                    icon={<ShoppingBag size={24} />}
+                    label={t("sidebar.shop")}
+                    active={!overlayPanelOpen && (pathname === "/shop" || pathname.startsWith("/shop/"))}
                     collapsed={collapsed}
                   />
                 </Link>

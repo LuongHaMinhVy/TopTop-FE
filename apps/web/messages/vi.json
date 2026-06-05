@@ -31,6 +31,7 @@
         "explore": "Khám phá",
         "following": "Đã follow",
         "live": "LIVE",
+        "shop": "Cửa hàng",
         "messages": "Tin nhắn",
         "activity": "Hoạt động",
         "upload": "Tải lên",
@@ -57,6 +58,271 @@
     "bottomNav": {
         "friends": "Bạn bè"
     }
+  },
+  "ShopPage": {
+    "title": "TopTop Shop",
+    "subtitle": "Khám phá sản phẩm đã được duyệt, gắn với video ngắn, creator và luồng mua sắm live.",
+    "actions": {
+      "cart": "Giỏ hàng",
+      "business": "Khu kinh doanh",
+      "search": "Tìm sản phẩm",
+      "retry": "Thử lại"
+    },
+    "sections": {
+      "featured": "Sản phẩm nổi bật",
+      "approvedOnly": "Chỉ hiển thị sản phẩm đang hoạt động và đã được duyệt."
+    },
+    "labels": {
+      "sold": "đã bán"
+    },
+    "states": {
+      "emptyTitle": "Chưa có sản phẩm",
+      "emptyDescription": "Sản phẩm shop đã được duyệt sẽ xuất hiện tại đây khi người bán đăng bán.",
+      "errorTitle": "Không thể tải cửa hàng",
+      "errorDescription": "Danh mục sản phẩm hiện chưa khả dụng."
+    }
+  },
+  "ShopProductPage": {
+    "loading": "Đang tải sản phẩm",
+    "notFoundTitle": "Sản phẩm không khả dụng",
+    "notFoundDescription": "Sản phẩm này có thể đã bị ẩn, xóa hoặc đang chờ kiểm duyệt.",
+    "backToShop": "Quay lại cửa hàng",
+    "approved": "Sản phẩm đã duyệt",
+    "sold": "đã bán",
+    "inStock": "còn hàng",
+    "noDescription": "Sản phẩm này chưa có mô tả.",
+    "variants": "Phân loại",
+    "quantity": "Số lượng",
+    "decreaseQuantity": "Giảm số lượng",
+    "increaseQuantity": "Tăng số lượng",
+    "addToCart": "Thêm vào giỏ",
+    "buyNow": "Mua ngay",
+    "addError": "Không thể thêm sản phẩm vào giỏ."
+  },
+  "CartPage": {
+    "title": "Giỏ hàng",
+    "subtitle": "Kiểm tra sản phẩm đã chọn trước khi thanh toán.",
+    "emptyTitle": "Giỏ hàng trống",
+    "emptyDescription": "Sản phẩm thêm từ shop, video hoặc live sẽ xuất hiện tại đây.",
+    "continueShopping": "Tiếp tục mua sắm",
+    "unavailable": "Không khả dụng",
+    "decrease": "Giảm số lượng",
+    "increase": "Tăng số lượng",
+    "remove": "Xóa sản phẩm",
+    "summary": "Tóm tắt đơn hàng",
+    "selectedItems": "{count} sản phẩm đã chọn",
+    "checkout": "Thanh toán"
+  },
+  "CheckoutPage": {
+    "title": "Thanh toán",
+    "subtitle": "Xác nhận thông tin giao hàng và đặt đơn COD.",
+    "emptyTitle": "Chưa có sản phẩm thanh toán",
+    "emptyDescription": "Hãy chọn sản phẩm khả dụng trong giỏ hàng trước khi thanh toán.",
+    "shipping": "Thông tin giao hàng",
+    "receiverName": "Tên người nhận",
+    "receiverPhone": "Số điện thoại",
+    "receiverAddress": "Địa chỉ nhận hàng",
+    "note": "Ghi chú",
+    "summary": "Tóm tắt thanh toán",
+    "items": "sản phẩm",
+    "subtotal": "Tạm tính",
+    "shippingFee": "Phí vận chuyển",
+    "discount": "Giảm giá",
+    "total": "Tổng cộng",
+    "paymentMethod": "Phương thức thanh toán",
+    "paymentProviders": {
+      "COD": "Thanh toán khi nhận hàng",
+      "PAYPAL": "PayPal",
+      "STRIPE": "Stripe"
+    },
+    "externalPaymentNote": "Thanh toán qua {provider} sẽ được ghi nhận sau khi nhà cung cấp xác nhận.",
+    "previewUnavailable": "Không thể tải tóm tắt thanh toán.",
+    "orderError": "Không thể đặt hàng. Hãy kiểm tra tồn kho và thông tin giao hàng.",
+    "placing": "Đang đặt hàng...",
+    "placeOrder": "Đặt hàng"
+  },
+  "OrdersPage": {
+    "title": "Đơn hàng",
+    "subtitle": "Theo dõi các đơn mua và trạng thái xử lý.",
+    "emptyTitle": "Chưa có đơn hàng",
+    "emptyDescription": "Đơn tạo từ thanh toán sẽ xuất hiện tại đây."
+  },
+  "OrderDetailPage": {
+    "title": "Chi tiết đơn hàng",
+    "loading": "Đang tải đơn hàng",
+    "notFoundTitle": "Đơn hàng không khả dụng",
+    "notFoundDescription": "Đơn này không tồn tại hoặc bạn không có quyền xem.",
+    "payment": "Thanh toán",
+    "shipping": "Vận chuyển",
+    "receiver": "Người nhận",
+    "phone": "Số điện thoại",
+    "address": "Địa chỉ",
+    "subtotal": "Tạm tính",
+    "shippingFee": "Phí vận chuyển",
+    "total": "Tổng cộng",
+    "payNow": "Thanh toán ngay",
+    "paying": "Đang thanh toán...",
+    "payWith": "Thanh toán bằng {provider}",
+    "paymentError": "Không thể hoàn tất thanh toán.",
+    "paymentRedirectNote": "Trong checkout thật, {provider} sẽ mở màn hình thanh toán bảo mật trước khi đơn được đánh dấu đã thanh toán.",
+    "paymentProviders": {
+      "PAYPAL": "PayPal",
+      "STRIPE": "Stripe"
+    },
+    "confirmReceived": "Xác nhận đã nhận",
+    "cancel": "Hủy đơn"
+  },
+  "SellerPage": {
+    "title": "Kênh người bán",
+    "subtitle": "Quản lý hồ sơ shop, sản phẩm, đơn hàng và doanh thu cơ bản.",
+    "manageShop": "Quản lý shop",
+    "newProduct": "Sản phẩm mới",
+    "noShopTitle": "Tạo shop của bạn",
+    "noShopDescription": "Đăng ký shop trước khi tạo sản phẩm và nhận đơn hàng.",
+    "createShop": "Tạo shop",
+    "products": "Sản phẩm",
+    "orders": "Đơn hàng",
+    "revenue": "Doanh thu"
+  },
+  "SellerShopPage": {
+    "title": "Hồ sơ shop",
+    "subtitle": "Tạo hoặc cập nhật hồ sơ shop người bán.",
+    "name": "Tên shop",
+    "description": "Mô tả",
+    "avatarUrl": "URL ảnh đại diện",
+    "bannerUrl": "URL ảnh bìa",
+    "saveError": "Không thể lưu shop.",
+    "saving": "Đang lưu...",
+    "save": "Lưu shop",
+    "create": "Tạo shop"
+  },
+  "SellerProductsPage": {
+    "title": "Sản phẩm người bán",
+    "subtitle": "Tạo, chỉnh sửa và theo dõi trạng thái kiểm duyệt sản phẩm.",
+    "newProduct": "Sản phẩm mới",
+    "emptyTitle": "Chưa có sản phẩm",
+    "emptyDescription": "Tạo bản nháp sản phẩm để gửi kiểm duyệt.",
+    "product": "Sản phẩm",
+    "price": "Giá",
+    "status": "Trạng thái",
+    "actions": "Thao tác",
+    "stock": "tồn kho",
+    "edit": "Sửa sản phẩm",
+    "delete": "Xóa sản phẩm"
+  },
+  "SellerProductEditPage": {
+    "newTitle": "Sản phẩm mới",
+    "editTitle": "Sửa sản phẩm",
+    "subtitle": "Thay đổi sản phẩm được lưu theo shop của bạn và chờ kiểm duyệt.",
+    "notFoundTitle": "Sản phẩm không khả dụng",
+    "notFoundDescription": "Sản phẩm này không tồn tại hoặc không thuộc shop của bạn."
+  },
+  "SellerProductForm": {
+    "title": "Tiêu đề",
+    "description": "Mô tả",
+    "price": "Giá",
+    "stock": "Tồn kho",
+    "image": "Ảnh sản phẩm",
+    "imageUrl": "URL hình ảnh",
+    "variantTitle": "Phân loại mặc định",
+    "variantName": "Tên phân loại",
+    "variantSku": "SKU",
+    "variantPrice": "Giá phân loại",
+    "variantStock": "Tồn kho phân loại",
+    "saveError": "Không thể lưu sản phẩm.",
+    "saving": "Đang lưu...",
+    "save": "Lưu sản phẩm",
+    "create": "Tạo sản phẩm"
+  },
+  "ShopImageUploadField": {
+    "choose": "Chọn ảnh",
+    "replace": "Thay ảnh",
+    "remove": "Xóa ảnh",
+    "uploading": "Đang tải lên...",
+    "error": "Không thể tải ảnh lên."
+  },
+  "SellerOrdersPage": {
+    "title": "Đơn hàng shop",
+    "subtitle": "Cập nhật các trạng thái đơn hợp lệ của shop.",
+    "emptyTitle": "Chưa có đơn hàng shop",
+    "emptyDescription": "Đơn của shop sẽ xuất hiện sau khi buyer thanh toán.",
+    "items": "sản phẩm",
+    "moveTo": "Chuyển sang {status}"
+  },
+  "BusinessAccess": {
+    "blockedTitle": "Cần quyền người bán",
+    "blockedDescription": "Khu kinh doanh chỉ dành cho seller đã được duyệt. Đang chuyển bạn đến trang xin quyền seller.",
+    "blockedPendingDescription": "Yêu cầu seller của bạn đang ở trạng thái {status}, kiểm duyệt {moderationStatus}. Khu kinh doanh chỉ mở sau khi admin duyệt."
+  },
+  "BusinessPage": {
+    "title": "Khu kinh doanh",
+    "subtitle": "Quản lý shop đã duyệt, sản phẩm, đơn hàng và doanh thu.",
+    "manageShop": "Quản lý shop",
+    "newProduct": "Sản phẩm mới",
+    "products": "Sản phẩm",
+    "orders": "Đơn hàng",
+    "revenue": "Doanh thu"
+  },
+  "BusinessRequestPage": {
+    "title": "Xin quyền người bán",
+    "subtitle": "Gửi yêu cầu để admin duyệt tài khoản thành seller trước khi vào Khu kinh doanh.",
+    "loginTitle": "Đăng nhập để xin quyền người bán",
+    "loginDescription": "Bạn phải đăng nhập trước khi gửi yêu cầu seller cho admin.",
+    "loginAction": "Đăng nhập",
+    "name": "Tên shop",
+    "description": "Mô tả",
+    "avatar": "Ảnh đại diện shop",
+    "avatarUrl": "URL ảnh đại diện",
+    "banner": "Ảnh bìa shop",
+    "bannerUrl": "URL ảnh bìa",
+    "saveError": "Không thể lưu yêu cầu.",
+    "approvedNotice": "Shop này đã được duyệt. Khu kinh doanh hiện khả dụng.",
+    "goToBusiness": "Vào Khu kinh doanh",
+    "saving": "Đang lưu...",
+    "updateRequest": "Cập nhật yêu cầu",
+    "request": "Xin quyền"
+  },
+  "BusinessShopPage": {
+    "title": "Hồ sơ shop kinh doanh",
+    "subtitle": "Cập nhật hồ sơ shop đã duyệt hiển thị cho buyer.",
+    "name": "Tên shop",
+    "description": "Mô tả",
+    "avatar": "Ảnh đại diện shop",
+    "avatarUrl": "URL ảnh đại diện",
+    "banner": "Ảnh bìa shop",
+    "bannerUrl": "URL ảnh bìa",
+    "saveError": "Không thể lưu shop.",
+    "saving": "Đang lưu...",
+    "save": "Lưu shop"
+  },
+  "BusinessProductsPage": {
+    "title": "Sản phẩm kinh doanh",
+    "subtitle": "Tạo, chỉnh sửa và theo dõi trạng thái kiểm duyệt sản phẩm.",
+    "newProduct": "Sản phẩm mới",
+    "emptyTitle": "Chưa có sản phẩm",
+    "emptyDescription": "Tạo bản nháp sản phẩm để gửi kiểm duyệt.",
+    "product": "Sản phẩm",
+    "price": "Giá",
+    "status": "Trạng thái",
+    "actions": "Thao tác",
+    "stock": "tồn kho",
+    "edit": "Sửa sản phẩm",
+    "delete": "Xóa sản phẩm"
+  },
+  "BusinessProductEditPage": {
+    "newTitle": "Sản phẩm mới",
+    "editTitle": "Sửa sản phẩm",
+    "subtitle": "Thay đổi sản phẩm được lưu theo shop kinh doanh và chờ kiểm duyệt.",
+    "notFoundTitle": "Sản phẩm không khả dụng",
+    "notFoundDescription": "Sản phẩm này không tồn tại hoặc không thuộc shop đã duyệt của bạn."
+  },
+  "BusinessOrdersPage": {
+    "title": "Đơn hàng kinh doanh",
+    "subtitle": "Cập nhật các trạng thái đơn hợp lệ của shop.",
+    "emptyTitle": "Chưa có đơn hàng shop",
+    "emptyDescription": "Đơn của shop đã duyệt sẽ xuất hiện sau khi buyer thanh toán.",
+    "items": "sản phẩm",
+    "moveTo": "Chuyển sang {status}"
   },
   "settings": {
     "title": "Cài đặt",

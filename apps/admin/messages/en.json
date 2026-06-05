@@ -33,6 +33,10 @@
           "title": "Moderation",
           "description": "Review videos in the moderation queue and handle risky content."
         },
+        "commerce": {
+          "title": "Commerce",
+          "description": "Moderate shops, products, and order activity."
+        },
         "livestreams": {
           "title": "Livestreams",
           "description": "Monitor live sessions, room status, and force-end streams when needed."
@@ -111,6 +115,7 @@
         "subtitle": "Operations overview, moderation, sounds, and product documentation.",
         "trustOperations": "Trust operations",
         "moderation": "Moderation",
+        "commerce": "Commerce",
         "livestreams": "Livestreams",
         "users": "Users",
         "reports": "Reports",
@@ -144,6 +149,39 @@
       },
       "common": {
         "unknown": "unknown"
+      },
+      "commerce": {
+        "tabs": {
+          "overview": "Overview",
+          "shops": "Shop moderation",
+          "products": "Product moderation",
+          "orders": "Order monitoring"
+        },
+        "shops": "Shops",
+        "products": "Products",
+        "orders": "Orders",
+        "overviewTitle": "Commerce overview",
+        "overviewDescription": "A compact snapshot of recent shop, product, and order activity.",
+        "recentShops": "Recent shops",
+        "recentProducts": "Recent products",
+        "recentOrders": "Recent orders",
+        "shopModeration": "Shop moderation",
+        "shopDescription": "Approve, reject, or suspend seller shops.",
+        "productModeration": "Product moderation",
+        "productDescription": "Approve, reject, or ban seller products.",
+        "ordersTitle": "Order monitoring",
+        "ordersDescription": "Review recent buyer and seller order activity.",
+        "loadError": "Could not load commerce data",
+        "loadErrorDetail": "Check backend admin permissions and commerce endpoints.",
+        "emptyShops": "No shops found",
+        "emptyProducts": "No products found",
+        "emptyOrders": "No orders found",
+        "emptyDetail": "Try again after sellers and buyers create commerce data.",
+        "approve": "Approve",
+        "reject": "Reject",
+        "suspend": "Suspend",
+        "ban": "Ban",
+        "stock": "stock"
       },
       "moderation": {
         "reportCount": "{count} reports",

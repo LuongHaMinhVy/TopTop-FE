@@ -11,7 +11,9 @@ export interface MediaUploadResponse {
   fileSize?: number;
 }
 
-export const uploadMedia = async (file: File, context: "chat" | "comment" = "chat") => {
+export type MediaUploadContext = "chat" | "comment" | "shop";
+
+export const uploadMedia = async (file: File, context: MediaUploadContext = "chat") => {
   try {
     const formData = new FormData();
     formData.append("file", file);

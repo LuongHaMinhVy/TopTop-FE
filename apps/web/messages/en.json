@@ -31,6 +31,7 @@
         "explore": "Explore",
         "following": "Following",
         "live": "LIVE",
+        "shop": "Shop",
         "messages": "Messages",
         "activity": "Activity",
         "upload": "Upload",
@@ -57,6 +58,271 @@
     "bottomNav": {
         "friends": "Friends"
     }
+  },
+  "ShopPage": {
+    "title": "TopTop Shop",
+    "subtitle": "Browse approved products connected to short videos, creators, and live shopping flows.",
+    "actions": {
+      "cart": "Cart",
+      "business": "Business place",
+      "search": "Search products",
+      "retry": "Try again"
+    },
+    "sections": {
+      "featured": "Featured products",
+      "approvedOnly": "Only active, approved products are shown here."
+    },
+    "labels": {
+      "sold": "sold"
+    },
+    "states": {
+      "emptyTitle": "No products yet",
+      "emptyDescription": "Approved shop products will appear here when sellers publish them.",
+      "errorTitle": "Could not load shop",
+      "errorDescription": "The product catalog is unavailable right now."
+    }
+  },
+  "ShopProductPage": {
+    "loading": "Loading product",
+    "notFoundTitle": "Product unavailable",
+    "notFoundDescription": "This product may be hidden, deleted, or waiting for moderation.",
+    "backToShop": "Back to shop",
+    "approved": "Approved product",
+    "sold": "sold",
+    "inStock": "in stock",
+    "noDescription": "No description has been added for this product.",
+    "variants": "Variants",
+    "quantity": "Quantity",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "addToCart": "Add to cart",
+    "buyNow": "Buy now",
+    "addError": "Could not add this product to cart."
+  },
+  "CartPage": {
+    "title": "Cart",
+    "subtitle": "Review selected products before checkout.",
+    "emptyTitle": "Your cart is empty",
+    "emptyDescription": "Products added from shop, video, or live will appear here.",
+    "continueShopping": "Continue shopping",
+    "unavailable": "Unavailable",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "remove": "Remove item",
+    "summary": "Order summary",
+    "selectedItems": "{count} selected",
+    "checkout": "Checkout"
+  },
+  "CheckoutPage": {
+    "title": "Checkout",
+    "subtitle": "Confirm shipping details and place a COD order.",
+    "emptyTitle": "No checkout items",
+    "emptyDescription": "Select available cart items before checkout.",
+    "shipping": "Shipping information",
+    "receiverName": "Receiver name",
+    "receiverPhone": "Receiver phone",
+    "receiverAddress": "Receiver address",
+    "note": "Note",
+    "summary": "Checkout summary",
+    "items": "items",
+    "subtotal": "Subtotal",
+    "shippingFee": "Shipping",
+    "discount": "Discount",
+    "total": "Total",
+    "paymentMethod": "Payment method",
+    "paymentProviders": {
+      "COD": "Cash on delivery",
+      "PAYPAL": "PayPal",
+      "STRIPE": "Stripe"
+    },
+    "externalPaymentNote": "{provider} payment will be recorded after provider confirmation.",
+    "previewUnavailable": "Checkout preview is unavailable.",
+    "orderError": "Could not place order. Check stock and shipping details.",
+    "placing": "Placing order...",
+    "placeOrder": "Place order"
+  },
+  "OrdersPage": {
+    "title": "Orders",
+    "subtitle": "Track purchases and order states.",
+    "emptyTitle": "No orders yet",
+    "emptyDescription": "Orders created from checkout will appear here."
+  },
+  "OrderDetailPage": {
+    "title": "Order detail",
+    "loading": "Loading order",
+    "notFoundTitle": "Order unavailable",
+    "notFoundDescription": "This order does not exist or you do not have permission to view it.",
+    "payment": "Payment",
+    "shipping": "Shipping",
+    "receiver": "Receiver",
+    "phone": "Phone",
+    "address": "Address",
+    "subtotal": "Subtotal",
+    "shippingFee": "Shipping",
+    "total": "Total",
+    "payNow": "Pay now",
+    "paying": "Paying...",
+    "payWith": "Pay with {provider}",
+    "paymentError": "Could not complete payment.",
+    "paymentRedirectNote": "In a production checkout, {provider} opens its secure payment screen before the order is marked paid.",
+    "paymentProviders": {
+      "PAYPAL": "PayPal",
+      "STRIPE": "Stripe"
+    },
+    "confirmReceived": "Confirm received",
+    "cancel": "Cancel order"
+  },
+  "SellerPage": {
+    "title": "Seller Center",
+    "subtitle": "Manage shop profile, products, orders, and basic revenue.",
+    "manageShop": "Manage shop",
+    "newProduct": "New product",
+    "noShopTitle": "Create your shop",
+    "noShopDescription": "Register a shop before creating products and receiving orders.",
+    "createShop": "Create shop",
+    "products": "Products",
+    "orders": "Orders",
+    "revenue": "Revenue"
+  },
+  "SellerShopPage": {
+    "title": "Shop profile",
+    "subtitle": "Create or update your seller shop profile.",
+    "name": "Shop name",
+    "description": "Description",
+    "avatarUrl": "Avatar URL",
+    "bannerUrl": "Banner URL",
+    "saveError": "Could not save shop.",
+    "saving": "Saving...",
+    "save": "Save shop",
+    "create": "Create shop"
+  },
+  "SellerProductsPage": {
+    "title": "Seller products",
+    "subtitle": "Create, edit, and review product moderation state.",
+    "newProduct": "New product",
+    "emptyTitle": "No products yet",
+    "emptyDescription": "Create a product draft to submit for moderation.",
+    "product": "Product",
+    "price": "Price",
+    "status": "Status",
+    "actions": "Actions",
+    "stock": "stock",
+    "edit": "Edit product",
+    "delete": "Delete product"
+  },
+  "SellerProductEditPage": {
+    "newTitle": "New product",
+    "editTitle": "Edit product",
+    "subtitle": "Product changes are saved as seller-owned data and reviewed by moderation.",
+    "notFoundTitle": "Product unavailable",
+    "notFoundDescription": "This product does not exist or does not belong to your shop."
+  },
+  "SellerProductForm": {
+    "title": "Title",
+    "description": "Description",
+    "price": "Price",
+    "stock": "Stock",
+    "image": "Product image",
+    "imageUrl": "Image URL",
+    "variantTitle": "Default variant",
+    "variantName": "Variant name",
+    "variantSku": "SKU",
+    "variantPrice": "Variant price",
+    "variantStock": "Variant stock",
+    "saveError": "Could not save product.",
+    "saving": "Saving...",
+    "save": "Save product",
+    "create": "Create product"
+  },
+  "ShopImageUploadField": {
+    "choose": "Choose image",
+    "replace": "Replace",
+    "remove": "Remove image",
+    "uploading": "Uploading...",
+    "error": "Could not upload image."
+  },
+  "SellerOrdersPage": {
+    "title": "Seller orders",
+    "subtitle": "Advance valid shop order states.",
+    "emptyTitle": "No shop orders",
+    "emptyDescription": "Orders for your shop will appear here after checkout.",
+    "items": "items",
+    "moveTo": "Move to {status}"
+  },
+  "BusinessAccess": {
+    "blockedTitle": "Seller access required",
+    "blockedDescription": "Business place is only for approved sellers. Redirecting you to the seller request page.",
+    "blockedPendingDescription": "Your seller request is {status} and moderation is {moderationStatus}. Business place unlocks only after admin approval."
+  },
+  "BusinessPage": {
+    "title": "Business place",
+    "subtitle": "Manage an approved shop, products, orders, and revenue.",
+    "manageShop": "Manage shop",
+    "newProduct": "New product",
+    "products": "Products",
+    "orders": "Orders",
+    "revenue": "Revenue"
+  },
+  "BusinessRequestPage": {
+    "title": "Request seller permission",
+    "subtitle": "Ask admin to approve your account as a seller before you can access Business place.",
+    "loginTitle": "Log in to request seller permission",
+    "loginDescription": "You must be logged in before sending a seller request to admin.",
+    "loginAction": "Log in",
+    "name": "Shop name",
+    "description": "Description",
+    "avatar": "Shop avatar",
+    "avatarUrl": "Avatar URL",
+    "banner": "Shop banner",
+    "bannerUrl": "Banner URL",
+    "saveError": "Could not save request.",
+    "approvedNotice": "This shop is approved. Business place is available.",
+    "goToBusiness": "Go to Business place",
+    "saving": "Saving...",
+    "updateRequest": "Update request",
+    "request": "Request permission"
+  },
+  "BusinessShopPage": {
+    "title": "Business shop profile",
+    "subtitle": "Update the approved shop profile shown to buyers.",
+    "name": "Shop name",
+    "description": "Description",
+    "avatar": "Shop avatar",
+    "avatarUrl": "Avatar URL",
+    "banner": "Shop banner",
+    "bannerUrl": "Banner URL",
+    "saveError": "Could not save shop.",
+    "saving": "Saving...",
+    "save": "Save shop"
+  },
+  "BusinessProductsPage": {
+    "title": "Business products",
+    "subtitle": "Create, edit, and review product moderation state.",
+    "newProduct": "New product",
+    "emptyTitle": "No products yet",
+    "emptyDescription": "Create a product draft to submit for moderation.",
+    "product": "Product",
+    "price": "Price",
+    "status": "Status",
+    "actions": "Actions",
+    "stock": "stock",
+    "edit": "Edit product",
+    "delete": "Delete product"
+  },
+  "BusinessProductEditPage": {
+    "newTitle": "New product",
+    "editTitle": "Edit product",
+    "subtitle": "Product changes are saved as business-owned data and reviewed by moderation.",
+    "notFoundTitle": "Product unavailable",
+    "notFoundDescription": "This product does not exist or does not belong to your approved shop."
+  },
+  "BusinessOrdersPage": {
+    "title": "Business orders",
+    "subtitle": "Advance valid shop order states.",
+    "emptyTitle": "No shop orders",
+    "emptyDescription": "Orders for your approved shop will appear here after checkout.",
+    "items": "items",
+    "moveTo": "Move to {status}"
   },
   "settings": {
     "title": "Settings",

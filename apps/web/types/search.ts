@@ -61,6 +61,7 @@ export interface SearchHistory {
 
 export interface SearchSuggestion {
   keywords: string[];
+  didYouMean?: string | null;
   users: SearchUser[];
   hashtags: SearchHashtag[];
   relatedSearches: RelatedSearch[];

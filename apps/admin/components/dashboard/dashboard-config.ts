@@ -4,6 +4,7 @@ import {
   Music2,
   Radio,
   ShieldAlert,
+  ShoppingBag,
   Users,
 } from "lucide-react";
 import type { ElementType } from "react";
@@ -11,6 +12,7 @@ import type { ElementType } from "react";
 export type SectionKey =
   | "overview"
   | "moderation"
+  | "commerce"
   | "livestreams"
   | "users"
   | "reports"
@@ -41,6 +43,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     titleKey: "pages.moderation.title",
     descriptionKey: "pages.moderation.description",
     icon: ShieldAlert,
+  },
+  {
+    key: "commerce",
+    href: "/commerce",
+    labelKey: "ops.commerce",
+    titleKey: "pages.commerce.title",
+    descriptionKey: "pages.commerce.description",
+    icon: ShoppingBag,
   },
   {
     key: "livestreams",

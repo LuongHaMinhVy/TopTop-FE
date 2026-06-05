@@ -33,6 +33,10 @@
           "title": "Kiểm duyệt",
           "description": "Xem xét video trong hàng đợi kiểm duyệt và xử lý nội dung rủi ro."
         },
+        "commerce": {
+          "title": "Thương mại",
+          "description": "Kiểm duyệt shop, sản phẩm và hoạt động đơn hàng."
+        },
         "livestreams": {
           "title": "Livestream",
           "description": "Theo dõi các phiên live, trạng thái phòng và xử lý kết thúc stream khi cần."
@@ -111,6 +115,7 @@
         "subtitle": "Tổng quan vận hành, kiểm duyệt, âm thanh và tài liệu sản phẩm.",
         "trustOperations": "Vận hành an toàn",
         "moderation": "Kiểm duyệt",
+        "commerce": "Thương mại",
         "livestreams": "Livestream",
         "users": "Người dùng",
         "reports": "Báo cáo",
@@ -144,6 +149,39 @@
       },
       "common": {
         "unknown": "không rõ"
+      },
+      "commerce": {
+        "tabs": {
+          "overview": "Tổng quan",
+          "shops": "Kiểm duyệt shop",
+          "products": "Kiểm duyệt sản phẩm",
+          "orders": "Giám sát đơn hàng"
+        },
+        "shops": "Shop",
+        "products": "Sản phẩm",
+        "orders": "Đơn hàng",
+        "overviewTitle": "Tổng quan thương mại",
+        "overviewDescription": "Ảnh chụp nhanh về hoạt động shop, sản phẩm và đơn hàng gần đây.",
+        "recentShops": "Shop gần đây",
+        "recentProducts": "Sản phẩm gần đây",
+        "recentOrders": "Đơn hàng gần đây",
+        "shopModeration": "Kiểm duyệt shop",
+        "shopDescription": "Duyệt, từ chối hoặc tạm ngưng shop người bán.",
+        "productModeration": "Kiểm duyệt sản phẩm",
+        "productDescription": "Duyệt, từ chối hoặc ban sản phẩm người bán.",
+        "ordersTitle": "Giám sát đơn hàng",
+        "ordersDescription": "Xem hoạt động đơn hàng gần đây của buyer và seller.",
+        "loadError": "Không thể tải dữ liệu thương mại",
+        "loadErrorDetail": "Kiểm tra quyền admin backend và endpoint thương mại.",
+        "emptyShops": "Chưa có shop",
+        "emptyProducts": "Chưa có sản phẩm",
+        "emptyOrders": "Chưa có đơn hàng",
+        "emptyDetail": "Thử lại sau khi seller và buyer tạo dữ liệu thương mại.",
+        "approve": "Duyệt",
+        "reject": "Từ chối",
+        "suspend": "Tạm ngưng",
+        "ban": "Ban",
+        "stock": "tồn kho"
       },
       "moderation": {
         "reportCount": "{count} báo cáo",
