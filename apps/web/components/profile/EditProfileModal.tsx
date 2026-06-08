@@ -161,13 +161,13 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const displayedAvatarUrl = avatarPreviewUrl || avatarUrl;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 transition-opacity duration-300">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-3 py-4 transition-opacity duration-300 sm:px-4">
       {/* Modal Container */}
-      <div className="modal-opacity-solid w-full max-w-[700px] overflow-hidden rounded-xl bg-[#121212] border border-white/10 text-white shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className="modal-opacity-solid flex max-h-[92dvh] w-full max-w-[700px] animate-in flex-col overflow-hidden rounded-xl border border-white/10 bg-[#121212] text-white shadow-2xl fade-in zoom-in duration-200">
         
         {/* Modal Header */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-6">
-          <h2 className="text-xl font-bold">Sửa hồ sơ</h2>
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4 sm:h-16 sm:px-6">
+          <h2 className="text-lg font-bold sm:text-xl">Sửa hồ sơ</h2>
           <button 
             type="button" 
             onClick={onClose} 
@@ -179,7 +179,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <form onSubmit={handleSave} className="flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:space-y-6 sm:px-6">
           
           {/* Error & Success Messages */}
           {errorMessage && (
@@ -194,8 +194,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           )}
 
           {/* Row 1: Ảnh hồ sơ */}
-          <div className="grid grid-cols-[120px_1fr] items-start gap-4 pb-6 border-b border-white/10">
-            <span className="text-[15px] font-bold text-white/90 pt-8">Ảnh hồ sơ</span>
+          <div className="grid gap-4 border-b border-white/10 pb-6 sm:grid-cols-[120px_1fr] sm:items-start">
+            <span className="text-[15px] font-bold text-white/90 sm:pt-8">Ảnh hồ sơ</span>
             <div className="flex justify-center sm:justify-start">
               <div 
                 onClick={isPending ? undefined : triggerFileSelect}
@@ -244,8 +244,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </div>
 
           {/* Row 2: TikTok ID */}
-          <div className="grid grid-cols-[120px_1fr] items-start gap-4 pb-6 border-b border-white/10">
-            <span className="text-[15px] font-bold text-white/90 pt-2">TikTok ID</span>
+          <div className="grid gap-4 border-b border-white/10 pb-6 sm:grid-cols-[120px_1fr] sm:items-start">
+            <span className="text-[15px] font-bold text-white/90 sm:pt-2">TikTok ID</span>
             <div className="space-y-2">
               <input
                 type="text"
@@ -273,8 +273,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </div>
 
           {/* Row 3: Tên */}
-          <div className="grid grid-cols-[120px_1fr] items-start gap-4 pb-6 border-b border-white/10">
-            <span className="text-[15px] font-bold text-white/90 pt-2">Tên</span>
+          <div className="grid gap-4 border-b border-white/10 pb-6 sm:grid-cols-[120px_1fr] sm:items-start">
+            <span className="text-[15px] font-bold text-white/90 sm:pt-2">Tên</span>
             <div className="space-y-2">
               <input
                 type="text"
@@ -299,8 +299,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </div>
 
           {/* Row 4: Tiểu sử */}
-          <div className="grid grid-cols-[120px_1fr] items-start gap-4 pb-4">
-            <span className="text-[15px] font-bold text-white/90 pt-2">Tiểu sử</span>
+          <div className="grid gap-4 pb-4 sm:grid-cols-[120px_1fr] sm:items-start">
+            <span className="text-[15px] font-bold text-white/90 sm:pt-2">Tiểu sử</span>
             <div className="space-y-2 relative max-w-[460px]">
               <textarea
                 value={bio}

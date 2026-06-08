@@ -59,6 +59,30 @@
         "friends": "Bạn bè"
     }
   },
+  "ShopShell": {
+    "brand": "TopTop Shop",
+    "navLabel": "Điều hướng shop",
+    "tabsLabel": "Chuyển mục shop",
+    "backToTopTop": "Quay lại TopTop",
+    "profile": "Hồ sơ",
+    "more": "Thêm",
+    "searchHint": "Tìm trong shop",
+    "nav": {
+      "shop": "Shop",
+      "cart": "Giỏ hàng",
+      "sellerRequest": "Xin quyền bán hàng",
+      "business": "Kinh doanh",
+      "shopProfile": "Hồ sơ shop",
+      "products": "Sản phẩm",
+      "orders": "Đơn hàng"
+    },
+    "tabs": {
+      "shop": "Shop",
+      "cart": "Giỏ hàng",
+      "business": "Kinh doanh",
+      "sellerShop": "Shop của tôi"
+    }
+  },
   "ShopPage": {
     "title": "TopTop Shop",
     "subtitle": "Khám phá sản phẩm đã được duyệt, gắn với video ngắn, creator và luồng mua sắm live.",
@@ -66,14 +90,53 @@
       "cart": "Giỏ hàng",
       "business": "Khu kinh doanh",
       "search": "Tìm sản phẩm",
-      "retry": "Thử lại"
+      "retry": "Thử lại",
+      "seeAll": "Xem tất cả",
+      "allProducts": "Tất cả sản phẩm"
+    },
+    "hero": {
+      "freeship": "Freeship cho sản phẩm có đủ điều kiện",
+      "searchTitle": "Tìm \"{keyword}\"",
+      "pills": {
+        "flashSale": "Flash sale",
+        "topRated": "Đánh giá cao",
+        "bestSellers": "Bán chạy",
+        "newArrivals": "Hàng mới về"
+      }
+    },
+    "stats": {
+      "label": "Thống kê cửa hàng",
+      "products": "Sản phẩm",
+      "sold": "Đã bán",
+      "avgRating": "Đánh giá TB",
+      "categories": "Danh mục"
+    },
+    "promo": {
+      "flashTitle": "Flash Sale",
+      "flashSub": "Ưu đãi có thời hạn giảm đến 70%",
+      "topTitle": "Đánh Giá Cao",
+      "topSub": "Sản phẩm được người mua đánh giá cao nhất",
+      "shipTitle": "Miễn Phí Ship",
+      "shipSub": "Áp dụng cho đơn hàng đủ điều kiện"
     },
     "sections": {
+      "categories": "Duyệt danh mục",
+      "promos": "Khuyến mãi",
+      "flashSale": "Flash sale",
+      "topRated": "Đánh giá cao",
+      "bestSellers": "Bán chạy",
+      "newArrivals": "Hàng mới về",
+      "forYou": "Gợi ý hôm nay",
+      "searchResults": "Kết quả tìm kiếm",
       "featured": "Sản phẩm nổi bật",
       "approvedOnly": "Chỉ hiển thị sản phẩm đang hoạt động và đã được duyệt."
     },
     "labels": {
-      "sold": "đã bán"
+      "sold": "đã bán",
+      "deal": "Deal",
+      "hot": "Hot",
+      "new": "Mới",
+      "topRated": "Top"
     },
     "states": {
       "emptyTitle": "Chưa có sản phẩm",
@@ -278,6 +341,12 @@
     "saveError": "Không thể lưu yêu cầu.",
     "approvedNotice": "Shop này đã được duyệt. Khu kinh doanh hiện khả dụng.",
     "goToBusiness": "Vào Khu kinh doanh",
+    "close": "Đóng",
+    "requirements": {
+      "identity": "Dùng thông tin shop thật để buyer nhận diện rõ thương hiệu.",
+      "products": "Chuẩn bị ảnh đại diện, ảnh bìa và mô tả ngắn gọn.",
+      "review": "Sau khi gửi, admin sẽ duyệt trước khi mở Khu kinh doanh."
+    },
     "saving": "Đang lưu...",
     "updateRequest": "Cập nhật yêu cầu",
     "request": "Xin quyền"
@@ -393,6 +462,14 @@
     "continue": "Tiếp tục",
     "privateAccount": "Tài khoản riêng tư",
     "privateAccountDescription": "Chỉ người dùng được bạn phê duyệt mới có thể follow bạn và xem video của bạn.",
+    "showPosts": "Cho phép xem bài đăng",
+    "showPostsDescription": "Người khác có thể xem tab Video trên hồ sơ của bạn.",
+    "showReposts": "Cho phép xem bài đăng lại",
+    "showRepostsDescription": "Khi tắt, tab Bài đăng lại sẽ không hiển thị trên hồ sơ của bạn.",
+    "showLikedVideos": "Cho phép xem video đã thích",
+    "showLikedVideosDescription": "Người khác có thể xem tab Đã thích trên hồ sơ của bạn.",
+    "showFavorites": "Cho phép xem yêu thích",
+    "showFavoritesDescription": "Người khác có thể xem bài đăng yêu thích; bộ sưu tập công khai vẫn hiển thị.",
     "comments": "Bình luận",
     "commentsDescription": "Tùy chọn mặc định cho bình luận khi bạn tải video mới.",
     "commentOptions": {
@@ -474,7 +551,15 @@
     "blockUser": "Chặn",
     "unblockUser": "Bỏ chặn",
     "blockedState": "Bạn đã chặn người dùng này",
-    "reportUser": "Báo cáo"
+    "reportUser": "Báo cáo",
+    "hiddenContent": {
+      "postsTitle": "Người dùng đã ẩn bài đăng",
+      "postsDescription": "Các video trên hồ sơ này hiện không được công khai.",
+      "likedTitle": "Người dùng đã ẩn video đã thích",
+      "likedDescription": "Các video người dùng này đã thích hiện không được công khai.",
+      "favoritesTitle": "Người dùng đã ẩn nội dung yêu thích",
+      "favoritesDescription": "Các bài đăng yêu thích hiện không được công khai. Bộ sưu tập công khai vẫn có thể xem."
+    }
   },
   "Studio": {
     "title": "TopTop Studio",

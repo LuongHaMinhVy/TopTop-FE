@@ -45,8 +45,8 @@ export default function OrderDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className="space-y-3">
           {order.items.map((item) => (
-            <article key={item.id} className="flex gap-4 rounded-lg border border-elevated bg-background p-4">
-              <div className="relative size-20 flex-shrink-0 overflow-hidden rounded-lg bg-elevated">
+            <article key={item.id} className="flex flex-col gap-4 rounded-lg border border-elevated bg-background p-4 sm:flex-row">
+              <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden rounded-lg bg-elevated sm:size-20 sm:w-20">
                 {item.productImageUrl ? (
                   <Image src={item.productImageUrl} alt={item.productTitle} fill sizes="80px" className="object-cover" />
                 ) : null}
@@ -58,12 +58,12 @@ export default function OrderDetailPage() {
                   {formatShopPrice(item.unitPrice, order.currency)} × {item.quantity}
                 </p>
               </div>
-              <p className="font-black text-brand">{formatShopPrice(item.totalPrice, order.currency)}</p>
+              <p className="font-black text-brand sm:text-right">{formatShopPrice(item.totalPrice, order.currency)}</p>
             </article>
           ))}
         </section>
 
-        <aside className="h-fit rounded-lg border border-elevated bg-background p-5">
+        <aside className="h-fit rounded-lg border border-elevated bg-background p-4 sm:p-5 lg:sticky lg:top-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-black">{order.shopName}</h2>
             <StatusBadge value={order.status} />

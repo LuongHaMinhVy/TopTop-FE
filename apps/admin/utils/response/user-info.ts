@@ -38,6 +38,10 @@ export interface PrivacySettings {
   allowStitch?:              boolean;
   allowDownload?:            boolean;
   allowMessageFromEveryone?: boolean;
+  showPosts?:                boolean;
+  showReposts?:              boolean;
+  showLikedVideos?:          boolean;
+  showFavorites?:            boolean;
   commentFilter?:            string;
   messagePrivacy?:           string;
 }

@@ -46,8 +46,8 @@ export default function CartPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-3">
             {items.map((item) => (
-              <article key={item.id} className="flex gap-4 rounded-lg border border-elevated bg-background p-4">
-                <div className="relative size-24 flex-shrink-0 overflow-hidden rounded-lg bg-elevated">
+              <article key={item.id} className="flex flex-col gap-4 rounded-lg border border-elevated bg-background p-4 sm:flex-row">
+                <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden rounded-lg bg-elevated sm:size-24 sm:w-24">
                   {item.productImageUrl ? (
                     <Image src={item.productImageUrl} alt={item.productTitle} fill sizes="96px" className="object-cover" />
                   ) : null}
@@ -96,7 +96,7 @@ export default function CartPage() {
             ))}
           </div>
 
-          <aside className="h-fit rounded-lg border border-elevated bg-background p-5">
+          <aside className="h-fit rounded-lg border border-elevated bg-background p-4 sm:p-5 lg:sticky lg:top-4">
             <h2 className="text-lg font-black">{t("summary")}</h2>
             <div className="mt-4 flex justify-between text-sm text-text-muted">
               <span>{t("selectedItems", { count: selectedIds.length })}</span>

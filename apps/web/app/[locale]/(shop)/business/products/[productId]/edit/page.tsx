@@ -21,7 +21,7 @@ export default function EditBusinessProductPage() {
   const product = productQuery.data?.data;
 
   return (
-    <ShopPageFrame title={t("editTitle")} subtitle={t("subtitle")}>
+    <ShopPageFrame title={t("editTitle")} subtitle={t("subtitle")} variant="seller">
       <DocumentTitle title={`${t("editTitle")} | TopTop`} />
       <BusinessAccess>
         {productQuery.isLoading ? (

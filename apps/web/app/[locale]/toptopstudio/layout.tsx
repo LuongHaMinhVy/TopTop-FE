@@ -58,24 +58,24 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-background text-text-primary overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-text-primary">
       {/* Header */}
-      <header className="h-16 border-b border-elevated flex items-center justify-between px-6 bg-background z-30">
-        <div className="flex items-center gap-2">
+      <header className="z-30 flex h-16 items-center justify-between border-b border-elevated bg-background px-4 sm:px-6">
+        <div className="min-w-0 flex items-center gap-2">
           <Link href="/toptopstudio" className="flex items-center gap-2">
              <Logo size="sm" />
-             <span className="text-xl font-bold">{t('title')}</span>
+             <span className="max-w-[150px] truncate text-lg font-bold sm:max-w-none sm:text-xl">{t('title')}</span>
           </Link>
         </div>
         
-        <div className="flex items-center gap-4">
-          <Link href="/toptopstudio/upload" className="flex items-center gap-2 btn-primary hover:btn-primary-hover text-white px-4 py-2 rounded-md font-bold transition shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/toptopstudio/upload" className="btn-primary hover:btn-primary-hover flex items-center gap-2 rounded-md px-3 py-2 font-bold text-white shadow-sm transition sm:px-4">
              <Upload size={18} />
-             <span>Upload</span>
+             <span className="hidden sm:inline">Upload</span>
           </Link>
           
           {effectiveUser && (
-            <div className="flex items-center gap-4 pl-4 border-l border-elevated relative" ref={settingsRef}>
+            <div className="relative flex items-center border-l border-elevated pl-2 sm:gap-4 sm:pl-4" ref={settingsRef}>
               <button 
                 onClick={() => setSettingsOpen(!settingsOpen)}
                 className="flex items-center gap-2 group hover:bg-hover p-1.5 rounded-xl transition-all"
@@ -115,16 +115,16 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
         {/* Sidebar */}
-        <aside className="w-64 border-r border-elevated bg-background flex flex-col p-4 gap-2">
+        <aside className="flex shrink-0 gap-2 overflow-x-auto border-b border-elevated bg-background p-2 md:w-64 md:flex-col md:overflow-visible md:border-b-0 md:border-r md:p-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link 
                 key={item.href} 
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:gap-3 md:px-4 md:py-3 md:text-base ${
                   isActive 
                     ? 'bg-brand/10 text-brand' 
                     : 'hover:bg-hover text-text-secondary'
@@ -136,7 +136,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             );
           })}
           
-          <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-elevated">
+          <div className="hidden md:mt-auto md:flex md:flex-col md:gap-2 md:border-t md:border-elevated md:pt-4">
              <Link
                href="/"
                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-hover transition-colors text-text-secondary font-medium"
@@ -159,7 +159,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         </aside>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-surface p-8 custom-scrollbar">
+        <main className="custom-scrollbar flex-1 overflow-y-auto bg-surface p-4 sm:p-6 lg:p-8">
            <div className="max-w-6xl mx-auto">
              {children}
            </div>

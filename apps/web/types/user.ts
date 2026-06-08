@@ -4,6 +4,10 @@ export interface PrivacySettings {
   allowStitch?: boolean;
   allowDownload?: boolean;
   allowMessageFromEveryone?: boolean;
+  showPosts?: boolean;
+  showReposts?: boolean;
+  showLikedVideos?: boolean;
+  showFavorites?: boolean;
   defaultCommentPermission?: "EVERYONE" | "NO_ONE";
   commentFilter?: string;
   messagePrivacy?: string;

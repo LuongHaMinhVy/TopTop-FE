@@ -23,18 +23,29 @@ export function ShopPageFrame({
   title,
   subtitle,
   action,
+  variant = "default",
 }: {
   children: ReactNode;
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  variant?: "default" | "seller";
 }) {
+  const isSeller = variant === "seller";
+
   return (
     <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8 xl:px-10">
-        <header className="flex flex-col gap-4 border-b border-elevated pb-6 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-4 pb-8 pt-5 sm:px-6 sm:py-8 xl:px-10">
+        <header
+          className={`flex flex-col gap-4 pb-5 md:flex-row md:items-end md:justify-between md:pb-6 ${
+            isSeller
+              ? "rounded-lg border border-elevated bg-surface px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:px-5"
+              : "border-b border-elevated"
+          }`}
+        >
           <div>
-            <h1 className="text-[28px] font-extrabold leading-tight md:text-[36px]">{title}</h1>
+            {isSeller ? <div className="mb-3 h-1 w-14 rounded-full bg-brand shadow-[18px_0_0_#25F4EE]" /> : null}
+            <h1 className="text-[26px] font-extrabold leading-tight sm:text-[30px] md:text-[36px]">{title}</h1>
             {subtitle ? <p className="mt-2 max-w-2xl text-[15px] leading-6 text-text-muted">{subtitle}</p> : null}
           </div>
           {action}
@@ -55,7 +66,7 @@ export function ShopEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-elevated px-6 text-center">
+    <div className="flex min-h-[280px] flex-col items-center justify-center rounded-lg border border-elevated px-4 py-8 text-center sm:min-h-[320px] sm:px-6">
       <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-elevated text-text-muted">
         <ShoppingBag className="size-8" />
       </div>

@@ -85,7 +85,7 @@ export default function CheckoutPage() {
         <ShopEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-lg border border-elevated bg-background p-5">
+          <section className="rounded-lg border border-elevated bg-background p-4 sm:p-5">
             <h2 className="text-lg font-black">{t("shipping")}</h2>
             <div className="mt-5 grid gap-4">
               <Field label={t("receiverName")} value={form.receiverName} onChange={(receiverName) => setForm((value) => ({ ...value, receiverName }))} />
@@ -103,7 +103,7 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          <aside className="h-fit rounded-lg border border-elevated bg-background p-5">
+          <aside className="h-fit rounded-lg border border-elevated bg-background p-4 sm:p-5 lg:sticky lg:top-4">
             <h2 className="text-lg font-black">{t("summary")}</h2>
             {previewQuery.isLoading ? (
               <div className="mt-4 h-32 animate-pulse rounded-lg bg-elevated" />
@@ -199,7 +199,7 @@ function SummaryLine({ label, value, strong }: { label: string; value: string; s
   return (
     <div className={`flex justify-between gap-4 ${strong ? "text-base font-black" : "text-sm text-text-muted"}`}>
       <span>{label}</span>
-      <span className={strong ? "text-brand" : "font-bold text-text-primary"}>{value}</span>
+      <span className={`text-right ${strong ? "text-brand" : "font-bold text-text-primary"}`}>{value}</span>
     </div>
   );
 }

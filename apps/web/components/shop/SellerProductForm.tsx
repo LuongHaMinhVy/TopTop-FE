@@ -81,8 +81,11 @@ export function SellerProductForm({ product }: { product?: Product }) {
   };
 
   return (
-    <section className="max-w-3xl rounded-lg border border-elevated bg-background p-5">
-      <div className="grid gap-4">
+    <section className="mx-auto w-full max-w-4xl overflow-hidden rounded-lg border border-elevated bg-surface shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+      <div className="border-b border-elevated bg-background px-4 py-4 sm:px-5">
+        <div className="h-1 w-12 rounded-full bg-brand shadow-[16px_0_0_#25F4EE]" />
+      </div>
+      <div className="grid gap-4 p-4 sm:p-5">
         <Field label={t("title")} value={form.title} onChange={(title) => setForm((value) => ({ ...value, title }))} />
         <label className="grid gap-2 text-sm font-bold">
           {t("description")}
@@ -90,7 +93,7 @@ export function SellerProductForm({ product }: { product?: Product }) {
             value={form.description}
             onChange={(event) => setForm((value) => ({ ...value, description: event.target.value }))}
             rows={5}
-            className="rounded-lg border border-elevated bg-background px-4 py-3 text-text-primary outline-none focus:border-text-primary"
+            className="rounded-lg border border-elevated bg-background px-4 py-3 text-text-primary outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/40"
           />
         </label>
         <div className="grid gap-4 md:grid-cols-2">
@@ -99,9 +102,12 @@ export function SellerProductForm({ product }: { product?: Product }) {
         </div>
         <ShopImageUploadField label={t("image")} value={form.imageUrl} onChange={(imageUrl) => setForm((value) => ({ ...value, imageUrl }))} />
 
-        <div className="rounded-lg bg-elevated p-4">
-          <h2 className="text-sm font-black">{t("variantTitle")}</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-elevated bg-background p-4">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="h-5 w-1 rounded-full bg-brand" />
+            <h2 className="text-sm font-black">{t("variantTitle")}</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
             <Field label={t("variantName")} value={form.variantName} onChange={(variantName) => setForm((value) => ({ ...value, variantName }))} optional />
             <Field label={t("variantSku")} value={form.variantSku} onChange={(variantSku) => setForm((value) => ({ ...value, variantSku }))} optional />
             <Field label={t("variantPrice")} value={form.variantPrice} onChange={(variantPrice) => setForm((value) => ({ ...value, variantPrice }))} optional inputMode="decimal" />
@@ -114,7 +120,7 @@ export function SellerProductForm({ product }: { product?: Product }) {
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className="h-11 rounded-full bg-text-primary px-5 text-sm font-black text-background disabled:bg-elevated disabled:text-text-muted"
+          className="h-11 rounded-md bg-brand px-5 text-sm font-black text-white transition hover:bg-brand-dark disabled:bg-elevated disabled:text-text-muted"
         >
           {pending ? t("saving") : product ? t("save") : t("create")}
         </button>
@@ -161,7 +167,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         required={!optional}
         inputMode={inputMode}
-        className="h-11 rounded-lg border border-elevated bg-background px-4 text-text-primary outline-none focus:border-text-primary"
+        className="h-11 rounded-lg border border-elevated bg-background px-4 text-text-primary outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/40"
       />
     </label>
   );

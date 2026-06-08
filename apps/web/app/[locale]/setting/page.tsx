@@ -31,6 +31,7 @@ import {
   unblockUser,
   updatePrivacySettings,
   type AccountStatusAction,
+  type UpdatePrivacySettingsPayload,
 } from "@/services/user-api-service";
 import { authLogout } from "@/services/auth-api-service";
 import { clearCredentials, setCredentials } from "@/store/slices/authSlice";
@@ -80,6 +81,10 @@ export default function SettingPage() {
   const user = currentUserQuery.data?.data ?? storeUser;
   const isPrivate = Boolean(user?.isPrivate);
   const commentPermission = user?.privacySettings?.allowComments === false ? "NO_ONE" : "EVERYONE";
+  const showPosts = user?.privacySettings?.showPosts !== false;
+  const showReposts = user?.privacySettings?.showReposts !== false;
+  const showLikedVideos = user?.privacySettings?.showLikedVideos === true;
+  const showFavorites = user?.privacySettings?.showFavorites === true;
 
   const blockedUsersQuery = useQuery({
     queryKey: ["settings", "blocked-users"],
@@ -177,6 +182,13 @@ export default function SettingPage() {
 
   const handleCommentPermission = (value: (typeof commentOptions)[number]) => {
     privacyMutation.mutate({ allowComments: value === "EVERYONE" });
+  };
+
+  const handleProfileContentVisibility = (
+    key: Extract<keyof UpdatePrivacySettingsPayload, "showPosts" | "showReposts" | "showLikedVideos" | "showFavorites">,
+    value: boolean,
+  ) => {
+    privacyMutation.mutate({ [key]: value });
   };
 
   const submitPassword = (event: React.FormEvent<HTMLFormElement>) => {
@@ -282,7 +294,7 @@ export default function SettingPage() {
 
   return (
     <SettingsShell user={user}>
-      <main className="mx-auto grid h-[calc(100vh-80px)] w-full max-w-[1376px] items-start gap-5 overflow-hidden px-4 py-6 md:grid-cols-[88px_minmax(260px,360px)_minmax(0,1fr)] lg:px-8">
+      <main className="mx-auto grid w-full max-w-[1376px] gap-4 overflow-visible px-4 py-4 md:h-[calc(100vh-80px)] md:grid-cols-[88px_minmax(260px,360px)_minmax(0,1fr)] md:items-start md:gap-5 md:overflow-hidden md:py-6 lg:px-8">
         <div className="hidden justify-center pt-0 md:flex">
           <button
             type="button"
@@ -295,7 +307,7 @@ export default function SettingPage() {
           </button>
         </div>
 
-        <aside className="h-fit self-start rounded-lg border border-elevated bg-surface p-5">
+        <aside className="flex h-fit gap-2 overflow-x-auto rounded-lg border border-elevated bg-surface p-2 md:block md:self-start md:p-5">
           <NavItem
             icon={<UserCog size={24} />}
             active={activeSection === "account"}
@@ -325,7 +337,7 @@ export default function SettingPage() {
         <section
           ref={scrollContainerRef}
           onScroll={handleSettingsScroll}
-          className="no-scrollbar h-full space-y-5 overflow-y-auto scroll-smooth pr-1 pb-10"
+          className="no-scrollbar space-y-5 overflow-visible scroll-smooth pb-10 md:h-full md:overflow-y-auto md:pr-1"
         >
           {feedback ? (
             <div className="rounded-md border border-brand/30 bg-brand/10 px-4 py-3 text-sm font-medium text-brand">
@@ -393,6 +405,50 @@ export default function SettingPage() {
             title={t("privateAccount")}
             description={t("privateAccountDescription")}
             control={<Toggle checked={isPrivate} disabled={privacyMutation.isPending} onClick={handlePrivateToggle} />}
+          />
+          <SettingRow
+            title={t("showPosts")}
+            description={t("showPostsDescription")}
+            control={
+              <Toggle
+                checked={showPosts}
+                disabled={privacyMutation.isPending}
+                onClick={() => handleProfileContentVisibility("showPosts", !showPosts)}
+              />
+            }
+          />
+          <SettingRow
+            title={t("showReposts")}
+            description={t("showRepostsDescription")}
+            control={
+              <Toggle
+                checked={showReposts}
+                disabled={privacyMutation.isPending}
+                onClick={() => handleProfileContentVisibility("showReposts", !showReposts)}
+              />
+            }
+          />
+          <SettingRow
+            title={t("showLikedVideos")}
+            description={t("showLikedVideosDescription")}
+            control={
+              <Toggle
+                checked={showLikedVideos}
+                disabled={privacyMutation.isPending}
+                onClick={() => handleProfileContentVisibility("showLikedVideos", !showLikedVideos)}
+              />
+            }
+          />
+          <SettingRow
+            title={t("showFavorites")}
+            description={t("showFavoritesDescription")}
+            control={
+              <Toggle
+                checked={showFavorites}
+                disabled={privacyMutation.isPending}
+                onClick={() => handleProfileContentVisibility("showFavorites", !showFavorites)}
+              />
+            }
           />
           <SettingRow
             title={t("comments")}
@@ -540,10 +596,11 @@ function SettingsShell({ children, user }: { children: React.ReactNode; user: { 
   return (
     <div className="min-h-screen bg-background text-text-primary">
       <header className="sticky top-0 z-40 border-b border-elevated bg-background/95 backdrop-blur-xl">
-        <div className="flex h-20 items-center justify-between gap-4 px-5">
-          <div className="flex min-w-[160px] items-center gap-2">
-            <Logo size="md" />
-            <span className="text-3xl font-black tracking-normal text-text-primary">TopTop</span>
+        <div className="flex h-16 items-center justify-between gap-3 px-4 md:h-20 md:gap-4 md:px-5">
+          <div className="flex min-w-0 items-center gap-2 md:min-w-[160px]">
+            <Logo size="sm" className="md:hidden" />
+            <Logo size="md" className="hidden md:flex" />
+            <span className="text-2xl font-black tracking-normal text-text-primary md:text-3xl">TopTop</span>
           </div>
           <label className="hidden h-14 w-full max-w-[626px] items-center rounded-full border border-elevated bg-surface px-5 text-text-secondary focus-within:border-text-muted md:flex">
             <input
@@ -552,8 +609,8 @@ function SettingsShell({ children, user }: { children: React.ReactNode; user: { 
             />
             <Search size={26} />
           </label>
-          <div className="flex min-w-[160px] items-center justify-end gap-3">
-            <Button type="button" variant="secondary" className="rounded-md" size="sm">
+          <div className="flex min-w-0 items-center justify-end gap-2 md:min-w-[160px] md:gap-3">
+            <Button type="button" variant="secondary" className="hidden rounded-md sm:inline-flex" size="sm">
               <Plus size={18} />
               {t("upload")}
             </Button>
@@ -590,7 +647,7 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-4 rounded-md px-3 py-4 text-left text-lg font-bold transition-colors hover:bg-hover ${
+      className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-3 text-left text-sm font-bold transition-colors hover:bg-hover md:w-full md:gap-4 md:py-4 md:text-lg ${
         active ? "text-brand" : "text-text-primary"
       }`}
     >

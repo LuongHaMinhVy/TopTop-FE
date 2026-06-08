@@ -65,16 +65,16 @@ export default function SearchResultsPage() {
   return (
     <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
       <DocumentTitle title={q ? `${truncateTitle(q, 50)} | Search | TopTop` : "Search | TopTop"} />
-      <div className="mx-auto grid max-w-[1540px] grid-cols-1 gap-8 px-6 pb-16 pt-0 lg:grid-cols-[minmax(0,1fr)_240px] xl:px-10">
+      <div className="mx-auto grid max-w-[1540px] grid-cols-1 gap-8 px-4 pb-16 pt-0 sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] xl:px-10">
         <main className="min-w-0">
           <div className="sticky top-0 z-20 border-b border-elevated bg-background/95 backdrop-blur">
-            <nav className="flex h-[74px] items-end gap-14 overflow-x-auto">
+            <nav className="flex h-[64px] items-end gap-8 overflow-x-auto sm:h-[74px] sm:gap-14">
               {SEARCH_TABS.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
                   onClick={() => switchTab(tab.value)}
-                  className={`relative h-full min-w-[90px] px-2 pt-7 text-[18px] font-bold ${
+                  className={`relative h-full min-w-[84px] px-2 pt-6 text-[16px] font-bold sm:min-w-[90px] sm:pt-7 sm:text-[18px] ${
                     activeTab === tab.value ? "text-text-primary" : "text-text-muted hover:text-text-primary"
                   }`}
                 >
@@ -291,7 +291,7 @@ function SearchUserRow({ user, compact = false }: { user: SearchUser; compact?: 
   const isPending = followMutation.isPending || unfollowMutation.isPending;
 
   return (
-    <div className={`flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-hover ${compact ? "" : "min-h-[104px]"}`}>
+    <div className={`flex flex-col items-stretch gap-3 rounded-lg px-3 py-3 hover:bg-hover sm:flex-row sm:items-center sm:gap-4 ${compact ? "" : "min-h-[104px]"}`}>
       <Link href={`/@${user.username}`} className="flex min-w-0 flex-1 items-center gap-4">
         <Avatar src={user.avatarUrl ?? undefined} alt={user.displayName} size={compact ? "lg" : "xl"} />
         <div className="min-w-0">
@@ -313,7 +313,7 @@ function SearchUserRow({ user, compact = false }: { user: SearchUser; compact?: 
             followMutation.mutate();
           }
         }}
-        className={`h-10 min-w-[120px] rounded-full px-6 text-[18px] font-bold transition disabled:opacity-60 ${
+        className={`h-10 w-full rounded-full px-6 text-[16px] font-bold transition disabled:opacity-60 sm:w-auto sm:min-w-[120px] sm:text-[18px] ${
           user.followed ? "bg-elevated text-text-primary hover:bg-hover" : "bg-brand text-white hover:bg-brand/90"
         }`}
       >

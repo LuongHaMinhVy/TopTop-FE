@@ -54,65 +54,44 @@ export default function ShopHomePage() {
   return (
     <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
       <DocumentTitle title={`${t("title")} | TopTop`} />
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-7 px-4 pb-14 pt-4 sm:px-6 xl:px-8">
-        <header className="sticky top-0 z-20 bg-background/95 py-3 backdrop-blur">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <Link href="/shop" className="mr-2 hidden shrink-0 items-center gap-2 text-[22px] font-black md:flex">
-              <ShoppingBag className="size-7 text-brand" />
-              <span>TopTop Shop</span>
-            </Link>
-            <form onSubmit={submitSearch} className="flex min-w-0 flex-1 items-center rounded-full bg-elevated px-4">
-              <Search className="size-5 shrink-0 text-text-muted" />
-              <input
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                placeholder={t("actions.search")}
-                className="h-12 min-w-0 flex-1 bg-transparent px-3 text-[15px] font-semibold text-text-primary outline-none placeholder:text-text-muted"
-              />
-              <button
-                type="submit"
-                className="h-9 rounded-full bg-text-primary px-5 text-[14px] font-black text-background hover:opacity-90"
-              >
-                {t("actions.search")}
-              </button>
-            </form>
-            <div className="flex shrink-0 gap-2">
-              <Link
-                href="/cart"
-                className="grid size-12 place-items-center rounded-full bg-elevated hover:bg-hover"
-                aria-label={t("actions.cart")}
-              >
-                <ShoppingBag className="size-5" />
-              </Link>
-              <Link
-                href="/business"
-                className="hidden h-12 items-center gap-2 rounded-full bg-elevated px-4 text-[14px] font-black hover:bg-hover sm:inline-flex"
-              >
-                <Store className="size-4" />
-                {t("actions.business")}
-              </Link>
-            </div>
-          </div>
-        </header>
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pb-8 pt-4 sm:gap-7 sm:px-6 sm:pb-14 xl:px-8">
+        <form
+          onSubmit={submitSearch}
+          className="sticky top-0 z-20 flex min-w-0 items-center rounded-full border border-elevated bg-background/95 px-3 py-1.5 backdrop-blur sm:px-4"
+        >
+          <Search className="size-5 shrink-0 text-text-muted" />
+          <input
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+            placeholder={t("actions.search")}
+            className="h-10 min-w-0 flex-1 bg-transparent px-2 text-[14px] font-semibold text-text-primary outline-none placeholder:text-text-muted sm:h-11 sm:px-3 sm:text-[15px]"
+          />
+          <button
+            type="submit"
+            className="h-9 rounded-full bg-text-primary px-4 text-[13px] font-black text-background hover:opacity-90 sm:px-5 sm:text-[14px]"
+          >
+            {t("actions.search")}
+          </button>
+        </form>
 
-        <section className="grid min-h-[260px] overflow-hidden rounded-lg bg-elevated lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
+        <section className="grid min-h-[240px] overflow-hidden rounded-lg border border-elevated bg-surface lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex flex-col justify-between gap-7 p-5 sm:p-8 lg:p-10">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-2 text-[14px] font-black text-brand">
+              <p className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-2 text-[14px] font-black text-brand">
                 <Truck className="size-5" />
-                Freeship cho sản phẩm có đủ điều kiện
+                {t("hero.freeship")}
               </p>
-              <h1 className="mt-5 max-w-3xl text-[38px] font-black leading-[1.02] sm:text-[52px] lg:text-[64px]">
-                {activeCategory?.name ?? (keyword ? `Tim "${keyword}"` : t("title"))}
+              <h1 className="mt-5 max-w-3xl text-[34px] font-black leading-[1.04] sm:text-[52px] sm:leading-[1.02] lg:text-[64px]">
+                {activeCategory?.name ?? (keyword ? t("hero.searchTitle", { keyword }) : t("title"))}
               </h1>
-              <p className="mt-4 max-w-2xl text-[16px] font-semibold leading-7 text-text-secondary">
+              <p className="mt-4 max-w-2xl text-[15px] font-semibold leading-6 text-text-secondary sm:text-[16px] sm:leading-7">
                 {t("subtitle")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <HeroPill label="Flash sale" href="#flash-sale" />
-              <HeroPill label="Danh muc" href="#categories" />
-              <HeroPill label="Ban hang" href="/business" />
+              <HeroPill label={t("hero.pills.flashSale")} href="#flash-sale" />
+              <HeroPill label={t("sections.categories")} href="#categories" />
+              <HeroPill label={t("actions.business")} href="/business" />
             </div>
           </div>
 
@@ -124,7 +103,7 @@ export default function ShopHomePage() {
         </section>
 
         <section id="categories" aria-labelledby="shop-categories-heading">
-          <SectionHeader title="Danh muc" actionHref="/shop/sitemap" actionLabel="Xem them" />
+          <SectionHeader title={t("sections.categories")} actionHref="/shop/sitemap" actionLabel={t("actions.seeAll")} />
           {categoriesQuery.isLoading ? (
             <div className="flex gap-3 overflow-hidden">
               {Array.from({ length: 9 }).map((_, index) => (
@@ -145,15 +124,15 @@ export default function ShopHomePage() {
           )}
         </section>
 
-        {dealProducts.length > 0 ? <ProductRail id="flash-sale" title="Flash sale" products={dealProducts} /> : null}
-        {topSellingProducts.length > 0 ? <ProductRail title="Ban chay" products={topSellingProducts} /> : null}
-        {newestProducts.length > 0 ? <ProductRail title="Hang moi ve" products={newestProducts} /> : null}
+        {dealProducts.length > 0 ? <ProductRail id="flash-sale" title={t("sections.flashSale")} products={dealProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
+        {topSellingProducts.length > 0 ? <ProductRail title={t("sections.bestSellers")} products={topSellingProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
+        {newestProducts.length > 0 ? <ProductRail title={t("sections.newArrivals")} products={newestProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
 
         <section aria-labelledby="shop-products-heading">
           <SectionHeader
-            title={activeCategory?.name ?? (keyword ? "Ket qua san pham" : "Goi y hom nay")}
-            actionHref={keyword || categoryId ? "/shop" : "/cart"}
-            actionLabel={keyword || categoryId ? "Tat ca san pham" : t("actions.cart")}
+            title={activeCategory?.name ?? (keyword ? t("sections.searchResults") : t("sections.forYou"))}
+            actionHref={keyword || categoryId ? "/shop" : undefined}
+            actionLabel={keyword || categoryId ? t("actions.allProducts") : undefined}
           />
 
           {productsQuery.isLoading ? (
@@ -265,20 +244,32 @@ function CategoryShortcut({
   );
 }
 
-function ProductRail({ id, title, products }: { id?: string; title: string; products: Product[] }) {
+function ProductRail({
+  id,
+  title,
+  products,
+  allLabel,
+  dealLabel,
+}: {
+  id?: string;
+  title: string;
+  products: Product[];
+  allLabel: string;
+  dealLabel: string;
+}) {
   return (
     <section id={id} aria-label={title}>
-      <SectionHeader title={title} actionHref="/shop" actionLabel="Tat ca" />
+      <SectionHeader title={title} actionHref="/shop" actionLabel={allLabel} />
       <div className="flex gap-3 overflow-x-auto pb-1 custom-scrollbar">
         {products.map((product) => (
-          <RailProduct key={`${title}-${product.id}`} product={product} />
+          <RailProduct key={`${title}-${product.id}`} product={product} dealLabel={dealLabel} />
         ))}
       </div>
     </section>
   );
 }
 
-function RailProduct({ product }: { product: Product }) {
+function RailProduct({ product, dealLabel }: { product: Product; dealLabel: string }) {
   const cover = productCover(product);
 
   return (
@@ -299,7 +290,7 @@ function RailProduct({ product }: { product: Product }) {
             </div>
           )}
           <span className="absolute left-2 top-2 rounded-sm bg-brand px-1.5 py-0.5 text-[11px] font-black text-white">
-            Deal
+            {dealLabel}
           </span>
         </div>
         <h3 className="mt-2 line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[17px]">{product.title}</h3>

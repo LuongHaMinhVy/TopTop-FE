@@ -46,7 +46,7 @@ export default function ShopProductPage() {
     return (
       <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
         <DocumentTitle title={`${t("loading")} | TopTop`} />
-        <div className="mx-auto grid max-w-[1180px] gap-8 px-6 py-8 lg:grid-cols-[minmax(0,560px)_1fr] xl:px-10">
+        <div className="mx-auto grid max-w-[1180px] gap-6 px-4 py-5 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,560px)_1fr] lg:gap-8 xl:px-10">
           <div className="aspect-square animate-pulse rounded-lg bg-elevated" />
           <div className="space-y-4">
             <div className="h-8 w-2/3 animate-pulse rounded bg-elevated" />
@@ -62,7 +62,7 @@ export default function ShopProductPage() {
     return (
       <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
         <DocumentTitle title={`${t("notFoundTitle")} | TopTop`} />
-        <div className="mx-auto flex min-h-[520px] max-w-[720px] flex-col items-center justify-center px-6 text-center">
+        <div className="mx-auto flex min-h-[420px] max-w-[720px] flex-col items-center justify-center px-4 py-8 text-center sm:min-h-[520px] sm:px-6">
           <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-elevated text-text-muted">
             <ShoppingBag className="size-8" />
           </div>
@@ -83,7 +83,7 @@ export default function ShopProductPage() {
   return (
     <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
       <DocumentTitle title={`${product.title} | TopTop Shop`} />
-      <div className="mx-auto grid max-w-[1180px] gap-8 px-6 py-8 lg:grid-cols-[minmax(0,560px)_1fr] xl:px-10">
+      <div className="mx-auto grid max-w-[1180px] gap-6 px-4 py-5 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,560px)_1fr] lg:gap-8 xl:px-10">
         <section className="min-w-0">
           <Link
             href="/shop"
@@ -115,7 +115,7 @@ export default function ShopProductPage() {
             <PackageCheck className="size-4" />
             {t("approved")}
           </div>
-          <h1 className="text-[28px] font-extrabold leading-tight md:text-[36px]">{product.title}</h1>
+          <h1 className="text-[25px] font-extrabold leading-tight sm:text-[30px] md:text-[36px]">{product.title}</h1>
           <div className="mt-4 flex flex-wrap items-center gap-4 text-[14px] font-semibold text-text-muted">
             <span className="flex items-center gap-1">
               <Star className="size-4 fill-current" />
@@ -128,7 +128,7 @@ export default function ShopProductPage() {
               {product.stockQuantity.toLocaleString()} {t("inStock")}
             </span>
           </div>
-          <p className="mt-6 text-[32px] font-extrabold text-brand">
+          <p className="mt-6 text-[28px] font-extrabold text-brand sm:text-[32px]">
             {formatShopPrice(price, product.currency)}
           </p>
           {product.variants.length > 0 ? (
@@ -155,7 +155,7 @@ export default function ShopProductPage() {
               </div>
             </div>
           ) : null}
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <p className="text-sm font-black">{t("quantity")}</p>
             <button
               type="button"

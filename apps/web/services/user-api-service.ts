@@ -107,6 +107,10 @@ export interface UpdatePrivacySettingsPayload {
   isPrivate?: boolean;
   allowComments?: boolean;
   allowMessageFromEveryone?: boolean;
+  showPosts?: boolean;
+  showReposts?: boolean;
+  showLikedVideos?: boolean;
+  showFavorites?: boolean;
 }
 
 export const updatePrivacySettings = async (

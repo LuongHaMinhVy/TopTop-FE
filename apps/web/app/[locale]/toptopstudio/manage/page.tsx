@@ -646,7 +646,7 @@ export default function ContentManagementPage() {
       </div>
 
       {/* Content Table Card */}
-      <div className="bg-background rounded-xl border border-elevated overflow-hidden shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-elevated bg-background shadow-sm">
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse min-w-[950px]">
             <thead>

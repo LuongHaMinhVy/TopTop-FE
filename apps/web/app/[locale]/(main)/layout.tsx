@@ -79,6 +79,7 @@ export default function MainLayout({
   const dispatch = useDispatch<AppDispatch>();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeCommentVideoId, setActiveCommentVideoId] = useState<number | null>(
     null,
@@ -327,7 +328,9 @@ export default function MainLayout({
 
   useEffect(() => {
     const handleResize = () => {
-      setIsSidebarCollapsed(window.innerWidth < 1024);
+      const width = window.innerWidth;
+      setIsSidebarCollapsed(width < 1024);
+      setIsMobileViewport(width < 768);
     };
 
     handleResize();
@@ -1374,7 +1377,7 @@ export default function MainLayout({
           <main
             className="relative min-w-0 flex-1 overflow-hidden bg-background"
             style={{
-              marginLeft: isMessagesRoute ? SIDE_PANEL_WIDTH : 0,
+              marginLeft: isMessagesRoute && !isMobileViewport ? SIDE_PANEL_WIDTH : 0,
               transition: "margin-left 300ms cubic-bezier(0.4,0,0.2,1)",
             }}
           >

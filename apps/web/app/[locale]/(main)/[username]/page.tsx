@@ -27,7 +27,7 @@ import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useUserProfile, useFollowMutation, useUnfollowMutation, useBlockUserMutation, useUnblockUserMutation } from "@/hooks/user-hooks";
 import { useCreateConversation } from "@/hooks/chat-hooks";
-import { useUserVideos, useLikedVideos, useUserRepostedVideos } from "@/hooks/video-hooks";
+import { useUserVideos, useLikedVideos, useUserLikedVideos, useUserRepostedVideos } from "@/hooks/video-hooks";
 import {
   useCollections,
   useCreateCollectionMutation,
@@ -66,6 +66,12 @@ export default function ProfilePage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const profile = profileData?.data;
   const isOwnProfileForQueries = !!currentUser && currentUser.username === profile?.username;
+  const privacySettings = profile?.privacySettings;
+  const canViewPosts = isOwnProfileForQueries || privacySettings?.showPosts !== false;
+  const canViewReposts = isOwnProfileForQueries || privacySettings?.showReposts !== false;
+  const canViewLikedVideos = isOwnProfileForQueries || privacySettings?.showLikedVideos === true;
+  const canViewFavorites = isOwnProfileForQueries || privacySettings?.showFavorites === true;
+  const visibleActiveTab = activeTab === "reposts" && !canViewReposts ? "video" : activeTab;
 
   // Tab sliding indicator state
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -80,24 +86,30 @@ export default function ProfilePage() {
   const createCollectionMutation = useCreateCollectionMutation();
   const createConversationMutation = useCreateConversation();
 
-  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id, activeTab === "video");
-  const { data: repostedVideosRes, isLoading: isLoadingReposts } = useUserRepostedVideos(username, activeTab === "reposts");
+  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id, visibleActiveTab === "video" && canViewPosts);
+  const { data: repostedVideosRes, isLoading: isLoadingReposts } = useUserRepostedVideos(username, visibleActiveTab === "reposts" && canViewReposts);
   const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos(
-    isOwnProfileForQueries && activeTab === "favorites" && favoriteSection === "posts",
+    isOwnProfileForQueries && visibleActiveTab === "favorites" && favoriteSection === "posts",
   );
-  const { data: likedVideosRes, isLoading: isLoadingLiked } = useLikedVideos(isOwnProfileForQueries && activeTab === "liked");
+  const { data: ownLikedVideosRes, isLoading: isLoadingOwnLiked } = useLikedVideos(
+    isOwnProfileForQueries && visibleActiveTab === "liked" && canViewLikedVideos,
+  );
+  const { data: userLikedVideosRes, isLoading: isLoadingUserLiked } = useUserLikedVideos(
+    username,
+    !isOwnProfileForQueries && visibleActiveTab === "liked" && canViewLikedVideos,
+  );
   // For own profile: use authenticated endpoint (includes private collections)
   // For other profiles: use public endpoint (public collections only)
   const { data: ownCollectionsRes, isLoading: isLoadingOwnCollections } = useCollections(
-    isOwnProfileForQueries && activeTab === "favorites"
+    isOwnProfileForQueries && visibleActiveTab === "favorites"
   );
   const { data: userCollectionsRes, isLoading: isLoadingPublicCollections } = useUserCollections(
     username,
-    !isOwnProfileForQueries && activeTab === "favorites"
+    !isOwnProfileForQueries && visibleActiveTab === "favorites"
   );
   const isLoadingCollections = isOwnProfileForQueries ? isLoadingOwnCollections : isLoadingPublicCollections;
   const { data: soundsRes, isLoading: isLoadingSounds } = useFavoriteSounds(
-    isOwnProfileForQueries && activeTab === "favorites",
+    isOwnProfileForQueries && visibleActiveTab === "favorites",
     0,
     50,
   );
@@ -105,28 +117,31 @@ export default function ProfilePage() {
   const userVideos = useMemo(() => userVideosRes?.data ?? [], [userVideosRes?.data]);
   const repostedVideos = useMemo(() => repostedVideosRes?.data ?? [], [repostedVideosRes?.data]);
   const favoriteVideos = useMemo(() => favoriteVideosRes?.data ?? [], [favoriteVideosRes?.data]);
-  const likedVideos = useMemo(() => likedVideosRes?.data ?? [], [likedVideosRes?.data]);
+  const likedVideos = useMemo(
+    () => (isOwnProfileForQueries ? ownLikedVideosRes?.data : userLikedVideosRes?.data) ?? [],
+    [isOwnProfileForQueries, ownLikedVideosRes?.data, userLikedVideosRes?.data],
+  );
   const collections = useMemo(
     () => (isOwnProfileForQueries ? ownCollectionsRes?.data : userCollectionsRes?.data) ?? [],
     [isOwnProfileForQueries, ownCollectionsRes?.data, userCollectionsRes?.data]
   );
   const favoriteSounds = useMemo(() => soundsRes?.data ?? [], [soundsRes?.data]);
   const displayedVideos = useMemo(() => {
-    if (activeTab === "video") return userVideos;
-    if (activeTab === "reposts") return repostedVideos;
-    if (activeTab === "favorites") return favoriteVideos;
-    if (activeTab === "liked") return likedVideos;
+    if (visibleActiveTab === "video") return userVideos;
+    if (visibleActiveTab === "reposts") return repostedVideos;
+    if (visibleActiveTab === "favorites") return favoriteVideos;
+    if (visibleActiveTab === "liked") return likedVideos;
     return [];
-  }, [activeTab, favoriteVideos, likedVideos, repostedVideos, userVideos]);
+  }, [favoriteVideos, likedVideos, repostedVideos, userVideos, visibleActiveTab]);
   const isDisplayedLoading =
-    activeTab === "video"
+    visibleActiveTab === "video"
       ? isLoadingVideos
-      : activeTab === "reposts"
+      : visibleActiveTab === "reposts"
       ? isLoadingReposts
-      : activeTab === "favorites"
+      : visibleActiveTab === "favorites"
       ? isLoadingFavorites
-      : activeTab === "liked"
-      ? isLoadingLiked
+      : visibleActiveTab === "liked"
+      ? isOwnProfileForQueries ? isLoadingOwnLiked : isLoadingUserLiked
       : false;
   const firstPreviewVideoId = useMemo(
     () => displayedVideos.find((video) => !video.unavailable && !video.deleted && video.fileUrl)?.id ?? null,
@@ -148,22 +163,22 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    updateIndicator(hoveredTabId || activeTab);
-  }, [activeTab, hoveredTabId]);
+    updateIndicator(hoveredTabId || visibleActiveTab);
+  }, [hoveredTabId, visibleActiveTab]);
 
   useEffect(() => {
     const handleResize = () => {
-      updateIndicator(hoveredTabId || activeTab);
+      updateIndicator(hoveredTabId || visibleActiveTab);
     };
     
-    const timer = setTimeout(() => updateIndicator(hoveredTabId || activeTab), 100);
+    const timer = setTimeout(() => updateIndicator(hoveredTabId || visibleActiveTab), 100);
     window.addEventListener("resize", handleResize);
     
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", handleResize);
     };
-  }, [activeTab, hoveredTabId]);
+  }, [hoveredTabId, visibleActiveTab]);
 
   if (isLoading) {
     return (
@@ -274,14 +289,21 @@ export default function ProfilePage() {
     { id: "reposts", label: t('tabs.reposts'), icon: <RotateCcw className="w-5 h-5" /> },
     { id: "favorites", label: t('tabs.favorites'), icon: <Bookmark className="w-5 h-5" />, private: true },
     { id: "liked", label: t('tabs.liked'), icon: <Heart className="w-5 h-5" />, private: true },
-  ];
+  ].filter((tab) => tab.id !== "reposts" || canViewReposts);
+
+  const hiddenContent =
+    visibleActiveTab === "video" && !canViewPosts
+      ? { title: t("hiddenContent.postsTitle"), description: t("hiddenContent.postsDescription") }
+      : visibleActiveTab === "liked" && !canViewLikedVideos
+        ? { title: t("hiddenContent.likedTitle"), description: t("hiddenContent.likedDescription") }
+        : null;
 
   return (
     <div className="h-full w-full overflow-y-auto px-5 pt-5 pb-20 sm:px-8 lg:px-9 xl:px-10">
       <DocumentTitle title={profileTitle} />
       {/* Profile Header */}
       <div className="mb-5 flex max-w-[1160px] flex-col gap-3.5 lg:mb-6">
-        <div className="flex items-start gap-5 lg:gap-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start lg:gap-7">
           {/* Avatar */}
           <div className="relative group flex-shrink-0">
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-background shadow-xl ring-1 ring-elevated transition-transform duration-300 group-hover:scale-105 sm:h-[120px] sm:w-[120px] lg:h-[132px] lg:w-[132px]">
@@ -298,11 +320,11 @@ export default function ProfilePage() {
           {/* User Info */}
           <div className="min-w-0 flex-1 pt-1 lg:pt-1.5">
             <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
-              <h1 className="max-w-[400px] truncate text-[27px] font-bold leading-tight tracking-tight lg:text-[29px]">
+              <h1 className="max-w-full truncate text-[27px] font-bold leading-tight tracking-tight sm:max-w-[400px] lg:text-[29px]">
                 {profile.nickname ?? profile.username}
               </h1>
               <div className="hidden h-7 w-px bg-elevated sm:block" />
-              <h2 className="max-w-[280px] truncate text-[15px] font-semibold text-text-secondary lg:text-[16px]">
+              <h2 className="max-w-full truncate text-[15px] font-semibold text-text-secondary sm:max-w-[280px] lg:text-[16px]">
                 {profile.username}
               </h2>
             </div>
@@ -323,7 +345,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="mb-3 flex flex-wrap items-center gap-3">
+            <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
               {isOwnProfile ? (
                 <>
                   <button 
@@ -400,8 +422,8 @@ export default function ProfilePage() {
                       <MoreHorizontal className="size-5" />
                     </button>
                     {isProfileMenuOpen && (
-                      <div className="absolute left-1/2 top-[52px] z-50 w-[226px] -translate-x-1/2 overflow-visible rounded-xl border border-elevated bg-background p-2 text-text-primary shadow-2xl">
-                        <div className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rotate-45 border-l border-t border-elevated bg-background" />
+                      <div className="absolute right-0 top-[52px] z-50 w-[226px] overflow-visible rounded-xl border border-elevated bg-background p-2 text-text-primary shadow-2xl sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
+                        <div className="absolute -top-2 right-3 size-4 rotate-45 border-l border-t border-elevated bg-background sm:left-1/2 sm:right-auto sm:-translate-x-1/2" />
                         <button
                           type="button"
                           onClick={() => {
@@ -489,11 +511,10 @@ export default function ProfilePage() {
               onMouseEnter={() => setHoveredTabId(tab.id)}
               onClick={() => {
                 setActiveTab(tab.id);
-                if (tab.id === "favorites" && !isOwnProfile) setFavoriteSection("collections");
-                if (tab.id === "favorites" && isOwnProfile) setFavoriteSection("posts");
+                if (tab.id === "favorites") setFavoriteSection("posts");
               }}
               className={`relative flex h-11 min-w-[140px] items-center justify-center gap-2 px-5 text-[15px] font-bold transition-colors whitespace-nowrap lg:text-[17px]
-                ${activeTab === tab.id ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}
+                ${visibleActiveTab === tab.id ? "text-text-primary" : "text-text-muted hover:text-text-secondary"}
               `}
             >
               {tab.icon}
@@ -504,14 +525,14 @@ export default function ProfilePage() {
       </div>
 
       {/* Content Grid */}
-      {isBlocked && !isOwnProfile ? null : activeTab === "favorites" ? (
+      {isBlocked && !isOwnProfile ? null : visibleActiveTab === "favorites" ? (
         <div>
-          <div className="mb-6 flex items-center justify-between border-b border-elevated">
-            <div className="flex items-center gap-3">
+          <div className="mb-6 flex flex-col gap-3 border-b border-elevated sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setFavoriteSection("posts")}
-                className={`h-10 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
+                className={`h-10 shrink-0 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
                   favoriteSection === "posts" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
@@ -520,7 +541,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setFavoriteSection("collections")}
-                className={`h-10 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
+                className={`h-10 shrink-0 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
                   favoriteSection === "collections" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
@@ -530,7 +551,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setFavoriteSection("sounds")}
-                  className={`h-10 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
+                  className={`h-10 shrink-0 rounded-md px-3.5 text-[15px] font-bold transition lg:text-[16px] ${
                     favoriteSection === "sounds" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
@@ -542,7 +563,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setIsCreateCollectionOpen(true)}
-                className="flex h-9 items-center gap-2 rounded-full bg-elevated px-4 text-[14px] font-bold hover:bg-hover lg:text-[15px]"
+                className="mb-3 flex h-9 w-fit items-center gap-2 rounded-full bg-elevated px-4 text-[14px] font-bold hover:bg-hover sm:mb-0 lg:text-[15px]"
               >
                 <PlusCircle className="size-4" />
                 Tạo bộ sưu tập mới
@@ -550,10 +571,11 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {favoriteSection === "posts" && !isOwnProfile ? (
+          {favoriteSection === "posts" && !canViewFavorites ? (
             <div className="flex flex-col items-center justify-center py-32 text-text-secondary">
               <Lock className="mb-4 size-16 opacity-30" />
-              <p className="text-xl font-bold">{tCollection("privateFavorites")}</p>
+              <p className="text-xl font-bold">{t("hiddenContent.favoritesTitle")}</p>
+              <p className="mt-2 max-w-md text-center text-sm">{t("hiddenContent.favoritesDescription")}</p>
             </div>
           ) : favoriteSection === "posts" ? (
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
@@ -582,7 +604,7 @@ export default function ProfilePage() {
               <p className="text-xl font-bold">{tCollection("privateFavorites")}</p>
             </div>
           ) : favoriteSection === "sounds" ? (
-            <div className="grid max-w-5xl grid-cols-2 gap-4">
+            <div className="grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2">
               {isLoadingSounds ? (
                 [1, 2, 3, 4].map((i) => <div key={i} className="h-[104px] animate-pulse rounded-lg bg-elevated" />)
               ) : favoriteSounds.length > 0 ? (
@@ -618,6 +640,12 @@ export default function ProfilePage() {
             </div>
           ) : null}
         </div>
+      ) : hiddenContent ? (
+        <div className="flex flex-col items-center justify-center py-32 text-text-secondary">
+          <Lock className="mb-4 size-16 opacity-30" />
+          <p className="text-xl font-bold">{hiddenContent.title}</p>
+          <p className="mt-2 max-w-md text-center text-sm">{hiddenContent.description}</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6">
           {isDisplayedLoading ? (
@@ -630,8 +658,8 @@ export default function ProfilePage() {
                 key={video.id}
                 video={video}
                 href={videoPath(video.username, video.id, {
-                  from: activeTab === "liked" ? "liked" : activeTab === "reposts" ? "reposts" : "profile",
-                  profileOwner: activeTab === "reposts" ? profile.username : undefined,
+                  from: visibleActiveTab === "liked" ? "liked" : visibleActiveTab === "reposts" ? "reposts" : "profile",
+                  profileOwner: visibleActiveTab === "reposts" ? profile.username : undefined,
                 })}
                 previewActive={activePreviewVideoId === video.id}
                 onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}

@@ -10,7 +10,7 @@ export default function NewBusinessProductPage() {
   const t = useTranslations("BusinessProductEditPage");
 
   return (
-    <ShopPageFrame title={t("newTitle")} subtitle={t("subtitle")}>
+    <ShopPageFrame title={t("newTitle")} subtitle={t("subtitle")} variant="seller">
       <DocumentTitle title={`${t("newTitle")} | TopTop`} />
       <BusinessAccess>
         <SellerProductForm />

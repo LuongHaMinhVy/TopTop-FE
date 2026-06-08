@@ -59,6 +59,30 @@
         "friends": "Friends"
     }
   },
+  "ShopShell": {
+    "brand": "TopTop Shop",
+    "navLabel": "Shop navigation",
+    "tabsLabel": "Shop section switcher",
+    "backToTopTop": "Back to TopTop",
+    "profile": "Profile",
+    "more": "More",
+    "searchHint": "Search in shop",
+    "nav": {
+      "shop": "Shop",
+      "cart": "Cart",
+      "sellerRequest": "Become a seller",
+      "business": "Business",
+      "shopProfile": "Shop profile",
+      "products": "Products",
+      "orders": "Orders"
+    },
+    "tabs": {
+      "shop": "Shop",
+      "cart": "Cart",
+      "business": "Business",
+      "sellerShop": "My shop"
+    }
+  },
   "ShopPage": {
     "title": "TopTop Shop",
     "subtitle": "Browse approved products connected to short videos, creators, and live shopping flows.",
@@ -66,14 +90,53 @@
       "cart": "Cart",
       "business": "Business place",
       "search": "Search products",
-      "retry": "Try again"
+      "retry": "Try again",
+      "seeAll": "See all",
+      "allProducts": "All products"
+    },
+    "hero": {
+      "freeship": "Free shipping on eligible orders",
+      "searchTitle": "Search \"{keyword}\"",
+      "pills": {
+        "flashSale": "Flash sale",
+        "topRated": "Top rated",
+        "bestSellers": "Best sellers",
+        "newArrivals": "New arrivals"
+      }
+    },
+    "stats": {
+      "label": "Shop statistics",
+      "products": "Products",
+      "sold": "Units sold",
+      "avgRating": "Avg. rating",
+      "categories": "Categories"
+    },
+    "promo": {
+      "flashTitle": "Flash Sale",
+      "flashSub": "Limited-time deals up to 70% off",
+      "topTitle": "Top Rated",
+      "topSub": "Highest-rated products by buyers",
+      "shipTitle": "Free Shipping",
+      "shipSub": "On orders meeting the threshold"
     },
     "sections": {
+      "categories": "Browse categories",
+      "promos": "Promotions",
+      "flashSale": "Flash sale",
+      "topRated": "Top rated",
+      "bestSellers": "Best sellers",
+      "newArrivals": "New arrivals",
+      "forYou": "Suggestions for you",
+      "searchResults": "Search results",
       "featured": "Featured products",
       "approvedOnly": "Only active, approved products are shown here."
     },
     "labels": {
-      "sold": "sold"
+      "sold": "sold",
+      "deal": "Deal",
+      "hot": "Hot",
+      "new": "New",
+      "topRated": "Top"
     },
     "states": {
       "emptyTitle": "No products yet",
@@ -278,6 +341,12 @@
     "saveError": "Could not save request.",
     "approvedNotice": "This shop is approved. Business place is available.",
     "goToBusiness": "Go to Business place",
+    "close": "Close",
+    "requirements": {
+      "identity": "Use real shop information so buyers can recognize your brand.",
+      "products": "Prepare an avatar, cover image, and a concise description.",
+      "review": "After submission, admin reviews the request before Business place unlocks."
+    },
     "saving": "Saving...",
     "updateRequest": "Update request",
     "request": "Request permission"
@@ -393,6 +462,14 @@
     "continue": "Continue",
     "privateAccount": "Private account",
     "privateAccountDescription": "Only approved users can follow you and watch your videos.",
+    "showPosts": "Allow others to view posts",
+    "showPostsDescription": "Other people can view the Video tab on your profile.",
+    "showReposts": "Allow others to view reposts",
+    "showRepostsDescription": "When off, the Reposts tab is hidden from your profile.",
+    "showLikedVideos": "Allow others to view liked videos",
+    "showLikedVideosDescription": "Other people can view the Liked tab on your profile.",
+    "showFavorites": "Allow others to view favorites",
+    "showFavoritesDescription": "Other people can view favorite posts; public collections remain visible.",
     "comments": "Comments",
     "commentsDescription": "Default comment option when you upload a new video.",
     "commentOptions": {
@@ -474,7 +551,15 @@
     "blockUser": "Block",
     "unblockUser": "Unblock",
     "blockedState": "You blocked this user",
-    "reportUser": "Report"
+    "reportUser": "Report",
+    "hiddenContent": {
+      "postsTitle": "This user hid their posts",
+      "postsDescription": "Videos on this profile are not public right now.",
+      "likedTitle": "This user hid their liked videos",
+      "likedDescription": "Videos this user liked are not public right now.",
+      "favoritesTitle": "This user hid their favorites",
+      "favoritesDescription": "Favorite posts are not public right now. Public collections can still be viewed."
+    }
   },
   "Studio": {
     "title": "TopTop Studio",

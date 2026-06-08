@@ -12,6 +12,7 @@ const updateVideoInCache = (queryClient: QueryClient, videoId: number, stats: { 
     ["infinite-videos"],
     ["user-videos"],
     ["liked-videos"],
+    ["user-liked-videos"],
     ["user-reposted-videos"],
     ["video-detail"],
     ["following-feed"],
@@ -90,6 +91,7 @@ const replaceVideoInCache = (queryClient: QueryClient, video: Video) => {
     ["infinite-videos"],
     ["user-videos"],
     ["liked-videos"],
+    ["user-liked-videos"],
     ["user-reposted-videos"],
     ["video-detail"],
     ["following-feed"],
@@ -392,6 +394,16 @@ export const useLikedVideos = (enabled = true) => {
     queryKey: ["liked-videos"],
     queryFn: () => videoService.getLikedVideos(0, 100),
     enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useUserLikedVideos = (username?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ["user-liked-videos", username],
+    queryFn: () => videoService.getUserLikedVideos(username!, 0, 100),
+    enabled: enabled && !!username,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
