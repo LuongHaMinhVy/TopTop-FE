@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { PackageCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
@@ -9,8 +10,15 @@ import { formatShopPrice, ShopEmptyState, ShopPageFrame, StatusBadge } from "@/c
 
 export default function OrdersPage() {
   const t = useTranslations("OrdersPage");
+  const tStatus = useTranslations("ShopStatus");
   const ordersQuery = useMyOrdersQuery(0, 30);
   const orders = ordersQuery.data?.data ?? [];
+  const [filter, setFilter] = useState<"all" | "paid" | "delivered">("all");
+  const filteredOrders = orders.filter((order) => {
+    if (filter === "paid") return order.paymentStatus === "PAID";
+    if (filter === "delivered") return order.shippingStatus === "DELIVERED";
+    return true;
+  });
 
   return (
     <ShopPageFrame title={t("title")} subtitle={t("subtitle")}>
@@ -25,7 +33,21 @@ export default function OrdersPage() {
         <ShopEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          <div className="flex flex-wrap gap-2">
+            {(["all", "paid", "delivered"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setFilter(item)}
+                className={`rounded-full border px-4 py-2 text-sm font-black ${
+                  filter === item ? "border-text-primary bg-text-primary text-background" : "border-elevated text-text-muted hover:bg-hover"
+                }`}
+              >
+                {t(`filters.${item}`)}
+              </button>
+            ))}
+          </div>
+          {filteredOrders.map((order) => (
             <Link
               key={order.id}
               href={`/orders/${order.id}`}
@@ -42,7 +64,8 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  <StatusBadge value={order.status} />
+                  <StatusBadge value={order.status} label={tStatus(`order.${order.status}`)} />
+                  <StatusBadge value={order.paymentStatus} label={tStatus(`payment.${order.paymentStatus}`)} />
                   <p className="text-lg font-black text-brand">{formatShopPrice(order.totalAmount, order.currency)}</p>
                 </div>
               </div>

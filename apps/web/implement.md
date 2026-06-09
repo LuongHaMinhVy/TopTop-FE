@@ -84,3 +84,40 @@ Updated the shop shell and shop home UI so the buyer experience is cleaner, uses
 ## 11. Known limitations and follow-up
 
 - Fix the existing `(main)/page.tsx` type errors so the web app type-check can pass globally.
+
+## 12. PayPal and Stripe sandbox redirect
+
+- `back/src/main/java/com/back/shop/controller/OrderController.java` now returns `PaymentResponse` from `POST /api/v1/orders/{id}/pay` instead of marking the order paid immediately.
+- `back/src/main/java/com/back/shop/service/impl/OrderServiceImpl.java` now validates the current buyer, initializes Stripe Checkout Sessions or PayPal sandbox checkout orders, stores online payments as `PENDING`, and returns a provider `redirectUrl`.
+- `back/src/main/resources/application.yaml` now gives payment credentials empty defaults for local startup and adds `PAYPAL_VND_TO_USD_RATE` for PayPal sandbox conversion from VND orders to USD.
+- `front/apps/web/services/shop-api-service.ts`, `hooks/shop-hooks.ts`, `types/shop.ts`, `checkout/page.tsx`, and `orders/[orderId]/page.tsx` now consume `Payment.redirectUrl` and send the browser to PayPal/Stripe sandbox checkout.
+- `front/apps/web/messages/en.json` and `messages/vi.json` now describe the sandbox redirect behavior.
+
+Verification for this change is recorded in the final task report.
+
+## 13. Self-purchase prevention
+
+- `back/src/main/java/com/back/common/utils/exception/ErrorCode.java` now includes `CANNOT_BUY_OWN_SHOP_PRODUCT`.
+- `back/src/main/resources/messages.properties` and `messages_vi.properties` now localize the self-purchase validation error.
+- `back/src/main/java/com/back/shop/service/impl/CartServiceImpl.java` now blocks shop owners from adding their own products to cart and blocks checkout preview if older cart items from the owner's shop are selected.
+- `back/src/main/java/com/back/shop/service/impl/OrderServiceImpl.java` now blocks order creation for any shop group owned by the buyer before stock or sold-count mutation happens.
+
+## 14. Payment provider return completion
+
+- `back/src/main/java/com/back/shop/controller/OrderController.java` now exposes `POST /api/v1/orders/{id}/pay/complete` for provider return handling.
+- `back/src/main/java/com/back/shop/service/impl/OrderServiceImpl.java` now includes Stripe `session_id` in the success URL, retrieves the Checkout Session to verify `payment_status=paid`, captures PayPal sandbox orders with the returned `token`, and marks orders/payments as `PAID` only after provider confirmation.
+- `front/apps/web/services/shop-api-service.ts` and `hooks/shop-hooks.ts` now include a separate complete-payment mutation.
+- `front/apps/web/app/[locale]/(shop)/orders/[orderId]/page.tsx` now detects PayPal/Stripe success query parameters on return and calls the complete-payment endpoint, so completed sandbox payments no longer remain `PENDING`.
+
+## 15. Paid-order views and shop payout tiers
+
+- `back/src/main/java/com/back/shop/model/dto/response/OrderResponse.java` now returns `commissionBaseAmount`, `shopPayoutRate`, `shopPayoutAmount`, `platformFeeAmount`, and `commissionTier`.
+- `back/src/main/java/com/back/shop/service/impl/OrderServiceImpl.java` now calculates shop payout from paid orders using deterministic tiers: small shops receive 30%, medium shops 35%, and large shops 40% of subtotal after discount. Shipping fee is excluded from the payout base.
+- `front/apps/web/components/shop/ShopUi.tsx`, `messages/en.json`, and `messages/vi.json` now support translated order/payment/shipping labels instead of raw enum text.
+- `front/apps/web/app/[locale]/(shop)/orders/page.tsx` and `business/orders/page.tsx` now include filters for all, paid, and delivered orders.
+- `front/apps/web/app/[locale]/(shop)/orders/[orderId]/page.tsx`, `business/page.tsx`, and `business/orders/page.tsx` now show paid status labels and shop payout/platform fee information.
+
+## 16. Buyer orders sidebar entry
+
+- `front/apps/web/features/shop-sitemap/components/ShopSidebar.tsx` now includes `/orders` in the buyer navigation as a separate purchased-orders entry.
+- `front/apps/web/messages/en.json` and `messages/vi.json` now label that entry as `My orders` / `Đơn đã mua`, keeping it distinct from seller `/business/orders`.

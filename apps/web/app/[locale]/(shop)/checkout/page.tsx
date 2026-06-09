@@ -9,7 +9,6 @@ import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { usePayOrderMutation, usePlaceOrderMutation, usePreviewCheckoutQuery } from "@/hooks/shop-hooks";
 import { formatShopPrice, ShopEmptyState, ShopPageFrame } from "@/components/shop/ShopUi";
 import type { ShopPaymentProvider } from "@/types/shop-payment";
-import { createProviderTransactionId } from "@/utils/shop-payment";
 
 const PAYMENT_OPTIONS: Array<{ provider: ShopPaymentProvider; icon: "wallet" | "card" }> = [
   { provider: "COD", icon: "wallet" },
@@ -63,13 +62,17 @@ export default function CheckoutPage() {
       const orderId = response.data?.id;
 
       if (orderId && paymentProvider !== "COD") {
-        await payOrder.mutateAsync({
+        const paymentResponse = await payOrder.mutateAsync({
           orderId,
           payload: {
             provider: paymentProvider,
-            transactionId: createProviderTransactionId(paymentProvider),
           },
         });
+        const redirectUrl = paymentResponse.data?.redirectUrl;
+        if (redirectUrl) {
+          window.location.assign(redirectUrl);
+          return;
+        }
       }
 
       router.push(orderId ? `/orders/${orderId}` : "/orders");

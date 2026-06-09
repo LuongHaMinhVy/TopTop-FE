@@ -6,6 +6,7 @@ import type {
   Cart,
   CheckoutPreview,
   Order,
+  Payment,
   ProductReview,
   Category
 } from "@/types/shop";
@@ -182,8 +183,16 @@ export const updateOrderStatus = async (orderId: number, status: string): Promis
   return res.data;
 };
 
-export const payOrder = async (orderId: number, payload: { provider: string; transactionId?: string }): Promise<ApiResponse<Order>> => {
-  const res = await api.post<ApiResponse<Order>>(`/orders/${orderId}/pay`, payload);
+export const payOrder = async (orderId: number, payload: { provider: string }): Promise<ApiResponse<Payment>> => {
+  const res = await api.post<ApiResponse<Payment>>(`/orders/${orderId}/pay`, payload);
+  return res.data;
+};
+
+export const completeOrderPayment = async (
+  orderId: number,
+  payload: { provider: string; providerReference: string },
+): Promise<ApiResponse<Order>> => {
+  const res = await api.post<ApiResponse<Order>>(`/orders/${orderId}/pay/complete`, payload);
   return res.data;
 };
 

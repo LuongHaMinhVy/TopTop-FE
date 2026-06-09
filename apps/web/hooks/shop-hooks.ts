@@ -26,6 +26,7 @@ import {
   getShopOrders,
   updateOrderStatus,
   payOrder,
+  completeOrderPayment,
   cancelOrder,
   createReview,
   getProductReviews,
@@ -258,10 +259,23 @@ export function useUpdateOrderStatusMutation() {
 export function usePayOrderMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderId, payload }: { orderId: number; payload: { provider: string; transactionId?: string } }) =>
+    mutationFn: ({ orderId, payload }: { orderId: number; payload: { provider: string } }) =>
       payOrder(orderId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order"] });
+    }
+  });
+}
+
+export function useCompleteOrderPaymentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, payload }: { orderId: number; payload: { provider: string; providerReference: string } }) =>
+      completeOrderPayment(orderId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop-orders"] });
       queryClient.invalidateQueries({ queryKey: ["order"] });
     }
   });

@@ -20,6 +20,7 @@ type ShopNavItem = {
 const BUYER_NAV_ITEMS: ShopNavItem[] = [
   { href: "/shop", labelKey: "nav.shop", icon: ShoppingBag, exact: true },
   { href: "/cart", labelKey: "nav.cart", icon: ShoppingCart },
+  { href: "/orders", labelKey: "nav.myOrders", icon: ClipboardList },
 ];
 
 const SELLER_REQUEST_NAV_ITEM: ShopNavItem = {

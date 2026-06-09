@@ -124,7 +124,7 @@ export function ProductCard({
   );
 }
 
-export function StatusBadge({ value }: { value: string }) {
+export function StatusBadge({ value, label }: { value: string; label?: string }) {
   const normalized = value.toUpperCase();
   const tone =
     normalized === "CANCELLED" || normalized === "REJECTED" || normalized === "BANNED"
@@ -135,7 +135,7 @@ export function StatusBadge({ value }: { value: string }) {
 
   return (
     <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${tone}`}>
-      {value.replaceAll("_", " ")}
+      {label ?? value.replaceAll("_", " ")}
     </span>
   );
 }

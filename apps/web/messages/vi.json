@@ -70,6 +70,7 @@
     "nav": {
       "shop": "Shop",
       "cart": "Giỏ hàng",
+      "myOrders": "Đơn đã mua",
       "sellerRequest": "Xin quyền bán hàng",
       "business": "Kinh doanh",
       "shopProfile": "Hồ sơ shop",
@@ -198,7 +199,7 @@
       "PAYPAL": "PayPal",
       "STRIPE": "Stripe"
     },
-    "externalPaymentNote": "Thanh toán qua {provider} sẽ được ghi nhận sau khi nhà cung cấp xác nhận.",
+    "externalPaymentNote": "{provider} sẽ mở trang thanh toán sandbox sau khi đơn hàng được tạo.",
     "previewUnavailable": "Không thể tải tóm tắt thanh toán.",
     "orderError": "Không thể đặt hàng. Hãy kiểm tra tồn kho và thông tin giao hàng.",
     "placing": "Đang đặt hàng...",
@@ -208,7 +209,12 @@
     "title": "Đơn hàng",
     "subtitle": "Theo dõi các đơn mua và trạng thái xử lý.",
     "emptyTitle": "Chưa có đơn hàng",
-    "emptyDescription": "Đơn tạo từ thanh toán sẽ xuất hiện tại đây."
+    "emptyDescription": "Đơn tạo từ thanh toán sẽ xuất hiện tại đây.",
+    "filters": {
+      "all": "Tất cả",
+      "paid": "Đã thanh toán",
+      "delivered": "Đã giao"
+    }
   },
   "OrderDetailPage": {
     "title": "Chi tiết đơn hàng",
@@ -222,12 +228,15 @@
     "address": "Địa chỉ",
     "subtotal": "Tạm tính",
     "shippingFee": "Phí vận chuyển",
+    "shopPayout": "Shop nhận",
+    "platformFee": "Phí nền tảng",
+    "commissionTier": "Hạng shop",
     "total": "Tổng cộng",
     "payNow": "Thanh toán ngay",
     "paying": "Đang thanh toán...",
     "payWith": "Thanh toán bằng {provider}",
     "paymentError": "Không thể hoàn tất thanh toán.",
-    "paymentRedirectNote": "Trong checkout thật, {provider} sẽ mở màn hình thanh toán bảo mật trước khi đơn được đánh dấu đã thanh toán.",
+    "paymentRedirectNote": "{provider} sẽ mở trang thanh toán sandbox trước khi đơn được đánh dấu đã thanh toán.",
     "paymentProviders": {
       "PAYPAL": "PayPal",
       "STRIPE": "Stripe"
@@ -324,7 +333,10 @@
     "newProduct": "Sản phẩm mới",
     "products": "Sản phẩm",
     "orders": "Đơn hàng",
-    "revenue": "Doanh thu"
+    "revenue": "Doanh thu",
+    "paidOrders": "Đơn đã thanh toán",
+    "shopPayout": "Shop nhận",
+    "platformFee": "Phí nền tảng"
   },
   "BusinessRequestPage": {
     "title": "Xin quyền người bán",
@@ -391,7 +403,51 @@
     "emptyTitle": "Chưa có đơn hàng shop",
     "emptyDescription": "Đơn của shop đã duyệt sẽ xuất hiện sau khi buyer thanh toán.",
     "items": "sản phẩm",
-    "moveTo": "Chuyển sang {status}"
+    "moveTo": "Chuyển sang {status}",
+    "filters": {
+      "all": "Tất cả",
+      "paid": "Đã thanh toán",
+      "delivered": "Đã giao"
+    },
+    "shopPayout": "Shop nhận",
+    "platformFee": "Phí nền tảng",
+    "commissionRate": "Tỷ lệ hưởng {rate}%",
+    "commissionTier": "Hạng {tier}"
+  },
+  "ShopStatus": {
+    "order": {
+      "PENDING_PAYMENT": "Chờ thanh toán",
+      "PAID": "Đã thanh toán",
+      "SELLER_CONFIRMING": "Đã thanh toán",
+      "PACKING": "Đang đóng gói",
+      "SHIPPING": "Đang giao",
+      "DELIVERED": "Đã giao đơn",
+      "COMPLETED": "Hoàn tất",
+      "CANCELLED": "Đã hủy",
+      "REFUND_REQUESTED": "Yêu cầu hoàn tiền",
+      "REFUNDED": "Đã hoàn tiền"
+    },
+    "payment": {
+      "UNPAID": "Chưa thanh toán",
+      "PENDING": "Đang xử lý",
+      "PAID": "Đã thanh toán",
+      "FAILED": "Thanh toán lỗi",
+      "REFUNDED": "Đã hoàn tiền"
+    },
+    "shipping": {
+      "NOT_SHIPPED": "Chưa giao",
+      "PREPARING": "Đang chuẩn bị",
+      "SHIPPED": "Đang giao",
+      "DELIVERED": "Đã giao đơn",
+      "RETURNED": "Đã trả hàng",
+      "CANCELLED": "Đã hủy giao"
+    },
+    "commissionTier": {
+      "UNPAID": "Chưa tính",
+      "SMALL": "Nhỏ",
+      "MEDIUM": "Vừa",
+      "LARGE": "Lớn"
+    }
   },
   "settings": {
     "title": "Cài đặt",

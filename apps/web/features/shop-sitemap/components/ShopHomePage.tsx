@@ -52,39 +52,40 @@ export default function ShopHomePage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-background text-text-primary custom-scrollbar">
+    <div className="h-full overflow-y-auto custom-scrollbar">
       <DocumentTitle title={`${t("title")} | TopTop`} />
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pb-8 pt-4 sm:gap-7 sm:px-6 sm:pb-14 xl:px-8">
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pb-8 pt-4 sm:gap-8 sm:px-6 sm:pb-14 xl:px-8">
         <form
           onSubmit={submitSearch}
-          className="sticky top-0 z-20 flex min-w-0 items-center rounded-full border border-elevated bg-background/95 px-3 py-1.5 backdrop-blur sm:px-4"
+          className="sticky top-2 z-20 flex min-w-0 items-center rounded-full border border-elevated bg-background/80 px-2 py-1 backdrop-blur-md transition-all focus-within:border-brand/40 focus-within:shadow-[0_0_12px_rgba(255,59,92,0.15)] sm:px-3 sm:py-1.5"
         >
-          <Search className="size-5 shrink-0 text-text-muted" />
+          <Search className="ml-2 size-4 shrink-0 text-text-muted sm:size-5" />
           <input
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder={t("actions.search")}
-            className="h-10 min-w-0 flex-1 bg-transparent px-2 text-[14px] font-semibold text-text-primary outline-none placeholder:text-text-muted sm:h-11 sm:px-3 sm:text-[15px]"
+            className="h-9 min-w-0 flex-1 bg-transparent px-2 text-sm font-semibold text-text-primary outline-none placeholder:text-text-muted sm:h-10 sm:px-3 sm:text-[15px]"
           />
           <button
             type="submit"
-            className="h-9 rounded-full bg-text-primary px-4 text-[13px] font-black text-background hover:opacity-90 sm:px-5 sm:text-[14px]"
+            className="h-8 shrink-0 rounded-full bg-brand px-3 text-xs font-bold text-white transition-all hover:bg-brand-dark sm:h-9 sm:px-5 sm:text-sm"
           >
-            {t("actions.search")}
+            <span className="hidden sm:inline">{t("actions.search")}</span>
+            <Search className="size-4 sm:hidden" />
           </button>
         </form>
 
-        <section className="grid min-h-[240px] overflow-hidden rounded-lg border border-elevated bg-surface lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="flex flex-col justify-between gap-7 p-5 sm:p-8 lg:p-10">
+        <section className="toptop-gradient-hero grid min-h-[200px] overflow-hidden rounded-xl sm:min-h-[240px] lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="flex flex-col justify-between gap-6 p-5 sm:p-8 lg:p-10">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-2 text-[14px] font-black text-brand">
-                <Truck className="size-5" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--color-cyan)_12%,transparent)] border border-cyan/20 px-3 py-1 text-xs font-bold text-cyan animate-pulse">
+                <Truck className="size-4" />
                 {t("hero.freeship")}
-              </p>
-              <h1 className="mt-5 max-w-3xl text-[34px] font-black leading-[1.04] sm:text-[52px] sm:leading-[1.02] lg:text-[64px]">
+              </span>
+              <h1 className="mt-4 max-w-3xl text-[28px] font-extrabold tracking-tight leading-[1.1] sm:text-[44px] lg:text-[56px] text-text-primary">
                 {activeCategory?.name ?? (keyword ? t("hero.searchTitle", { keyword }) : t("title"))}
               </h1>
-              <p className="mt-4 max-w-2xl text-[15px] font-semibold leading-6 text-text-secondary sm:text-[16px] sm:leading-7">
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-text-secondary sm:text-base">
                 {t("subtitle")}
               </p>
             </div>
@@ -107,7 +108,10 @@ export default function ShopHomePage() {
           {categoriesQuery.isLoading ? (
             <div className="flex gap-3 overflow-hidden">
               {Array.from({ length: 9 }).map((_, index) => (
-                <div key={index} className="h-[96px] w-[112px] shrink-0 animate-pulse rounded-lg bg-elevated" />
+                <div
+                  key={index}
+                  className="h-[76px] w-[80px] shrink-0 animate-pulse rounded-full bg-elevated sm:h-[96px] sm:w-[100px]"
+                />
               ))}
             </div>
           ) : (
@@ -124,9 +128,31 @@ export default function ShopHomePage() {
           )}
         </section>
 
-        {dealProducts.length > 0 ? <ProductRail id="flash-sale" title={t("sections.flashSale")} products={dealProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
-        {topSellingProducts.length > 0 ? <ProductRail title={t("sections.bestSellers")} products={topSellingProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
-        {newestProducts.length > 0 ? <ProductRail title={t("sections.newArrivals")} products={newestProducts} allLabel={t("actions.seeAll")} dealLabel={t("labels.deal")} /> : null}
+        {dealProducts.length > 0 ? (
+          <ProductRail
+            id="flash-sale"
+            title={t("sections.flashSale")}
+            products={dealProducts}
+            allLabel={t("actions.seeAll")}
+            dealLabel={t("labels.deal")}
+          />
+        ) : null}
+        {topSellingProducts.length > 0 ? (
+          <ProductRail
+            title={t("sections.bestSellers")}
+            products={topSellingProducts}
+            allLabel={t("actions.seeAll")}
+            dealLabel={t("labels.deal")}
+          />
+        ) : null}
+        {newestProducts.length > 0 ? (
+          <ProductRail
+            title={t("sections.newArrivals")}
+            products={newestProducts}
+            allLabel={t("actions.seeAll")}
+            dealLabel={t("labels.deal")}
+          />
+        ) : null}
 
         <section aria-labelledby="shop-products-heading">
           <SectionHeader
@@ -139,14 +165,14 @@ export default function ShopHomePage() {
             <ProductGridSkeleton />
           ) : productsQuery.isError ? (
             <ShopState
-              icon={<ShoppingBag className="size-8" />}
+              icon={<ShoppingBag className="size-8 text-brand" />}
               title={t("states.errorTitle")}
               description={t("states.errorDescription")}
               action={
                 <button
                   type="button"
                   onClick={() => void productsQuery.refetch()}
-                  className="mt-5 rounded-full bg-text-primary px-5 py-2 text-[14px] font-bold text-background hover:opacity-90"
+                  className="mt-5 rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-brand-dark"
                 >
                   {t("actions.retry")}
                 </button>
@@ -154,12 +180,12 @@ export default function ShopHomePage() {
             />
           ) : products.length === 0 ? (
             <ShopState
-              icon={<Store className="size-8" />}
+              icon={<Store className="size-8 text-text-muted" />}
               title={t("states.emptyTitle")}
               description={t("states.emptyDescription")}
             />
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 sm:gap-4 lg:gap-5">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} soldLabel={t("labels.sold")} />
               ))}
@@ -181,12 +207,15 @@ function SectionHeader({
   actionLabel?: string;
 }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-4">
-      <h2 className="text-[22px] font-black leading-tight">{title}</h2>
+    <div className="mb-4 flex items-end justify-between gap-4">
+      <h2 className="text-lg font-extrabold tracking-tight text-text-primary sm:text-xl md:text-2xl">{title}</h2>
       {actionHref && actionLabel ? (
-        <Link href={actionHref} className="inline-flex shrink-0 items-center gap-1 text-[14px] font-black text-text-muted hover:text-text-primary">
+        <Link
+          href={actionHref}
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-text-muted transition-colors hover:text-brand sm:text-sm"
+        >
           {actionLabel}
-          <ArrowRight className="size-4" />
+          <ArrowRight className="size-3.5" />
         </Link>
       ) : null}
     </div>
@@ -195,7 +224,10 @@ function SectionHeader({
 
 function HeroPill({ label, href }: { label: string; href: string }) {
   return (
-    <Link href={href} className="rounded-full bg-background px-4 py-2 text-[13px] font-black hover:bg-hover">
+    <Link
+      href={href}
+      className="inline-flex h-9 items-center justify-center rounded-full border border-elevated bg-background px-4 py-0.5 text-xs font-bold text-text-secondary transition-all hover:border-brand hover:text-text-primary hover:bg-hover"
+    >
       {label}
     </Link>
   );
@@ -205,17 +237,28 @@ function HeroProduct({ product }: { product: Product }) {
   const cover = productCover(product);
 
   return (
-    <Link href={`/shop/product/${product.id}`} className="group min-w-0 rounded-md bg-background p-2">
-      <div className="relative aspect-square overflow-hidden rounded-md bg-elevated">
+    <Link
+      href={`/shop/product/${product.id}`}
+      className="toptop-card-glow group min-w-0 rounded-xl bg-background/50 p-2 border border-elevated/40 transition-all hover:bg-background"
+    >
+      <div className="relative aspect-square overflow-hidden rounded-lg bg-elevated/40">
         {cover ? (
-          <Image src={cover} alt={product.title} fill sizes="180px" className="object-cover transition-transform duration-200 group-hover:scale-105" />
+          <Image
+            src={cover}
+            alt={product.title}
+            fill
+            sizes="180px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
         ) : (
           <div className="grid h-full place-items-center text-text-muted">
-            <ShoppingBag className="size-8" />
+            <ShoppingBag className="size-6" />
           </div>
         )}
       </div>
-      <p className="mt-2 truncate text-[13px] font-black text-brand">{formatPrice(product.basePrice, product.currency)}</p>
+      <p className="mt-2 truncate text-[13px] font-extrabold text-brand">
+        {formatPrice(product.basePrice, product.currency)}
+      </p>
     </Link>
   );
 }
@@ -230,16 +273,27 @@ function CategoryShortcut({
   index: number;
 }) {
   return (
-    <Link href={`/shop?category=${category.id}`} className="group w-[112px] shrink-0 text-center">
+    <Link
+      href={`/shop?category=${category.id}`}
+      className="group flex w-[80px] shrink-0 flex-col items-center text-center transition-transform active:scale-95 sm:w-[100px]"
+    >
       <span
-        className={`mx-auto grid size-16 place-items-center rounded-full text-[22px] font-black transition-colors ${
-          active ? "bg-text-primary text-background" : "bg-elevated text-text-primary group-hover:bg-hover"
+        className={`grid size-12 place-items-center rounded-full text-lg font-bold transition-all sm:size-16 sm:text-xl ${
+          active
+            ? "bg-brand text-white shadow-[0_0_12px_rgba(255,59,92,0.4)]"
+            : "bg-surface border border-elevated text-text-primary group-hover:border-cyan/40 group-hover:text-cyan group-hover:shadow-[0_0_10px_rgba(37,244,238,0.15)]"
         }`}
         aria-hidden="true"
       >
         {category.name.trim().charAt(0).toLocaleUpperCase("vi-VN") || index + 1}
       </span>
-      <span className="mt-2 line-clamp-2 block text-[13px] font-bold leading-4">{category.name}</span>
+      <span
+        className={`mt-2 line-clamp-2 block text-xs font-bold leading-tight transition-colors sm:text-sm ${
+          active ? "text-brand" : "text-text-secondary group-hover:text-text-primary"
+        }`}
+      >
+        {category.name}
+      </span>
     </Link>
   );
 }
@@ -260,7 +314,7 @@ function ProductRail({
   return (
     <section id={id} aria-label={title}>
       <SectionHeader title={title} actionHref="/shop" actionLabel={allLabel} />
-      <div className="flex gap-3 overflow-x-auto pb-1 custom-scrollbar">
+      <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
         {products.map((product) => (
           <RailProduct key={`${title}-${product.id}`} product={product} dealLabel={dealLabel} />
         ))}
@@ -273,29 +327,38 @@ function RailProduct({ product, dealLabel }: { product: Product; dealLabel: stri
   const cover = productCover(product);
 
   return (
-    <Link href={`/shop/product/${product.id}`} className="group w-[150px] shrink-0">
+    <Link
+      href={`/shop/product/${product.id}`}
+      className="toptop-card-glow group w-[130px] shrink-0 rounded-xl bg-surface p-2 transition-all sm:w-[150px] sm:p-2.5"
+    >
       <article className="min-w-0">
-        <div className="relative aspect-square overflow-hidden rounded-md bg-elevated">
+        <div className="relative aspect-square overflow-hidden rounded-lg bg-elevated">
           {cover ? (
             <Image
               src={cover}
               alt={product.title}
               fill
-              sizes="(max-width: 768px) 50vw, 160px"
-              className="object-cover transition-transform duration-200 group-hover:scale-105"
+              sizes="150px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="grid h-full place-items-center text-text-muted">
-              <ShoppingBag className="size-8" />
+              <ShoppingBag className="size-6" />
             </div>
           )}
-          <span className="absolute left-2 top-2 rounded-sm bg-brand px-1.5 py-0.5 text-[11px] font-black text-white">
+          <span className="toptop-tag absolute left-1.5 top-1.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-white sm:text-[10px]">
             {dealLabel}
           </span>
         </div>
-        <h3 className="mt-2 line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[17px]">{product.title}</h3>
-        <p className="mt-1 truncate text-[15px] font-black text-brand">{formatPrice(product.basePrice, product.currency)}</p>
-        <p className="mt-0.5 text-[11px] text-text-muted">{(product.soldCount ?? 0).toLocaleString()} da ban</p>
+        <h3 className="mt-2 line-clamp-2 min-h-[32px] text-xs font-semibold leading-[16px] text-text-primary transition-colors group-hover:text-brand sm:min-h-[36px] sm:leading-[18px]">
+          {product.title}
+        </h3>
+        <p className="mt-1.5 truncate text-xs font-extrabold text-brand sm:text-sm">
+          {formatPrice(product.basePrice, product.currency)}
+        </p>
+        <p className="mt-0.5 text-[10px] text-text-muted sm:text-[11px]">
+          {(product.soldCount ?? 0).toLocaleString()} đã bán
+        </p>
       </article>
     </Link>
   );
@@ -305,32 +368,39 @@ function ProductCard({ product, soldLabel }: { product: Product; soldLabel: stri
   const cover = productCover(product);
 
   return (
-    <Link href={`/shop/product/${product.id}`} className="group min-w-0">
+    <Link
+      href={`/shop/product/${product.id}`}
+      className="toptop-card-glow group min-w-0 rounded-xl bg-surface p-2.5 transition-all"
+    >
       <article className="min-w-0">
-        <div className="relative aspect-square overflow-hidden rounded-md bg-elevated">
+        <div className="relative aspect-square overflow-hidden rounded-lg bg-elevated">
           {cover ? (
             <Image
               src={cover}
               alt={product.title}
               fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-              className="object-cover transition-transform duration-200 group-hover:scale-105"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 160px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-text-muted">
-              <ShoppingBag className="size-10" />
+              <ShoppingBag className="size-8" />
             </div>
           )}
         </div>
-        <h3 className="mt-2 line-clamp-2 min-h-[38px] text-[14px] font-semibold leading-5">{product.title}</h3>
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="truncate text-[17px] font-black text-brand">{formatPrice(product.basePrice, product.currency)}</p>
-          <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-text-muted">
-            <Star className="size-3 fill-current" />
+        <h3 className="mt-3 line-clamp-2 min-h-[36px] text-xs font-semibold leading-[18px] text-text-primary transition-colors group-hover:text-brand sm:text-sm">
+          {product.title}
+        </h3>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-extrabold text-brand sm:text-base">
+            {formatPrice(product.basePrice, product.currency)}
+          </p>
+          <span className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-text-muted">
+            <Star className="size-3 fill-amber-400 text-amber-400" />
             {Number(product.ratingAvg ?? 0).toFixed(1)}
           </span>
         </div>
-        <p className="mt-1 text-[12px] text-text-muted">
+        <p className="mt-1 text-[11px] text-text-muted">
           {(product.soldCount ?? 0).toLocaleString()} {soldLabel}
         </p>
       </article>
@@ -340,10 +410,10 @@ function ProductCard({ product, soldLabel }: { product: Product; soldLabel: stri
 
 function ProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
-      {Array.from({ length: 12 }).map((_, index) => (
-        <div key={index} className="animate-pulse">
-          <div className="aspect-square rounded-md bg-elevated" />
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 sm:gap-4 lg:gap-5">
+      {Array.from({ length: 10 }).map((_, index) => (
+        <div key={index} className="animate-pulse rounded-xl bg-surface p-2.5">
+          <div className="aspect-square rounded-lg bg-elevated" />
           <div className="mt-3 h-4 rounded bg-elevated" />
           <div className="mt-2 h-4 w-2/3 rounded bg-elevated" />
         </div>
@@ -364,10 +434,10 @@ function ShopState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[320px] flex-col items-center justify-center px-6 text-center">
+    <div className="flex min-h-[320px] flex-col items-center justify-center px-6 text-center rounded-xl border border-elevated bg-surface">
       <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-elevated text-text-muted">{icon}</div>
-      <h2 className="text-[20px] font-extrabold">{title}</h2>
-      <p className="mt-2 max-w-md text-[14px] leading-6 text-text-muted">{description}</p>
+      <h2 className="text-[18px] font-bold text-text-primary sm:text-[20px]">{title}</h2>
+      <p className="mt-2 max-w-md text-xs leading-relaxed text-text-muted sm:text-sm">{description}</p>
       {action}
     </div>
   );

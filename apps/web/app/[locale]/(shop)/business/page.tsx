@@ -7,7 +7,7 @@ import { Link } from "@/i18n/routing";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { BusinessAccess, isApprovedBusinessShop } from "@/components/shop/BusinessAccess";
 import { useMyProductsQuery, useMyShopQuery, useShopOrdersQuery } from "@/hooks/shop-hooks";
-import { ShopPageFrame, StatusBadge } from "@/components/shop/ShopUi";
+import { formatShopPrice, ShopPageFrame, StatusBadge } from "@/components/shop/ShopUi";
 
 export default function BusinessDashboardPage() {
   const t = useTranslations("BusinessPage");
@@ -18,7 +18,10 @@ export default function BusinessDashboardPage() {
   const ordersQuery = useShopOrdersQuery(0, 100, canAccessBusiness);
   const products = productsQuery.data?.data ?? [];
   const orders = ordersQuery.data?.data ?? [];
-  const revenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const paidOrders = orders.filter((order) => order.paymentStatus === "PAID");
+  const revenue = paidOrders.reduce((sum, order) => sum + order.commissionBaseAmount, 0);
+  const shopPayout = paidOrders.reduce((sum, order) => sum + order.shopPayoutAmount, 0);
+  const platformFee = paidOrders.reduce((sum, order) => sum + order.platformFeeAmount, 0);
 
   return (
     <ShopPageFrame
@@ -52,10 +55,13 @@ export default function BusinessDashboardPage() {
               </div>
             </section>
 
-            <section className="grid gap-4 md:grid-cols-3">
+            <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
               <Metric icon={<Package className="size-5" />} label={t("products")} value={products.length.toLocaleString()} />
               <Metric icon={<Store className="size-5" />} label={t("orders")} value={orders.length.toLocaleString()} />
-              <Metric icon={<BarChart3 className="size-5" />} label={t("revenue")} value={new Intl.NumberFormat("vi-VN").format(revenue)} />
+              <Metric icon={<Store className="size-5" />} label={t("paidOrders")} value={paidOrders.length.toLocaleString()} />
+              <Metric icon={<BarChart3 className="size-5" />} label={t("revenue")} value={formatShopPrice(revenue)} />
+              <Metric icon={<BarChart3 className="size-5" />} label={t("shopPayout")} value={formatShopPrice(shopPayout)} />
+              <Metric icon={<BarChart3 className="size-5" />} label={t("platformFee")} value={formatShopPrice(platformFee)} />
             </section>
           </div>
         ) : null}

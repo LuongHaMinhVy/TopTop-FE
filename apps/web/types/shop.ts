@@ -104,6 +104,11 @@ export interface Order {
   shippingFee: number;
   discountAmount: number;
   totalAmount: number;
+  commissionBaseAmount: number;
+  shopPayoutRate: number;
+  shopPayoutAmount: number;
+  platformFeeAmount: number;
+  commissionTier: 'UNPAID' | 'SMALL' | 'MEDIUM' | 'LARGE';
   currency: string;
   status: 'PENDING_PAYMENT' | 'PAID' | 'SELLER_CONFIRMING' | 'PACKING' | 'SHIPPING' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUND_REQUESTED' | 'REFUNDED';
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
@@ -114,6 +119,18 @@ export interface Order {
   note?: string;
   createdAt: string;
   items: OrderItem[];
+}
+
+export interface Payment {
+  id: number;
+  orderId: number;
+  provider: string;
+  providerTransactionId?: string;
+  redirectUrl?: string;
+  amount: number;
+  currency: string;
+  status: 'UNPAID' | 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  paidAt?: string;
 }
 
 export interface ProductReview {
@@ -136,4 +153,3 @@ export interface Category {
   sortOrder: number;
   children: Category[];
 }
-

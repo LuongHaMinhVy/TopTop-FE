@@ -70,6 +70,7 @@
     "nav": {
       "shop": "Shop",
       "cart": "Cart",
+      "myOrders": "My orders",
       "sellerRequest": "Become a seller",
       "business": "Business",
       "shopProfile": "Shop profile",
@@ -198,7 +199,7 @@
       "PAYPAL": "PayPal",
       "STRIPE": "Stripe"
     },
-    "externalPaymentNote": "{provider} payment will be recorded after provider confirmation.",
+    "externalPaymentNote": "{provider} opens its sandbox checkout after the order is created.",
     "previewUnavailable": "Checkout preview is unavailable.",
     "orderError": "Could not place order. Check stock and shipping details.",
     "placing": "Placing order...",
@@ -208,7 +209,12 @@
     "title": "Orders",
     "subtitle": "Track purchases and order states.",
     "emptyTitle": "No orders yet",
-    "emptyDescription": "Orders created from checkout will appear here."
+    "emptyDescription": "Orders created from checkout will appear here.",
+    "filters": {
+      "all": "All",
+      "paid": "Paid",
+      "delivered": "Delivered"
+    }
   },
   "OrderDetailPage": {
     "title": "Order detail",
@@ -222,12 +228,15 @@
     "address": "Address",
     "subtotal": "Subtotal",
     "shippingFee": "Shipping",
+    "shopPayout": "Shop payout",
+    "platformFee": "Platform fee",
+    "commissionTier": "Shop tier",
     "total": "Total",
     "payNow": "Pay now",
     "paying": "Paying...",
     "payWith": "Pay with {provider}",
     "paymentError": "Could not complete payment.",
-    "paymentRedirectNote": "In a production checkout, {provider} opens its secure payment screen before the order is marked paid.",
+    "paymentRedirectNote": "{provider} opens its sandbox checkout before the order is marked paid.",
     "paymentProviders": {
       "PAYPAL": "PayPal",
       "STRIPE": "Stripe"
@@ -324,7 +333,10 @@
     "newProduct": "New product",
     "products": "Products",
     "orders": "Orders",
-    "revenue": "Revenue"
+    "revenue": "Revenue",
+    "paidOrders": "Paid orders",
+    "shopPayout": "Shop payout",
+    "platformFee": "Platform fee"
   },
   "BusinessRequestPage": {
     "title": "Request seller permission",
@@ -391,7 +403,51 @@
     "emptyTitle": "No shop orders",
     "emptyDescription": "Orders for your approved shop will appear here after checkout.",
     "items": "items",
-    "moveTo": "Move to {status}"
+    "moveTo": "Move to {status}",
+    "filters": {
+      "all": "All",
+      "paid": "Paid",
+      "delivered": "Delivered"
+    },
+    "shopPayout": "Shop payout",
+    "platformFee": "Platform fee",
+    "commissionRate": "{rate}% payout rate",
+    "commissionTier": "{tier} tier"
+  },
+  "ShopStatus": {
+    "order": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "PAID": "Paid",
+      "SELLER_CONFIRMING": "Paid",
+      "PACKING": "Packing",
+      "SHIPPING": "Shipping",
+      "DELIVERED": "Delivered",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "REFUND_REQUESTED": "Refund requested",
+      "REFUNDED": "Refunded"
+    },
+    "payment": {
+      "UNPAID": "Unpaid",
+      "PENDING": "Processing",
+      "PAID": "Paid",
+      "FAILED": "Payment failed",
+      "REFUNDED": "Refunded"
+    },
+    "shipping": {
+      "NOT_SHIPPED": "Not shipped",
+      "PREPARING": "Preparing",
+      "SHIPPED": "Shipping",
+      "DELIVERED": "Delivered",
+      "RETURNED": "Returned",
+      "CANCELLED": "Shipping cancelled"
+    },
+    "commissionTier": {
+      "UNPAID": "Not counted",
+      "SMALL": "Small",
+      "MEDIUM": "Medium",
+      "LARGE": "Large"
+    }
   },
   "settings": {
     "title": "Settings",

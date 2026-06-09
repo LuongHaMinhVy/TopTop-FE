@@ -125,7 +125,6 @@ export default function FeedPage() {
     return () => observer.current?.disconnect();
   }, []);
 
-  // Đồng bộ feed với overlay khi người dùng đang lướt trong trình phát nổi
   useEffect(() => {
     const handleVideoChange = (e: Event) => {
       const { videoId } = (e as CustomEvent<{ videoId: number }>).detail;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { BusinessAccess, isApprovedBusinessShop } from "@/components/shop/BusinessAccess";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
@@ -16,11 +17,18 @@ const NEXT_STATUS: Partial<Record<Order["status"], Order["status"]>> = {
 
 export default function BusinessOrdersPage() {
   const t = useTranslations("BusinessOrdersPage");
+  const tStatus = useTranslations("ShopStatus");
   const shopQuery = useMyShopQuery();
   const canAccessBusiness = isApprovedBusinessShop(shopQuery.data?.data);
   const ordersQuery = useShopOrdersQuery(0, 50, canAccessBusiness);
   const updateOrder = useUpdateOrderStatusMutation();
   const orders = ordersQuery.data?.data ?? [];
+  const [filter, setFilter] = useState<"all" | "paid" | "delivered">("all");
+  const filteredOrders = orders.filter((order) => {
+    if (filter === "paid") return order.paymentStatus === "PAID";
+    if (filter === "delivered") return order.shippingStatus === "DELIVERED";
+    return true;
+  });
 
   return (
     <ShopPageFrame title={t("title")} subtitle={t("subtitle")}>
@@ -32,7 +40,21 @@ export default function BusinessOrdersPage() {
           <ShopEmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => {
+            <div className="flex flex-wrap gap-2">
+              {(["all", "paid", "delivered"] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setFilter(item)}
+                  className={`rounded-full border px-4 py-2 text-sm font-black ${
+                    filter === item ? "border-text-primary bg-text-primary text-background" : "border-elevated text-text-muted hover:bg-hover"
+                  }`}
+                >
+                  {t(`filters.${item}`)}
+                </button>
+              ))}
+            </div>
+            {filteredOrders.map((order) => {
               const nextStatus = NEXT_STATUS[order.status];
               return (
                 <article key={order.id} className="rounded-lg border border-elevated bg-background p-4">
@@ -42,9 +64,16 @@ export default function BusinessOrdersPage() {
                       <p className="mt-1 text-sm text-text-muted">
                         {order.receiverName} · {order.items.length} {t("items")}
                       </p>
+                      <p className="mt-2 text-sm font-bold text-text-primary">
+                        {t("shopPayout")}: {formatShopPrice(order.shopPayoutAmount, order.currency)}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {t("commissionRate", { rate: Math.round(order.shopPayoutRate * 100) })} · {t("commissionTier", { tier: tStatus(`commissionTier.${order.commissionTier}`) })}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <StatusBadge value={order.status} />
+                      <StatusBadge value={order.status} label={tStatus(`order.${order.status}`)} />
+                      <StatusBadge value={order.paymentStatus} label={tStatus(`payment.${order.paymentStatus}`)} />
                       <p className="font-black text-brand">{formatShopPrice(order.totalAmount, order.currency)}</p>
                       {nextStatus ? (
                         <button
@@ -53,7 +82,7 @@ export default function BusinessOrdersPage() {
                           onClick={() => updateOrder.mutate({ orderId: order.id, status: nextStatus })}
                           className="rounded-full bg-text-primary px-4 py-2 text-sm font-black text-background disabled:opacity-60"
                         >
-                          {t("moveTo", { status: nextStatus.replaceAll("_", " ") })}
+                          {t("moveTo", { status: tStatus(`order.${nextStatus}`) })}
                         </button>
                       ) : null}
                     </div>

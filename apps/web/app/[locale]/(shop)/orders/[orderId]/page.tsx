@@ -1,27 +1,56 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CreditCard, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
-import { useCancelOrderMutation, useOrderByIdQuery, usePayOrderMutation, useUpdateOrderStatusMutation } from "@/hooks/shop-hooks";
+import { useCancelOrderMutation, useCompleteOrderPaymentMutation, useOrderByIdQuery, usePayOrderMutation, useUpdateOrderStatusMutation } from "@/hooks/shop-hooks";
 import { formatShopPrice, ShopEmptyState, ShopPageFrame, StatusBadge } from "@/components/shop/ShopUi";
 import type { OnlineShopPaymentProvider } from "@/types/shop-payment";
-import { createProviderTransactionId } from "@/utils/shop-payment";
 
 export default function OrderDetailPage() {
   const t = useTranslations("OrderDetailPage");
+  const tStatus = useTranslations("ShopStatus");
   const params = useParams<{ orderId: string }>();
+  const searchParams = useSearchParams();
   const orderId = Number(params.orderId);
   const orderQuery = useOrderByIdQuery(orderId, Number.isFinite(orderId) && orderId > 0);
   const cancelOrder = useCancelOrderMutation();
   const payOrder = usePayOrderMutation();
+  const completePayment = useCompleteOrderPaymentMutation();
   const updateStatus = useUpdateOrderStatusMutation();
+  const completedPaymentRef = useRef<string | null>(null);
   const [paymentProvider, setPaymentProvider] = useState<OnlineShopPaymentProvider>("PAYPAL");
   const order = orderQuery.data?.data;
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    const stripeSessionId = searchParams.get("session_id");
+    const paypalToken = searchParams.get("token");
+    const provider = payment === "stripe-success" ? "STRIPE" : payment === "paypal-success" ? "PAYPAL" : null;
+    const providerReference = provider === "STRIPE" ? stripeSessionId : provider === "PAYPAL" ? paypalToken : null;
+
+    if (!provider || !providerReference || !Number.isFinite(orderId) || orderId <= 0) {
+      return;
+    }
+
+    const completionKey = `${provider}:${providerReference}`;
+    if (completedPaymentRef.current === completionKey) {
+      return;
+    }
+    completedPaymentRef.current = completionKey;
+
+    completePayment.mutate({
+      orderId,
+      payload: {
+        provider,
+        providerReference,
+      },
+    });
+  }, [completePayment, orderId, searchParams]);
 
   if (orderQuery.isLoading) {
     return <ShopPageFrame title={t("title")} subtitle={t("loading")}><DocumentTitle title={`${t("title")} | TopTop`} /></ShopPageFrame>;
@@ -66,16 +95,19 @@ export default function OrderDetailPage() {
         <aside className="h-fit rounded-lg border border-elevated bg-background p-4 sm:p-5 lg:sticky lg:top-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-black">{order.shopName}</h2>
-            <StatusBadge value={order.status} />
+            <StatusBadge value={order.status} label={tStatus(`order.${order.status}`)} />
           </div>
           <div className="mt-5 space-y-3 text-sm">
-            <Line label={t("payment")} value={order.paymentStatus} />
-            <Line label={t("shipping")} value={order.shippingStatus} />
+            <Line label={t("payment")} value={tStatus(`payment.${order.paymentStatus}`)} />
+            <Line label={t("shipping")} value={tStatus(`shipping.${order.shippingStatus}`)} />
             <Line label={t("receiver")} value={order.receiverName} />
             <Line label={t("phone")} value={order.receiverPhone} />
             <Line label={t("address")} value={order.receiverAddress} />
             <Line label={t("subtotal")} value={formatShopPrice(order.subtotalAmount, order.currency)} />
             <Line label={t("shippingFee")} value={formatShopPrice(order.shippingFee, order.currency)} />
+            <Line label={t("shopPayout")} value={formatShopPrice(order.shopPayoutAmount, order.currency)} />
+            <Line label={t("platformFee")} value={formatShopPrice(order.platformFeeAmount, order.currency)} />
+            <Line label={t("commissionTier")} value={tStatus(`commissionTier.${order.commissionTier}`)} />
             <div className="border-t border-elevated pt-3">
               <Line label={t("total")} value={formatShopPrice(order.totalAmount, order.currency)} strong />
             </div>
@@ -98,22 +130,29 @@ export default function OrderDetailPage() {
                     onClick={() => setPaymentProvider("STRIPE")}
                   />
                 </div>
-                {payOrder.isError ? <p className="mt-3 text-xs font-bold text-brand">{t("paymentError")}</p> : null}
+                {payOrder.isError || completePayment.isError ? <p className="mt-3 text-xs font-bold text-brand">{t("paymentError")}</p> : null}
                 <button
                   type="button"
-                  disabled={payOrder.isPending}
-                  onClick={() =>
-                    payOrder.mutate({
-                      orderId: order.id,
-                      payload: {
-                        provider: paymentProvider,
-                        transactionId: createProviderTransactionId(paymentProvider),
-                      },
-                    })
-                  }
+                  disabled={payOrder.isPending || completePayment.isPending}
+                  onClick={async () => {
+                    try {
+                      const paymentResponse = await payOrder.mutateAsync({
+                        orderId: order.id,
+                        payload: {
+                          provider: paymentProvider,
+                        },
+                      });
+                      const redirectUrl = paymentResponse.data?.redirectUrl;
+                      if (redirectUrl) {
+                        window.location.assign(redirectUrl);
+                      }
+                    } catch {
+                      // Mutation error UI is rendered from React Query state.
+                    }
+                  }}
                   className="mt-3 h-10 w-full rounded-full bg-text-primary text-sm font-black text-background disabled:opacity-60"
                 >
-                  {payOrder.isPending ? t("paying") : t("payWith", { provider: t(`paymentProviders.${paymentProvider}`) })}
+                  {payOrder.isPending || completePayment.isPending ? t("paying") : t("payWith", { provider: t(`paymentProviders.${paymentProvider}`) })}
                 </button>
                 <p className="mt-3 text-xs leading-5 text-text-muted">{t("paymentRedirectNote", { provider: t(`paymentProviders.${paymentProvider}`) })}</p>
               </section>
