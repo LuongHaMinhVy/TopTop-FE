@@ -24,6 +24,7 @@ export type SoundItem = {
   id: number;
   title?: string | null;
   artistName?: string | null;
+  description?: string | null;
   audioUrl?: string | null;
   coverUrl?: string | null;
   type?: string | null;
@@ -265,3 +266,26 @@ export type AdminCommerceOrder = {
   receiverAddress: string;
   createdAt: string;
 };
+
+// ── Admin Sound Request Payloads ──────────────────────────────────────────────
+export type CreateSoundRequest = {
+  title: string;
+  artistName?: string;
+  description?: string;
+  type: "OFFICIAL" | "ORIGINAL" | "EFFECT";
+  audioUrl: string;
+  coverUrl?: string;
+  durationSeconds?: number;
+  isPublic?: boolean;
+};
+
+export type UpdateSoundRequest = {
+  title?: string;
+  artistName?: string;
+  description?: string;
+  coverUrl?: string;
+  durationSeconds?: number;
+  isPublic?: boolean;
+  isActive?: boolean;
+};
+

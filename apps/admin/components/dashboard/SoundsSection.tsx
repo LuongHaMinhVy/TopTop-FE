@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Music2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Music2, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui";
 import type { SoundItem } from "@/types/admin";
@@ -16,6 +16,9 @@ export function SoundsSection({
   onPageChange,
   isLoading,
   isError,
+  onAddClick,
+  onEdit,
+  onDelete,
 }: {
   items: SoundItem[];
   keyword: string;
@@ -24,6 +27,9 @@ export function SoundsSection({
   onPageChange: (page: number) => void;
   isLoading: boolean;
   isError: boolean;
+  onAddClick?: () => void;
+  onEdit?: (sound: SoundItem) => void;
+  onDelete?: (sound: SoundItem) => void;
 }) {
   const t = useTranslations("Admin.dashboard");
 
@@ -32,13 +38,23 @@ export function SoundsSection({
       title={t("ops.soundManagementTitle")}
       description={t("ops.soundManagementDesc")}
       action={
-        <div className="w-full max-w-xs">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 w-full max-w-md">
           <Input
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
             placeholder={t("ops.soundSearchPlaceholder")}
             className="h-10 rounded-lg px-4 py-2"
           />
+          {onAddClick && (
+            <button
+              type="button"
+              onClick={onAddClick}
+              className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-white hover:bg-brand-hover transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="whitespace-nowrap">{t("sounds.addNew")}</span>
+            </button>
+          )}
         </div>
       }
     >
@@ -50,7 +66,13 @@ export function SoundsSection({
         />
       ) : (
         <>
-          <SoundList items={items} isLoading={isLoading} expanded />
+          <SoundList
+            items={items}
+            isLoading={isLoading}
+            expanded
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
 
           {!isLoading && items.length > 0 ? (
             <div className="mt-4 flex flex-col gap-3 text-sm text-text-muted md:flex-row md:items-center md:justify-between">

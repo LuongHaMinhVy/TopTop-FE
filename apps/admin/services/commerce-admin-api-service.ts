@@ -29,6 +29,7 @@ export const getAdminOrders = async (params?: { page?: number; size?: number }) 
 export const approveAdminShop = async (shopId: number) => patch<AdminShop>(`/admin/shops/${shopId}/approve`);
 export const rejectAdminShop = async (shopId: number) => patch<AdminShop>(`/admin/shops/${shopId}/reject`);
 export const suspendAdminShop = async (shopId: number) => patch<AdminShop>(`/admin/shops/${shopId}/suspend`);
+export const unsuspendAdminShop = async (shopId: number) => patch<AdminShop>(`/admin/shops/${shopId}/unsuspend`);
 export const approveAdminProduct = async (productId: number) => patch<AdminProduct>(`/admin/products/${productId}/approve`);
 export const rejectAdminProduct = async (productId: number) => patch<AdminProduct>(`/admin/products/${productId}/reject`);
 export const banAdminProduct = async (productId: number) => patch<AdminProduct>(`/admin/products/${productId}/ban`);

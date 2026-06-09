@@ -2,9 +2,21 @@
 
 import { useState, type ElementType } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Package, ShieldAlert, ShoppingBag, Store, X } from "lucide-react";
+import {
+  Check,
+  Package,
+  ShieldAlert,
+  ShoppingBag,
+  Store,
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Unlock,
+  Sparkles,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui";
+import { Badge, Input, Select } from "@/components/ui";
 import {
   approveAdminProduct,
   approveAdminShop,
@@ -15,9 +27,11 @@ import {
   rejectAdminProduct,
   rejectAdminShop,
   suspendAdminShop,
+  unsuspendAdminShop,
 } from "@/services/commerce-admin-api-service";
 import type { AdminCommerceOrder, AdminProduct, AdminShop } from "@/types/admin";
 import { EmptyState, IconActionButton, LoadingRows, Panel } from "@/components/dashboard/dashboard-common";
+import { formatDate, statusVariant } from "@/components/dashboard/dashboard-utils";
 
 type CommerceSection = "overview" | "shops" | "products" | "orders";
 
@@ -29,16 +43,35 @@ const commerceSections: Array<{ key: CommerceSection; labelKey: string; icon: El
 ];
 
 export default function AdminCommercePage() {
+  const tPages = useTranslations("Admin.dashboard.pages.commerce");
   const [activeSection, setActiveSection] = useState<CommerceSection>("overview");
-  const shopsQuery = useQuery({ queryKey: ["admin", "commerce", "shops"], queryFn: () => getAdminShops({ size: 12 }) });
-  const productsQuery = useQuery({ queryKey: ["admin", "commerce", "products"], queryFn: () => getAdminProducts({ size: 12 }) });
-  const ordersQuery = useQuery({ queryKey: ["admin", "commerce", "orders"], queryFn: () => getAdminOrders({ size: 12 }) });
+
+  // Overview stats queries (smaller size is fine, e.g. 4)
+  const shopsQuery = useQuery({ queryKey: ["admin", "commerce", "shops-overview"], queryFn: () => getAdminShops({ size: 4 }) });
+  const productsQuery = useQuery({ queryKey: ["admin", "commerce", "products-overview"], queryFn: () => getAdminProducts({ size: 4 }) });
+  const ordersQuery = useQuery({ queryKey: ["admin", "commerce", "orders-overview"], queryFn: () => getAdminOrders({ size: 4 }) });
 
   return (
     <div className="space-y-6">
+      {/* Premium Hero Banner */}
+      <div className="toptop-gradient-hero rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-brand animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand">TopTop Social Commerce</span>
+          </div>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-text-primary">
+            {tPages("title")}
+          </h1>
+          <p className="mt-1 text-xs font-semibold text-text-muted">
+            {tPages("description")}
+          </p>
+        </div>
+      </div>
+
       <CommerceSubmenu activeSection={activeSection} onChange={setActiveSection} />
 
-      {activeSection === "overview" ? (
+      {activeSection === "overview" && (
         <OverviewPanel
           shopsCount={shopsQuery.data?.meta?.totalElements ?? shopsQuery.data?.data?.length ?? 0}
           productsCount={productsQuery.data?.meta?.totalElements ?? productsQuery.data?.data?.length ?? 0}
@@ -49,19 +82,13 @@ export default function AdminCommercePage() {
           isLoading={shopsQuery.isLoading || productsQuery.isLoading || ordersQuery.isLoading}
           isError={shopsQuery.isError || productsQuery.isError || ordersQuery.isError}
         />
-      ) : null}
+      )}
 
-      {activeSection === "shops" ? (
-        <ShopPanel items={shopsQuery.data?.data ?? []} isLoading={shopsQuery.isLoading} isError={shopsQuery.isError} />
-      ) : null}
+      {activeSection === "shops" && <ShopPanel />}
 
-      {activeSection === "products" ? (
-        <ProductPanel items={productsQuery.data?.data ?? []} isLoading={productsQuery.isLoading} isError={productsQuery.isError} />
-      ) : null}
+      {activeSection === "products" && <ProductPanel />}
 
-      {activeSection === "orders" ? (
-        <OrderPanel items={ordersQuery.data?.data ?? []} isLoading={ordersQuery.isLoading} isError={ordersQuery.isError} />
-      ) : null}
+      {activeSection === "orders" && <OrderPanel />}
     </div>
   );
 }
@@ -76,7 +103,7 @@ function CommerceSubmenu({
   const t = useTranslations("Admin.dashboard.commerce");
 
   return (
-    <nav className="grid gap-2 rounded-lg border border-elevated bg-background p-2 sm:grid-cols-2 xl:grid-cols-4">
+    <nav className="grid gap-2 rounded-xl border border-elevated bg-background p-2 sm:grid-cols-2 xl:grid-cols-4">
       {commerceSections.map((section) => {
         const Icon = section.icon;
         const active = activeSection === section.key;
@@ -87,7 +114,7 @@ function CommerceSubmenu({
             type="button"
             onClick={() => onChange(section.key)}
             aria-current={active ? "page" : undefined}
-            className={`flex h-12 items-center justify-center gap-2 rounded-md px-3 text-sm font-black transition ${
+            className={`flex h-12 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black transition ${
               active
                 ? "bg-brand text-white shadow-lg shadow-brand/20"
                 : "text-text-muted hover:bg-hover hover:text-text-primary"
@@ -138,21 +165,33 @@ function OverviewPanel({
           <LoadingRows count={5} />
         ) : (
           <div className="grid gap-4 xl:grid-cols-3">
-            <OverviewList title={t("recentShops")} empty={t("emptyShops")} items={shops.slice(0, 4).map((shop) => ({
-              id: shop.id,
-              title: shop.name,
-              meta: `${shop.status} / ${shop.moderationStatus}`,
-            }))} />
-            <OverviewList title={t("recentProducts")} empty={t("emptyProducts")} items={products.slice(0, 4).map((product) => ({
-              id: product.id,
-              title: product.title,
-              meta: `${product.status} / ${product.moderationStatus}`,
-            }))} />
-            <OverviewList title={t("recentOrders")} empty={t("emptyOrders")} items={orders.slice(0, 4).map((order) => ({
-              id: order.id,
-              title: order.orderCode,
-              meta: `${order.status} / ${formatPrice(order.totalAmount, order.currency)}`,
-            }))} />
+            <OverviewList
+              title={t("recentShops")}
+              empty={t("emptyShops")}
+              items={shops.slice(0, 4).map((shop) => ({
+                id: shop.id,
+                title: shop.name,
+                meta: `${shop.status} / ${shop.moderationStatus}`,
+              }))}
+            />
+            <OverviewList
+              title={t("recentProducts")}
+              empty={t("emptyProducts")}
+              items={products.slice(0, 4).map((product) => ({
+                id: product.id,
+                title: product.title,
+                meta: `${product.status} / ${product.moderationStatus}`,
+              }))}
+            />
+            <OverviewList
+              title={t("recentOrders")}
+              empty={t("emptyOrders")}
+              items={orders.slice(0, 4).map((order) => ({
+                id: order.id,
+                title: order.orderCode,
+                meta: `${order.status} / ${formatPrice(order.totalAmount, order.currency)}`,
+              }))}
+            />
           </div>
         )}
       </Panel>
@@ -170,16 +209,18 @@ function OverviewList({
   items: Array<{ id: number; title: string; meta: string }>;
 }) {
   return (
-    <div className="rounded-lg border border-elevated bg-surface p-4">
-      <h3 className="text-sm font-black">{title}</h3>
+    <div className="toptop-card-glow rounded-xl bg-surface p-4">
+      <h3 className="text-sm font-black text-text-primary">{title}</h3>
       {items.length === 0 ? (
-        <p className="mt-3 text-sm text-text-muted">{empty}</p>
+        <p className="mt-3 text-xs text-text-muted font-bold">{empty}</p>
       ) : (
         <div className="mt-3 space-y-3">
           {items.map((item) => (
-            <div key={item.id} className="min-w-0 rounded-md bg-background p-3">
-              <p className="truncate text-sm font-black">{item.title}</p>
-              <p className="mt-1 truncate text-xs font-bold text-text-muted">{item.meta.replaceAll("_", " ")}</p>
+            <div key={item.id} className="min-w-0 rounded-lg bg-background p-3">
+              <p className="truncate text-sm font-black text-text-primary">{item.title}</p>
+              <p className="mt-1 truncate text-[10px] font-bold text-text-muted uppercase">
+                {item.meta.replaceAll("_", " ")}
+              </p>
             </div>
           ))}
         </div>
@@ -190,104 +231,481 @@ function OverviewList({
 
 function Metric({ icon: Icon, label, value }: { icon: ElementType; label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-elevated bg-background p-5">
+    <div className="toptop-card-glow rounded-xl bg-background p-5 border border-elevated">
       <div className="mb-4 grid size-10 place-items-center rounded-full bg-elevated text-text-muted">
         <Icon className="size-5" />
       </div>
-      <p className="text-sm font-bold text-text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-black">{value.toLocaleString()}</p>
+      <p className="text-xs font-black uppercase tracking-wider text-text-muted">{label}</p>
+      <p className="mt-1 text-2xl font-black text-text-primary">{value.toLocaleString()}</p>
     </div>
   );
 }
 
-function ShopPanel({ items, isLoading, isError }: { items: AdminShop[]; isLoading: boolean; isError: boolean }) {
+function ShopPanel() {
   const t = useTranslations("Admin.dashboard.commerce");
   const queryClient = useQueryClient();
-  const approve = useMutation({ mutationFn: approveAdminShop, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
-  const reject = useMutation({ mutationFn: rejectAdminShop, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
-  const suspend = useMutation({ mutationFn: suspendAdminShop, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
+
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [moderationStatus, setModerationStatus] = useState("");
+
+  const shopsQuery = useQuery({
+    queryKey: ["admin", "commerce", "shops", page, status, moderationStatus],
+    queryFn: () =>
+      getAdminShops({
+        page,
+        size: 10,
+        status: status || undefined,
+        moderationStatus: moderationStatus || undefined,
+      }),
+  });
+
+  const approve = useMutation({
+    mutationFn: approveAdminShop,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+  const reject = useMutation({
+    mutationFn: rejectAdminShop,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+  const suspend = useMutation({
+    mutationFn: suspendAdminShop,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+  const unsuspend = useMutation({
+    mutationFn: unsuspendAdminShop,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+
+  const rawItems = shopsQuery.data?.data ?? [];
+  const filteredItems = rawItems.filter((shop) => {
+    const q = search.toLowerCase();
+    return shop.name.toLowerCase().includes(q) || shop.slug.toLowerCase().includes(q);
+  });
+
+  const pageInfo = shopsQuery.data?.meta;
+
+  const statusOptions = [
+    { value: "", label: t("allStatuses") },
+    { value: "ACTIVE", label: t("status.ACTIVE") },
+    { value: "SUSPENDED", label: t("status.SUSPENDED") },
+    { value: "CLOSED", label: t("status.CLOSED") },
+    { value: "DRAFT", label: t("status.DRAFT") },
+  ];
+
+  const moderationOptions = [
+    { value: "", label: t("allModeration") },
+    { value: "PENDING", label: t("moderationStatus.PENDING") },
+    { value: "APPROVED", label: t("moderationStatus.APPROVED") },
+    { value: "REJECTED", label: t("moderationStatus.REJECTED") },
+    { value: "NEED_REVIEW", label: t("moderationStatus.NEED_REVIEW") },
+  ];
 
   return (
-    <Panel title={t("shopModeration")} description={t("shopDescription")}>
-      {isError ? <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} /> : isLoading ? <LoadingRows count={4} /> : items.length === 0 ? <EmptyState icon={Store} title={t("emptyShops")} detail={t("emptyDetail")} /> : (
-        <div className="overflow-hidden rounded-lg border border-elevated">
-          {items.map((shop) => (
-            <div key={shop.id} className="grid grid-cols-[minmax(220px,1fr)_130px_160px] items-center gap-4 border-b border-elevated bg-background px-4 py-4 last:border-b-0">
-              <div className="min-w-0">
-                <p className="truncate font-black">{shop.name}</p>
-                <p className="text-sm text-text-muted">@{shop.slug}</p>
-              </div>
-              <Status value={`${shop.status} / ${shop.moderationStatus}`} />
-              <div className="flex justify-end gap-2">
-                <IconActionButton label={t("approve")} icon={Check} onClick={() => approve.mutate(shop.id)} />
-                <IconActionButton label={t("reject")} icon={X} variant="danger" onClick={() => reject.mutate(shop.id)} />
-                <IconActionButton label={t("suspend")} icon={ShieldAlert} variant="secondary" onClick={() => suspend.mutate(shop.id)} />
-              </div>
-            </div>
-          ))}
+    <Panel
+      title={t("shopModeration")}
+      description={t("shopDescription")}
+      action={
+        <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[580px] md:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-10 rounded-lg py-2 pl-10 pr-4"
+            />
+          </div>
+          <Select
+            value={status}
+            options={statusOptions}
+            onChange={(val) => {
+              setStatus(val);
+              setPage(0);
+            }}
+            ariaLabel={t("statusLabel")}
+            className="md:w-44"
+          />
+          <Select
+            value={moderationStatus}
+            options={moderationOptions}
+            onChange={(val) => {
+              setModerationStatus(val);
+              setPage(0);
+            }}
+            ariaLabel={t("moderationLabel")}
+            className="md:w-44"
+          />
         </div>
+      }
+    >
+      {shopsQuery.isError ? (
+        <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} />
+      ) : shopsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : filteredItems.length === 0 ? (
+        <EmptyState icon={Store} title={t("emptyShops")} detail={t("emptyDetail")} />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-xl border border-elevated">
+            <div className="grid grid-cols-[minmax(240px,1.5fr)_160px_160px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted">
+              <span>{t("shops")}</span>
+              <span>{t("statusLabel")}</span>
+              <span>Owner ID</span>
+              <span className="text-right">Actions</span>
+            </div>
+            {filteredItems.map((shop) => (
+              <div
+                key={shop.id}
+                className="toptop-table-row grid grid-cols-[minmax(240px,1.5fr)_160px_160px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-text-muted font-bold">
+                    {shop.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={shop.avatarUrl} alt={shop.name} className="h-full w-full object-cover" />
+                    ) : (
+                      shop.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-text-primary text-sm">{shop.name}</p>
+                    <p className="text-xs font-semibold text-text-muted">@{shop.slug}</p>
+                  </div>
+                </div>
+                <Status value={`${shop.status} / ${shop.moderationStatus}`} />
+                <span className="text-sm font-bold text-text-muted">Owner #{shop.ownerId}</span>
+                <div className="flex justify-end gap-2">
+                  {shop.moderationStatus === "PENDING" && (
+                    <>
+                      <IconActionButton
+                        label={t("approve")}
+                        icon={Check}
+                        variant="success"
+                        onClick={() => approve.mutate(shop.id)}
+                      />
+                      <IconActionButton
+                        label={t("reject")}
+                        icon={X}
+                        variant="danger"
+                        onClick={() => reject.mutate(shop.id)}
+                      />
+                    </>
+                  )}
+                  {shop.status === "SUSPENDED" ? (
+                    <IconActionButton
+                      label={t("unsuspend")}
+                      icon={Unlock}
+                      variant="secondary"
+                      onClick={() => unsuspend.mutate(shop.id)}
+                    />
+                  ) : shop.status === "ACTIVE" ? (
+                    <IconActionButton
+                      label={t("suspend")}
+                      icon={ShieldAlert}
+                      variant="danger"
+                      onClick={() => suspend.mutate(shop.id)}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <PaginationControls
+            page={page}
+            totalPages={pageInfo?.totalPages ?? 1}
+            totalElements={pageInfo?.totalElements ?? filteredItems.length}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </Panel>
   );
 }
 
-function ProductPanel({ items, isLoading, isError }: { items: AdminProduct[]; isLoading: boolean; isError: boolean }) {
+function ProductPanel() {
   const t = useTranslations("Admin.dashboard.commerce");
   const queryClient = useQueryClient();
-  const approve = useMutation({ mutationFn: approveAdminProduct, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
-  const reject = useMutation({ mutationFn: rejectAdminProduct, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
-  const ban = useMutation({ mutationFn: banAdminProduct, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }) });
+
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [moderationStatus, setModerationStatus] = useState("");
+
+  const productsQuery = useQuery({
+    queryKey: ["admin", "commerce", "products", page, status, moderationStatus],
+    queryFn: () =>
+      getAdminProducts({
+        page,
+        size: 10,
+        status: status || undefined,
+        moderationStatus: moderationStatus || undefined,
+      }),
+  });
+
+  const approve = useMutation({
+    mutationFn: approveAdminProduct,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+  const reject = useMutation({
+    mutationFn: rejectAdminProduct,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+  const ban = useMutation({
+    mutationFn: banAdminProduct,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
+  });
+
+  const rawItems = productsQuery.data?.data ?? [];
+  const filteredItems = rawItems.filter((product) => {
+    const q = search.toLowerCase();
+    return product.title.toLowerCase().includes(q) || (product.slug && product.slug.toLowerCase().includes(q));
+  });
+
+  const pageInfo = productsQuery.data?.meta;
+
+  const statusOptions = [
+    { value: "", label: t("allStatuses") },
+    { value: "ACTIVE", label: t("status.ACTIVE") },
+    { value: "DRAFT", label: t("status.DRAFT") },
+    { value: "BANNED", label: t("status.SUSPENDED") },
+  ];
+
+  const moderationOptions = [
+    { value: "", label: t("allModeration") },
+    { value: "PENDING", label: t("moderationStatus.PENDING") },
+    { value: "APPROVED", label: t("moderationStatus.APPROVED") },
+    { value: "REJECTED", label: t("moderationStatus.REJECTED") },
+    { value: "NEED_REVIEW", label: t("moderationStatus.NEED_REVIEW") },
+  ];
 
   return (
-    <Panel title={t("productModeration")} description={t("productDescription")}>
-      {isError ? <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} /> : isLoading ? <LoadingRows count={4} /> : items.length === 0 ? <EmptyState icon={Package} title={t("emptyProducts")} detail={t("emptyDetail")} /> : (
-        <div className="overflow-hidden rounded-lg border border-elevated">
-          {items.map((product) => (
-            <div key={product.id} className="grid grid-cols-[minmax(220px,1fr)_140px_150px_150px] items-center gap-4 border-b border-elevated bg-background px-4 py-4 last:border-b-0">
-              <div className="min-w-0">
-                <p className="truncate font-black">{product.title}</p>
-                <p className="text-sm text-text-muted">{formatPrice(product.basePrice, product.currency)} · {product.stockQuantity} {t("stock")}</p>
-              </div>
-              <Status value={`${product.status} / ${product.moderationStatus}`} />
-              <p className="text-sm font-bold text-text-muted">Shop #{product.shopId}</p>
-              <div className="flex justify-end gap-2">
-                <IconActionButton label={t("approve")} icon={Check} onClick={() => approve.mutate(product.id)} />
-                <IconActionButton label={t("reject")} icon={X} variant="danger" onClick={() => reject.mutate(product.id)} />
-                <IconActionButton label={t("ban")} icon={ShieldAlert} variant="secondary" onClick={() => ban.mutate(product.id)} />
-              </div>
-            </div>
-          ))}
+    <Panel
+      title={t("productModeration")}
+      description={t("productDescription")}
+      action={
+        <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[580px] md:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-10 rounded-lg py-2 pl-10 pr-4"
+            />
+          </div>
+          <Select
+            value={status}
+            options={statusOptions}
+            onChange={(val) => {
+              setStatus(val);
+              setPage(0);
+            }}
+            ariaLabel={t("statusLabel")}
+            className="md:w-44"
+          />
+          <Select
+            value={moderationStatus}
+            options={moderationOptions}
+            onChange={(val) => {
+              setModerationStatus(val);
+              setPage(0);
+            }}
+            ariaLabel={t("moderationLabel")}
+            className="md:w-44"
+          />
         </div>
+      }
+    >
+      {productsQuery.isError ? (
+        <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} />
+      ) : productsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : filteredItems.length === 0 ? (
+        <EmptyState icon={Package} title={t("emptyProducts")} detail={t("emptyDetail")} />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-xl border border-elevated">
+            <div className="grid grid-cols-[minmax(240px,1.5fr)_150px_130px_130px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted">
+              <span>{t("products")}</span>
+              <span>Price & Info</span>
+              <span>{t("statusLabel")}</span>
+              <span>Shop ID</span>
+              <span className="text-right">Actions</span>
+            </div>
+            {filteredItems.map((product) => (
+              <div
+                key={product.id}
+                className="toptop-table-row grid grid-cols-[minmax(240px,1.5fr)_150px_130px_130px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-elevated text-text-muted">
+                    {product.media && product.media.length > 0 ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={product.media[0].url} alt={product.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <Package className="size-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-text-primary text-sm">{product.title}</p>
+                    <p className="text-xs font-semibold text-text-muted">slug: {product.slug}</p>
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-text-primary">
+                  <p className="text-brand font-black">{formatPrice(product.basePrice, product.currency)}</p>
+                  <p className="text-text-muted mt-0.5">{product.stockQuantity} {t("stock")} · {product.soldCount || 0} sold</p>
+                </div>
+                <Status value={`${product.status} / ${product.moderationStatus}`} />
+                <span className="text-xs font-bold text-text-muted">Shop #{product.shopId}</span>
+                <div className="flex justify-end gap-2">
+                  {product.status === "BANNED" || product.moderationStatus === "REJECTED" ? (
+                    <IconActionButton
+                      label={t("approve")}
+                      icon={Check}
+                      variant="success"
+                      onClick={() => approve.mutate(product.id)}
+                    />
+                  ) : (
+                    <>
+                      {product.moderationStatus === "PENDING" && (
+                        <IconActionButton
+                          label={t("reject")}
+                          icon={X}
+                          variant="danger"
+                          onClick={() => reject.mutate(product.id)}
+                        />
+                      )}
+                      <IconActionButton
+                        label={t("ban")}
+                        icon={ShieldAlert}
+                        variant="danger"
+                        onClick={() => ban.mutate(product.id)}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <PaginationControls
+            page={page}
+            totalPages={pageInfo?.totalPages ?? 1}
+            totalElements={pageInfo?.totalElements ?? filteredItems.length}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </Panel>
   );
 }
 
-function OrderPanel({ items, isLoading, isError }: { items: AdminCommerceOrder[]; isLoading: boolean; isError: boolean }) {
+function OrderPanel() {
   const t = useTranslations("Admin.dashboard.commerce");
+
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+
+  const ordersQuery = useQuery({
+    queryKey: ["admin", "commerce", "orders", page],
+    queryFn: () => getAdminOrders({ page, size: 10 }),
+  });
+
+  const rawItems = ordersQuery.data?.data ?? [];
+  const filteredItems = rawItems.filter((order) => {
+    const q = search.toLowerCase();
+    return (
+      order.orderCode.toLowerCase().includes(q) ||
+      order.shopName.toLowerCase().includes(q) ||
+      (order.receiverName && order.receiverName.toLowerCase().includes(q))
+    );
+  });
+
+  const pageInfo = ordersQuery.data?.meta;
+
   return (
-    <Panel title={t("ordersTitle")} description={t("ordersDescription")}>
-      {isError ? <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} /> : isLoading ? <LoadingRows count={4} /> : items.length === 0 ? <EmptyState icon={ShoppingBag} title={t("emptyOrders")} detail={t("emptyDetail")} /> : (
-        <div className="overflow-hidden rounded-lg border border-elevated">
-          {items.map((order) => (
-            <div key={order.id} className="grid grid-cols-[minmax(180px,1fr)_160px_150px_150px] items-center gap-4 border-b border-elevated bg-background px-4 py-4 last:border-b-0">
-              <div>
-                <p className="font-black">{order.orderCode}</p>
-                <p className="text-sm text-text-muted">{order.shopName}</p>
-              </div>
-              <Status value={order.status} />
-              <p className="text-sm font-bold text-text-muted">{order.paymentStatus} / {order.shippingStatus}</p>
-              <p className="text-right font-black text-brand">{formatPrice(order.totalAmount, order.currency)}</p>
-            </div>
-          ))}
+    <Panel
+      title={t("ordersTitle")}
+      description={t("ordersDescription")}
+      action={
+        <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[320px] md:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-10 rounded-lg py-2 pl-10 pr-4"
+            />
+          </div>
         </div>
+      }
+    >
+      {ordersQuery.isError ? (
+        <EmptyState icon={ShieldAlert} title={t("loadError")} detail={t("loadErrorDetail")} />
+      ) : ordersQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : filteredItems.length === 0 ? (
+        <EmptyState icon={ShoppingBag} title={t("emptyOrders")} detail={t("emptyDetail")} />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-xl border border-elevated">
+            <div className="grid grid-cols-[minmax(180px,1.2fr)_140px_160px_140px_130px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted">
+              <span>{t("orders")}</span>
+              <span>{t("statusLabel")}</span>
+              <span>Payment & Shipping</span>
+              <span>Receiver</span>
+              <span className="text-right">Total Amount</span>
+            </div>
+            {filteredItems.map((order) => (
+              <div
+                key={order.id}
+                className="toptop-table-row grid grid-cols-[minmax(180px,1.2fr)_140px_160px_140px_130px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
+              >
+                <div>
+                  <p className="font-black text-text-primary text-sm">{order.orderCode}</p>
+                  <p className="text-xs font-semibold text-text-muted">{order.shopName} · {formatDate(order.createdAt)}</p>
+                </div>
+                <Status value={order.status} />
+                <div className="text-xs font-bold text-text-primary">
+                  <p>Payment: <span className="text-brand font-black">{order.paymentStatus}</span></p>
+                  <p className="text-text-muted mt-0.5">Shipping: {order.shippingStatus}</p>
+                </div>
+                <div className="text-xs font-semibold text-text-muted">
+                  <p className="text-text-primary font-bold">{order.receiverName}</p>
+                  <p className="mt-0.5">{order.receiverPhone}</p>
+                </div>
+                <p className="text-right font-black text-brand text-sm">{formatPrice(order.totalAmount, order.currency)}</p>
+              </div>
+            ))}
+          </div>
+
+          <PaginationControls
+            page={page}
+            totalPages={pageInfo?.totalPages ?? 1}
+            totalElements={pageInfo?.totalElements ?? filteredItems.length}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </Panel>
   );
 }
 
 function Status({ value }: { value: string }) {
-  return <Badge variant="info" size="sm">{value.replaceAll("_", " ")}</Badge>;
+  const parts = value.split(" / ");
+  return (
+    <div className="flex flex-wrap gap-1">
+      {parts.map((p, i) => (
+        <Badge key={i} variant={statusVariant(p)} size="sm">
+          {p.replaceAll("_", " ")}
+        </Badge>
+      ))}
+    </div>
+  );
 }
 
 function formatPrice(value: number, currency = "VND") {
@@ -296,4 +714,46 @@ function formatPrice(value: number, currency = "VND") {
     currency,
     maximumFractionDigits: currency === "VND" ? 0 : 2,
   }).format(value);
+}
+
+function PaginationControls({
+  page,
+  totalPages,
+  totalElements,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+}) {
+  const t = useTranslations("Admin.dashboard.commerce");
+
+  return (
+    <div className="mt-4 flex flex-col gap-3 text-sm text-text-muted md:flex-row md:items-center md:justify-between">
+      <span>
+        {t("pageSummary", {
+          page: page + 1,
+          total: Math.max(totalPages, 1),
+          count: totalElements,
+        })}
+      </span>
+      <div className="flex gap-2">
+        <IconActionButton
+          label={t("previous")}
+          icon={ChevronLeft}
+          variant="secondary"
+          disabled={page <= 0}
+          onClick={() => onPageChange(Math.max(page - 1, 0))}
+        />
+        <IconActionButton
+          label={t("next")}
+          icon={ChevronRight}
+          variant="secondary"
+          disabled={page + 1 >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        />
+      </div>
+    </div>
+  );
 }
