@@ -1,5 +1,6 @@
 import api from "@/utils/axios-instance";
 import type { ApiResponse } from "@/types/api";
+import { AxiosError } from "axios";
 import type {
   LivestreamResponse,
   JoinLivestreamResponse,
@@ -175,14 +176,14 @@ export const pollUntilStreamReady = (id: number, options: PollOptions = {}): Pro
           reject(new Error(`Stream is ${result.status}`));
           return;
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+      } catch (err) {
         console.error("[pollUntilStreamReady] Error polling stream status:", err);
         // If it's a security/401/403/404 error, reject immediately rather than infinite loop
-        const status = err?.response?.status;
+        const axiosError = err as AxiosError<{ message?: string }>;
+        const status = axiosError?.response?.status;
         if (status === 401 || status === 403 || status === 404) {
           signal?.removeEventListener("abort", abort);
-          reject(new Error(`Polling failed with HTTP ${status}: ${err?.response?.data?.message || err.message}`));
+          reject(new Error(`Polling failed with HTTP ${status}: ${axiosError?.response?.data?.message || axiosError.message}`));
           return;
         }
       }

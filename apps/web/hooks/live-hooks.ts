@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
 import * as liveService from "@/services/live-api-service";
 import type { ApiResponse } from "@/types/api";
-import type { CreateLivestreamRequest, SendChatMessageRequest, SendGiftRequest, LiveChatMessageResponse, LivestreamResponse, LivestreamStartupPhase } from "@/types/live";
+import type { CreateLivestreamRequest, SendChatMessageRequest, SendGiftRequest, LiveChatMessageResponse, LivestreamResponse, LivestreamStartupPhase, LiveSocketEvent } from "@/types/live";
 import { useEffect, useCallback, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { getBackendBaseUrl } from "@/utils/axios-instance";
@@ -340,7 +339,7 @@ export const useStreamReadiness = (
 
 export const useLiveSocket = (
   livestreamId: number | null,
-  onEvent?: (event: any) => void,
+  onEvent?: (event: LiveSocketEvent) => void,
   onStreamEnded?: () => void
 ) => {
   const queryClient = useQueryClient();
@@ -348,12 +347,12 @@ export const useLiveSocket = (
   const upsertChatMessage = useCallback(
     (convId: number, incoming: LiveChatMessageResponse) => {
       const queryKey = ["live", "chat", convId];
-      queryClient.setQueryData(queryKey, (oldData: any) => {
+      queryClient.setQueryData<InfiniteData<ApiResponse<LiveChatMessageResponse[]>, number>>(queryKey, (oldData) => {
         if (!oldData) return oldData;
         let found = false;
-        const updated = {
+        const updated: InfiniteData<ApiResponse<LiveChatMessageResponse[]>, number> = {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
             data: page.data?.map((msg: LiveChatMessageResponse) => {
               if (msg.id === incoming.id) {
@@ -367,7 +366,7 @@ export const useLiveSocket = (
         if (found) return updated;
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any, idx: number) =>
+          pages: oldData.pages.map((page, idx: number) =>
             idx === 0 ? { ...page, data: [incoming, ...(page.data || [])] } : page
           ),
         };
@@ -395,7 +394,7 @@ export const useLiveSocket = (
       // Chat Topic
       stompClient.subscribe(`/topic/lives/${livestreamId}/chat`, (frame) => {
         try {
-          const payload = JSON.parse(frame.body);
+          const payload = JSON.parse(frame.body) as LiveSocketEvent;
           if (payload.type === "CHAT" && payload.data) {
             upsertChatMessage(livestreamId, payload.data);
           }
@@ -408,19 +407,19 @@ export const useLiveSocket = (
       // Events Topic (Gifts, Reactions, Moderation, Stream end)
       stompClient.subscribe(`/topic/lives/${livestreamId}/events`, (frame) => {
         try {
-          const payload = JSON.parse(frame.body);
+          const payload = JSON.parse(frame.body) as LiveSocketEvent;
           if (payload.type === "REACTION") {
             // Optimistic update of like count
-            queryClient.setQueryData(["live", livestreamId], (old: any) => {
+            queryClient.setQueryData<ApiResponse<LivestreamResponse>>(["live", livestreamId], (old) => {
               if (old?.data) {
-                return { ...old, data: { ...old.data, likeCount: payload.count } };
+                return { ...old, data: { ...old.data, likeCount: payload.count ?? old.data.likeCount } };
               }
               return old;
             });
           }
           if (payload.type === "STREAM_ENDED") {
             // Mark stream as ended in React Query cache so all subscribers re-render
-            queryClient.setQueryData(["live", livestreamId], (old: any) => {
+            queryClient.setQueryData<ApiResponse<LivestreamResponse>>(["live", livestreamId], (old) => {
               if (old?.data) {
                 return { ...old, data: { ...old.data, status: "ENDED" } };
               }
@@ -439,11 +438,11 @@ export const useLiveSocket = (
       // Viewer Count Topic
       stompClient.subscribe(`/topic/lives/${livestreamId}/viewer-count`, (frame) => {
         try {
-          const payload = JSON.parse(frame.body);
+          const payload = JSON.parse(frame.body) as LiveSocketEvent;
           if (payload.type === "VIEWER_COUNT") {
-            queryClient.setQueryData(["live", livestreamId], (old: any) => {
+            queryClient.setQueryData<ApiResponse<LivestreamResponse>>(["live", livestreamId], (old) => {
               if (old?.data) {
-                return { ...old, data: { ...old.data, viewerCount: payload.viewerCount } };
+                return { ...old, data: { ...old.data, viewerCount: payload.viewerCount ?? old.data.viewerCount } };
               }
               return old;
             });

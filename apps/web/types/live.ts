@@ -104,3 +104,10 @@ export interface SendGiftRequest {
   giftId: number;
   quantity: number;
 }
+
+export interface LiveSocketEvent {
+  type: "CHAT" | "REACTION" | "STREAM_ENDED" | "VIEWER_COUNT" | string;
+  data?: LiveChatMessageResponse;
+  count?: number;
+  viewerCount?: number;
+}

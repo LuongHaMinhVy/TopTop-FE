@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, InfiniteData } from "@tanstack/react-query";
 import * as chatService from "@/services/chat-api-service";
-import type { ConversationStatus, MessageResponseDTO } from "@/types/chat";
+import type { ConversationStatus, MessageResponseDTO, MessageType } from "@/types/chat";
+import type { ApiResponse } from "@/types/api";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { useEffect, useCallback } from "react";
@@ -81,7 +81,7 @@ export const useSendMessage = () => {
         id: Math.round(Math.random() * -1000000), // temp negative ID
         conversationId: newData.conversationId,
         senderId: currentUserId,
-        type: newData.type as any,
+        type: newData.type as MessageType,
         body: newData.body,
         status: 'SENT',
         mine: true,
@@ -96,16 +96,22 @@ export const useSendMessage = () => {
         } : undefined
       };
 
-      queryClient.setQueryData(queryKey, (old: any) => {
+      queryClient.setQueryData<InfiniteData<ApiResponse<MessageResponseDTO[]>, number>>(queryKey, (old) => {
         if (!old) {
           return {
-            pages: [{ data: [optimisticMessage], meta: { page: 0, size: 20, totalPages: 1, totalElements: 1 } }],
+            pages: [{
+              message: "Success",
+              data: [optimisticMessage],
+              meta: { page: 0, size: 20, totalPages: 1, totalElements: 1 },
+              status: 200,
+              timestamp: new Date().toISOString()
+            }],
             pageParams: [0]
           };
         }
         return {
           ...old,
-          pages: old.pages.map((page: any, index: number) => {
+          pages: old.pages.map((page, index: number) => {
             if (index === 0) {
               return {
                 ...page,
@@ -240,14 +246,14 @@ export const useChatSocket = (conversationId: number | null) => {
       if (!currentUserId) return;
       const queryKey = ['chat', 'messages', currentUserId, convId];
 
-      queryClient.setQueryData(queryKey, (oldData: any) => {
+      queryClient.setQueryData<InfiniteData<ApiResponse<MessageResponseDTO[]>, number>>(queryKey, (oldData) => {
         if (!oldData) return oldData;
 
         // Check whether this message is already present (by server id OR clientMessageId)
         let found = false;
-        const updated = {
+        const updated: InfiniteData<ApiResponse<MessageResponseDTO[]>, number> = {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
             data: page.data?.map((msg: MessageResponseDTO) => {
               if (
@@ -267,7 +273,7 @@ export const useChatSocket = (conversationId: number | null) => {
         // Not found → prepend to page 0
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any, idx: number) =>
+          pages: oldData.pages.map((page, idx: number) =>
             idx === 0
               ? { ...page, data: [incoming, ...(page.data || [])] }
               : page
