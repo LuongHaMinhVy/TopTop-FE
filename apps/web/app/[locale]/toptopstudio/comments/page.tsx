@@ -12,6 +12,7 @@ import { DocumentTitle } from '@/components/shared/DocumentTitle';
 import type { CommentResponse } from '@/types/comment';
 import type { Video } from '@/types/video';
 import type { ApiResponse } from '@/types/api';
+import { Button, Input, Select } from '@repo/ui';
 
 type StudioComment = CommentResponse & {
   video?: Video;
@@ -112,27 +113,28 @@ export default function StudioCommentsPage() {
             <p className="mt-2 text-sm text-text-secondary">Theo dõi và quản lý bình luận trên toàn bộ video của bạn.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-[260px_220px]">
-            <label className="relative block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={17} />
-              <input
+            <div className="relative block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted z-10" size={17} />
+              <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm bình luận, tài khoản, video"
-                className="h-11 w-full rounded-lg border border-elevated bg-background pl-10 pr-3 text-sm font-medium text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-text-muted"
+                className="pl-12 !py-2.5 !rounded-lg text-sm h-11"
               />
-            </label>
-            <select
-              value={videoFilter}
-              onChange={(event) => setVideoFilter(event.target.value === 'ALL' ? 'ALL' : Number(event.target.value))}
-              className="h-11 rounded-lg border border-elevated bg-background px-3 text-sm font-bold text-text-primary outline-none transition-colors focus:border-text-muted"
-            >
-              <option value="ALL" className="bg-background text-text-primary opacity-100">Tất cả video</option>
-              {videos.map((video) => (
-                <option key={video.id} value={video.id} className="bg-background text-text-primary opacity-100">
-                  {video.title || video.description || `Video #${video.id}`}
-                </option>
-              ))}
-            </select>
+            </div>
+            <Select
+              ariaLabel="Chọn video"
+              value={String(videoFilter)}
+              options={[
+                { value: 'ALL', label: 'Tất cả video' },
+                ...videos.map((video) => ({
+                  value: String(video.id),
+                  label: video.title || video.description || `Video #${video.id}`,
+                })),
+              ]}
+              onChange={(val) => setVideoFilter(val === 'ALL' ? 'ALL' : Number(val))}
+              className="h-11 w-full"
+            />
           </div>
         </div>
 
@@ -188,15 +190,16 @@ export default function StudioCommentsPage() {
                     </p>
                   </div>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => handleDelete(comment.id)}
                     disabled={deleteMutation.isPending}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-elevated px-3 text-sm font-bold text-text-secondary transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 disabled:cursor-wait disabled:opacity-60"
+                    className="inline-flex h-10 items-center justify-center gap-2 !rounded-md px-3 text-sm font-bold text-text-secondary hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 disabled:cursor-wait disabled:opacity-60"
                   >
                     <Trash2 size={15} />
                     Xóa
-                  </button>
+                  </Button>
                 </article>
               ))
             )}

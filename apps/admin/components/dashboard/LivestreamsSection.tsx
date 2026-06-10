@@ -14,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge, Input, Select } from "@/components/ui";
+import { Badge, Input, Select } from "@repo/ui";
 import { endAdminLivestream } from "@/services/livestream-admin-api-service";
 import type {
   AdminLivestream,

@@ -11,7 +11,9 @@
     "./badge": "./src/badge.tsx",
     "./modal": "./src/modal.tsx",
     "./skeleton": "./src/skeleton.tsx",
-    "./icon-button": "./src/icon-button.tsx"
+    "./icon-button": "./src/icon-button.tsx",
+    "./select": "./src/select.tsx",
+    "./form": "./src/form.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Badge, Input } from "@/components/ui";
 import { IconActionButton } from "./dashboard-common";
 import {
   getVideoModerationDetail,
@@ -11,6 +10,7 @@ import {
 } from "@/services/moderation-api-service";
 import { AlertCircle, Check, Send, X, XCircle } from "lucide-react";
 import type { ReviewVideoModerationRequest } from "@/types/admin";
+import { Button, Badge, Input, Form } from "@repo/ui";
 
 export function ReviewModal({
   videoId,
@@ -54,14 +54,14 @@ export function ReviewModal({
           <h2 className="text-xl font-black">
             {t("title", { id: videoId })}
           </h2>
-          <button
+          <Button
             type="button"
             onClick={onClose}
             aria-label={t("cancel")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-text-primary"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -128,12 +128,12 @@ export function ReviewModal({
                   </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <Form onSubmit={handleSubmit} className="space-y-4">
                   <h3 className="border-t border-elevated pt-4 font-bold">
                     {t("manualDecision")}
                   </h3>
                   <div className="grid grid-cols-3 gap-2">
-                    <button
+                    <Button
                       type="button"
                       aria-label={t("approve")}
                       title={t("approve")}
@@ -146,8 +146,8 @@ export function ReviewModal({
                     >
                       <Check className="h-5 w-5" />
                       <span className="sr-only">{t("approve")}</span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       aria-label={t("reject")}
                       title={t("reject")}
@@ -160,8 +160,8 @@ export function ReviewModal({
                     >
                       <XCircle className="h-5 w-5" />
                       <span className="sr-only">{t("reject")}</span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       aria-label={t("hold")}
                       title={t("hold")}
@@ -174,7 +174,7 @@ export function ReviewModal({
                     >
                       <AlertCircle className="h-5 w-5" />
                       <span className="sr-only">{t("hold")}</span>
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="space-y-2">
@@ -206,7 +206,7 @@ export function ReviewModal({
                       isLoading={reviewMutation.isPending}
                     />
                   </div>
-                </form>
+                </Form>
               </div>
             </div>
           ) : (

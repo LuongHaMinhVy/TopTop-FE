@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge, Input, Select } from "@/components/ui";
+import { Badge, Button, Input, Select } from "@repo/ui";
 import {
   approveAdminProduct,
   approveAdminShop,
@@ -109,7 +109,7 @@ function CommerceSubmenu({
         const active = activeSection === section.key;
 
         return (
-          <button
+          <Button
             key={section.key}
             type="button"
             onClick={() => onChange(section.key)}
@@ -122,7 +122,7 @@ function CommerceSubmenu({
           >
             <Icon className="size-4" />
             <span className="truncate">{t(section.labelKey)}</span>
-          </button>
+          </Button>
         );
       })}
     </nav>

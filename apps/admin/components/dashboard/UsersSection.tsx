@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge, Input, Select } from "@/components/ui";
+import { Badge, Input, Select, Button } from "@repo/ui";
 import { updateAdminUserStatus } from "@/services/user-admin-api-service";
 import type {
   AdminUpdateUserStatusRequest,
@@ -337,7 +337,7 @@ function UserDetailDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/50">
-      <button type="button" className="flex-1" aria-label={t("users.closeDetail")} onClick={onClose} />
+      <Button type="button" className="flex-1" variant="ghost" aria-label={t("users.closeDetail")} onClick={onClose} >x</Button>
       <aside className="h-full w-full max-w-md overflow-y-auto border-l border-elevated bg-background p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <UserIdentity user={user} />

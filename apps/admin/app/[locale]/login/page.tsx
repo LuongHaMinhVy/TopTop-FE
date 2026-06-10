@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { authLogin } from "@/services/auth-api-service";
 import { AlertCircle, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, Form } from "@repo/ui";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useTheme } from "@/components/providers/NextThemeProvider";
 
@@ -92,13 +92,13 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <Form className="space-y-6" onSubmit={handleSubmit}>
             <Input
               type="email"
               required
               label={t("emailLabel")}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder={t("emailPlaceholder")}
               className="rounded-xl px-4 py-3 sm:text-sm"
             />
@@ -108,7 +108,7 @@ export default function AdminLoginPage() {
               required
               label={t("passwordLabel")}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               placeholder={t("passwordPlaceholder")}
               className="rounded-xl px-4 py-3 sm:text-sm"
             />
@@ -122,7 +122,7 @@ export default function AdminLoginPage() {
                 {loginMutation.isPending ? t("submitting") : t("submit")}
               </Button>
             </div>
-          </form>
+          </Form>
         </div>
       </div>
     </div>
@@ -144,7 +144,7 @@ function LoginThemeToggle({
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
-    <button
+    <Button
       type="button"
       onClick={() => setTheme(nextTheme)}
       aria-label={
@@ -156,6 +156,6 @@ function LoginThemeToggle({
     >
       <Sun className="h-5 w-5 hidden dark:block" aria-hidden="true" />
       <Moon className="h-5 w-5 block dark:hidden" aria-hidden="true" />
-    </button>
+    </Button>
   );
 }

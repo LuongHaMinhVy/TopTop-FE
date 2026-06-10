@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ElementType, ReactNode } from "react";
 import { Activity, Loader2 } from "lucide-react";
+import { Button } from "@repo/ui";
 
 export type StatItem = {
   label: string;
@@ -75,7 +76,7 @@ export function IconActionButton({
   };
 
   return (
-    <button
+    <Button
       type="button"
       aria-label={label}
       title={label}
@@ -89,7 +90,7 @@ export function IconActionButton({
         <Icon className="h-4 w-4" />
       )}
       <span className="sr-only">{label}</span>
-    </button>
+    </Button>
   );
 }
 

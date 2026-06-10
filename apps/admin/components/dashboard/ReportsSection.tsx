@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge, Select } from "@/components/ui";
+import { Badge, Select } from "@repo/ui";
 import { reviewAdminReport } from "@/services/report-admin-api-service";
 import type {
   AdminReport,

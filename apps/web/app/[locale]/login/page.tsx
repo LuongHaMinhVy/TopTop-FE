@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   User, 
-  ChevronLeft,
-  Loader2,
-  Eye,
-  EyeOff
+  ChevronLeft
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +16,7 @@ import AuthModal from "@/components/auth/AuthModal";
 import { AccountReactivationDialog } from "@/components/auth/AccountReactivationDialog";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
+import { Button, Input, Form } from "@repo/ui";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -31,7 +29,6 @@ export default function LoginPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
   const [reactivationAuthData, setReactivationAuthData] = useState<AuthResponse | null>(null);
 
@@ -106,17 +103,18 @@ export default function LoginPage() {
       </h2>
 
       <div className="flex flex-col gap-4">
-        <button
+        <Button
           onClick={() => {
             setAuthMethod("phone_email");
             setErrorMsg("");
             setSuccessMsg("");
           }}
-          className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface"
+          variant="outline"
+          className="w-full justify-start rounded-lg p-3 text-[16px]"
+          leftIcon={<User className="w-5 h-5 ml-2" />}
         >
-          <User className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng email</span>
-        </button>
+          <span className="flex-1 text-center font-semibold">Sử dụng email</span>
+        </Button>
 
         <SocialLoginButtons />
       </div>
@@ -126,12 +124,13 @@ export default function LoginPage() {
   const renderForm = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center mb-6">
-        <button
+        <Button
           onClick={() => setAuthMethod("options")}
-          className="p-2 -ml-2 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary"
+          variant="ghost"
+          className="p-2 -ml-2 rounded-full text-text-primary"
         >
           <ChevronLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h2 className="text-[28px] font-bold mx-auto text-text-primary">Đăng nhập</h2>
         <div className="w-10"></div>
       </div>
@@ -152,9 +151,9 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
+      <Form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4">
-          <input
+          <Input
             type="email"
             placeholder="Email hoặc tên người dùng"
             required
@@ -162,27 +161,14 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Mật khẩu"
-              required
-              className="input-field pr-10"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          </div>
+          <Input
+            type="password"
+            placeholder="Mật khẩu"
+            required
+            className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
 
         <Link
@@ -192,15 +178,15 @@ export default function LoginPage() {
           Quên mật khẩu?
         </Link>
 
-        <button
+        <Button
           type="submit"
-          className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
-          disabled={loginMutation.isPending || !email || !password}
+          className="w-full mt-4"
+          isLoading={loginMutation.isPending}
+          disabled={!email || !password}
         >
-          {loginMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
           Đăng nhập
-        </button>
-      </form>
+        </Button>
+      </Form>
     </div>
   );
 

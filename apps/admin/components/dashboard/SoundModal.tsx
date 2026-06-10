@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Input, Select } from "@/components/ui";
+import { Input, Select, Button, Form } from "@repo/ui";
 import { IconActionButton } from "./dashboard-common";
 import { createAdminSound, updateAdminSound } from "@/services/sound-api-service";
 import { Save, X, Music } from "lucide-react";
@@ -108,17 +108,18 @@ export function SoundModal({
               {isEdit ? t("updateTitle") : t("createTitle")}
             </h2>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
             aria-label={t("cancel")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-text-primary"
+            className="flex h-8 w-8 items-center justify-center !rounded-lg !p-0 text-text-muted hover:bg-hover hover:text-text-primary"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <Form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           <Input
             label={t("titleLabel")}
             value={title}
@@ -219,13 +220,14 @@ export function SoundModal({
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-elevated">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="flex h-10 items-center justify-center rounded-xl border border-elevated bg-background px-4 text-sm font-bold text-text-primary hover:bg-hover transition"
+              className="flex h-10 items-center justify-center !rounded-xl border border-elevated px-4 text-sm font-bold"
             >
               {t("cancel")}
-            </button>
+            </Button>
             <IconActionButton
               type="submit"
               label={t("submit")}
@@ -233,7 +235,7 @@ export function SoundModal({
               isLoading={saveMutation.isPending}
             />
           </div>
-        </form>
+        </Form>
       </div>
     </div>
   );

@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import { 
   User, 
-  ChevronLeft,
-  Loader2,
-  Eye,
-  EyeOff
+  ChevronLeft
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +15,7 @@ import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import AuthModal from "@/components/auth/AuthModal";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
+import { Button, Input, Select, Form } from "@repo/ui";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -73,7 +71,6 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
 
@@ -192,17 +189,18 @@ export default function SignupPage() {
       </h2>
 
       <div className="flex flex-col gap-4">
-        <button 
+        <Button 
           onClick={() => {
             setAuthMethod("phone_email");
             setErrorMsg("");
             setSuccessMsg("");
           }}
-          className="flex items-center w-full p-3 border border-elevated rounded-[4px] hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary bg-surface"
+          variant="outline"
+          className="w-full justify-start rounded-lg p-3 text-[16px]"
+          leftIcon={<User className="w-5 h-5 ml-2" />}
         >
-          <User className="w-5 h-5 ml-2" />
-          <span className="flex-1 text-center font-semibold text-[16px]">Sử dụng email / tên người dùng</span>
-        </button>
+          <span className="flex-1 text-center font-semibold">Sử dụng email / tên người dùng</span>
+        </Button>
 
         <SocialLoginButtons />
       </div>
@@ -212,12 +210,13 @@ export default function SignupPage() {
   const renderForm = () => (
     <div className="flex flex-col h-full">
       <div className="flex items-center mb-6">
-        <button 
+        <Button 
           onClick={() => setAuthMethod("options")}
-          className="p-2 -ml-2 rounded-full hover:bg-[rgba(255,255,255,0.1)] transition-colors text-text-primary"
+          variant="ghost"
+          className="p-2 -ml-2 rounded-full text-text-primary"
         >
           <ChevronLeft className="w-6 h-6" />
-        </button>
+        </Button>
         <h2 className="text-[28px] font-bold mx-auto text-text-primary">
           Đăng ký
         </h2>
@@ -236,10 +235,10 @@ export default function SignupPage() {
         </div>
       )}
 
-      <form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
+      <Form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4">
           
-          <input
+          <Input
             type="text"
             placeholder="Tên người dùng"
             required
@@ -248,7 +247,7 @@ export default function SignupPage() {
             onChange={(e) => setUsername(e.target.value)}
           />
 
-          <input
+          <Input
             type="email"
             placeholder="Email"
             required
@@ -257,85 +256,63 @@ export default function SignupPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Mật khẩu"
-              required
-              className="input-field pr-10"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button
-              type="button"
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
+          <Input
+            type="password"
+            placeholder="Mật khẩu"
+            required
+            className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider ml-1 mb-1">
               Ngày sinh
             </label>
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <select
-                  required
-                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
-                  value={dob.month}
-                  onChange={(e) => updateDob({ month: e.target.value })}
-                >
-                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Tháng</option>
-                  {months.map((m) => (
-                    <option key={m} value={m} className="bg-background text-text-primary">Tháng {m}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="relative flex-1">
-                <select
-                  required
-                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
-                  value={dob.day}
-                  onChange={(e) => updateDob({ day: e.target.value })}
-                >
-                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Ngày</option>
-                  {days.map((d) => (
-                    <option key={d} value={d} className="bg-background text-text-primary">{d}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="relative flex-1">
-                <select
-                  required
-                  className="input-field cursor-pointer w-full appearance-none pr-8 text-[15px]"
-                  value={dob.year}
-                  onChange={(e) => updateDob({ year: e.target.value })}
-                >
-                  <option value="" disabled hidden className="bg-background text-text-primary opacity-100">Năm</option>
-                  {years.map((y) => (
-                    <option key={y} value={y} className="bg-background text-text-primary">{y}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                value={dob.month}
+                options={[
+                  { value: "", label: "Tháng" },
+                  ...months.map((m) => ({ value: String(m), label: `Tháng ${m}` })),
+                ]}
+                onChange={(val) => updateDob({ month: val })}
+                ariaLabel="Tháng sinh"
+                className="flex-1 min-w-0"
+              />
+              <Select
+                value={dob.day}
+                options={[
+                  { value: "", label: "Ngày" },
+                  ...days.map((d) => ({ value: String(d), label: String(d) })),
+                ]}
+                onChange={(val) => updateDob({ day: val })}
+                ariaLabel="Ngày sinh"
+                className="flex-1 min-w-0"
+              />
+              <Select
+                value={dob.year}
+                options={[
+                  { value: "", label: "Năm" },
+                  ...years.map((y) => ({ value: String(y), label: String(y) })),
+                ]}
+                onChange={(val) => updateDob({ year: val })}
+                ariaLabel="Năm sinh"
+                className="flex-1 min-w-0"
+              />
             </div>
           </div>
         </div>
 
-        <button 
+        <Button 
           type="submit"
-          className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
-          disabled={isLoading || !email || !password || !username || !dateOfBirth}
+          className="w-full mt-4"
+          isLoading={isLoading}
+          disabled={!email || !password || !username || !dateOfBirth}
         >
-          {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
           Đăng ký
-        </button>
-      </form>
+        </Button>
+      </Form>
     </div>
   );
 

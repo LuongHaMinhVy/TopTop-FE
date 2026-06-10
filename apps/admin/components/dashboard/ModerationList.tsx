@@ -2,7 +2,7 @@
 
 import { Eye, ShieldCheck, ShieldAlert, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui";
+import { Badge } from "@repo/ui";
 import type { ModerationQueueItem } from "@/types/admin";
 import { EmptyState, IconActionButton, LoadingRows } from "./dashboard-common";
 import { formatDate, statusVariant } from "./dashboard-utils";

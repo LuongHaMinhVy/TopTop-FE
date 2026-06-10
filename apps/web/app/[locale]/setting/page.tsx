@@ -18,7 +18,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { Button } from "@repo/ui/button";
+import { Button, Select, Form, Input } from "@repo/ui";
 import {
   addContentFilterTag,
   changePassword,
@@ -296,15 +296,16 @@ export default function SettingPage() {
     <SettingsShell user={user}>
       <main className="mx-auto grid w-full max-w-[1376px] gap-4 overflow-visible px-4 py-4 md:h-[calc(100vh-80px)] md:grid-cols-[88px_minmax(260px,360px)_minmax(0,1fr)] md:items-start md:gap-5 md:overflow-hidden md:py-6 lg:px-8">
         <div className="hidden justify-center pt-0 md:flex">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-hover"
+            className="flex h-10 w-10 items-center justify-center !rounded-full !p-0 text-text-primary hover:bg-hover"
             aria-label={t("back")}
             title={t("back")}
           >
             <ChevronRight size={26} className="rotate-180" />
-          </button>
+          </Button>
         </div>
 
         <aside className="flex h-fit gap-2 overflow-x-auto rounded-lg border border-elevated bg-surface p-2 md:block md:self-start md:p-5">
@@ -454,17 +455,16 @@ export default function SettingPage() {
             title={t("comments")}
             description={t("commentsDescription")}
             control={
-              <select
+              <Select
+                ariaLabel="Chọn quyền bình luận"
                 value={commentPermission}
-                onChange={(event) => handleCommentPermission(event.target.value as (typeof commentOptions)[number])}
-                className="min-w-36 rounded-md border border-elevated bg-background px-3 py-2 text-sm font-semibold text-text-primary outline-none focus:border-brand"
-              >
-                {commentOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {t(`commentOptions.${option}`)}
-                  </option>
-                ))}
-              </select>
+                options={commentOptions.map((option) => ({
+                  value: option,
+                  label: t(`commentOptions.${option}`),
+                }))}
+                onChange={(val) => handleCommentPermission(val as (typeof commentOptions)[number])}
+                className="w-40"
+              />
             }
           />
         </Panel>
@@ -509,15 +509,15 @@ export default function SettingPage() {
         <div ref={(node) => { sectionRefs.current.filters = node; }}>
         <Panel>
           <SectionHeader title={t("contentFilters")} subtitle={t("contentFiltersDescription")} icon={<Filter />} />
-          <form onSubmit={submitTag} className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <input
+          <Form onSubmit={submitTag} className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <Input
               value={tagInput}
               onChange={(event) => setTagInput(event.target.value)}
               placeholder={t("tagPlaceholder")}
-              className="min-h-11 flex-1 rounded-md border border-elevated bg-background px-3 text-sm text-text-primary outline-none focus:border-brand"
+              className="min-h-11 flex-1 !rounded-md text-sm"
             />
             <Button type="submit" disabled={addTagMutation.isPending}>{t("addTag")}</Button>
-          </form>
+          </Form>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {contentFiltersQuery.isLoading ? <LoadingRows /> : null}
             {contentFiltersQuery.data?.data?.length ? (
@@ -532,15 +532,16 @@ export default function SettingPage() {
                     <p className="truncate text-sm font-bold text-text-primary">#{tag.tag}</p>
                     <p className="text-xs text-text-secondary">{t("hiddenTagHint")}</p>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => deleteTagMutation.mutate(tag.tag)}
-                    className="rounded-md p-2 text-text-secondary transition-colors hover:bg-hover hover:text-brand"
+                    className="!p-2 text-text-secondary hover:bg-hover hover:text-brand"
                     aria-label={t("removeTag")}
                     title={t("removeTag")}
                   >
                     <X size={18} />
-                  </button>
+                  </Button>
                 </div>
               ))
             ) : !contentFiltersQuery.isLoading ? (
@@ -602,13 +603,13 @@ function SettingsShell({ children, user }: { children: React.ReactNode; user: { 
             <Logo size="md" className="hidden md:flex" />
             <span className="text-2xl font-black tracking-normal text-text-primary md:text-3xl">TopTop</span>
           </div>
-          <label className="hidden h-14 w-full max-w-[626px] items-center rounded-full border border-elevated bg-surface px-5 text-text-secondary focus-within:border-text-muted md:flex">
-            <input
-              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-text-primary outline-none placeholder:text-text-muted"
+          <div className="hidden h-14 w-full max-w-[626px] items-center md:flex relative">
+            <Input
               placeholder={t("search")}
+              className="!bg-surface text-base font-semibold text-text-primary !rounded-full pr-12"
             />
-            <Search size={26} />
-          </label>
+            <Search className="absolute right-5 top-1/2 -translate-y-1/2 text-text-secondary" size={26} />
+          </div>
           <div className="flex min-w-0 items-center justify-end gap-2 md:min-w-[160px] md:gap-3">
             <Button type="button" variant="secondary" className="hidden rounded-md sm:inline-flex" size="sm">
               <Plus size={18} />
@@ -644,16 +645,17 @@ function NavItem({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-3 text-left text-sm font-bold transition-colors hover:bg-hover md:w-full md:gap-4 md:py-4 md:text-lg ${
+      className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-3 text-left text-sm font-bold hover:bg-hover md:w-full md:gap-4 md:py-4 md:text-lg ${
         active ? "text-brand" : "text-text-primary"
       }`}
     >
       {icon}
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -695,7 +697,12 @@ function ActionRow({
   danger?: boolean;
 }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center justify-between gap-4 py-4 text-left">
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-4 py-4 text-left hover:bg-transparent !p-0 font-normal"
+    >
       <span>
         <span className={`block text-sm font-bold ${danger ? "text-brand" : "text-text-primary"}`}>{title}</span>
         <span className="mt-1 block text-xs text-text-secondary">{description}</span>
@@ -704,7 +711,7 @@ function ActionRow({
         {actionLabel}
         <ChevronRight size={18} />
       </span>
-    </button>
+    </Button>
   );
 }
 
@@ -814,22 +821,23 @@ function AccountStatusFlow({
         <p className="mt-4 text-center text-sm leading-6 text-text-secondary">
           {t("otpDescription")} {email}
         </p>
-        <input
+        <Input
           inputMode="numeric"
           maxLength={6}
           value={otp}
           onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="000000"
-          className="mt-6 w-full rounded-md border border-elevated bg-background px-3 py-4 text-center text-2xl font-bold tracking-[0.5em] text-text-primary outline-none focus:border-brand"
+          className="mt-6 text-center text-2xl font-bold tracking-[0.5em] !rounded-md"
         />
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={otpCooldown > 0 || isSendingOtp}
           onClick={onResendOtp}
-          className="mt-4 w-full text-center text-sm font-bold text-brand disabled:text-text-muted"
+          className="mt-4 w-full text-center text-sm font-bold text-brand disabled:text-text-muted hover:bg-transparent"
         >
           {otpCooldown > 0 ? t("resendOtpIn").replace("{seconds}", String(otpCooldown)) : t("resendOtp")}
-        </button>
+        </Button>
         <Button type="button" size="xl" className="mt-5 w-full rounded-md" disabled={isConfirming} onClick={onConfirm}>
           {isConfirming ? t("confirming") : (action === "DELETE" ? t("deleteAccount") : t("deactivateAccount"))}
         </Button>
@@ -840,31 +848,33 @@ function AccountStatusFlow({
 
 function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-hover"
+      className="flex h-10 w-10 items-center justify-center !rounded-full !p-0 text-text-primary hover:bg-hover"
       aria-label={label}
       title={label}
     >
       <ChevronRight size={26} className="rotate-180" />
-    </button>
+    </Button>
   );
 }
 
 function AccountChoiceCard({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-4 rounded-lg bg-elevated px-5 py-5 text-left transition-colors hover:bg-hover"
+      className="flex w-full items-center justify-between gap-4 rounded-lg bg-elevated px-5 py-5 text-left hover:bg-hover font-normal"
     >
       <span>
-        <span className="block text-lg font-bold text-text-primary">{title}</span>
-        <span className="mt-2 block max-w-2xl text-sm font-semibold leading-6 text-text-primary">{description}</span>
+        <span className="block text-lg font-bold text-text-primary text-left">{title}</span>
+        <span className="mt-2 block max-w-2xl text-sm font-semibold leading-6 text-text-primary text-left">{description}</span>
       </span>
       <ChevronRight size={24} className="shrink-0 text-text-primary" />
-    </button>
+    </Button>
   );
 }
 
@@ -944,32 +954,32 @@ function PasswordDialog({
 }) {
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 px-4">
-      <form onSubmit={onSubmit} className="modal-opacity-solid w-full max-w-md rounded-lg border border-elevated bg-background p-6 shadow-2xl">
+      <Form onSubmit={onSubmit} className="modal-opacity-solid w-full max-w-md rounded-lg border border-elevated bg-background p-6 shadow-2xl">
         <h2 className="text-center text-2xl font-bold text-text-primary">{labels.title}</h2>
         <p className="mt-3 text-center text-sm leading-6 text-text-secondary">{labels.description}</p>
         <div className="mt-5 space-y-3">
-          <input
+          <Input
             type="password"
             value={form.currentPassword}
             onChange={(event) => onChange((prev) => ({ ...prev, currentPassword: event.target.value }))}
             placeholder={labels.currentPassword}
-            className="w-full rounded-md border border-elevated bg-background px-3 py-3 text-sm text-text-primary outline-none focus:border-brand"
+            className="w-full !rounded-md !py-3 text-sm"
             autoComplete="current-password"
           />
-          <input
+          <Input
             type="password"
             value={form.newPassword}
             onChange={(event) => onChange((prev) => ({ ...prev, newPassword: event.target.value }))}
             placeholder={labels.newPassword}
-            className="w-full rounded-md border border-elevated bg-background px-3 py-3 text-sm text-text-primary outline-none focus:border-brand"
+            className="w-full !rounded-md !py-3 text-sm"
             autoComplete="new-password"
           />
-          <input
+          <Input
             type="password"
             value={form.confirmPassword}
             onChange={(event) => onChange((prev) => ({ ...prev, confirmPassword: event.target.value }))}
             placeholder={labels.confirmPassword}
-            className="w-full rounded-md border border-elevated bg-background px-3 py-3 text-sm text-text-primary outline-none focus:border-brand"
+            className="w-full !rounded-md !py-3 text-sm"
             autoComplete="new-password"
           />
         </div>
@@ -980,7 +990,7 @@ function PasswordDialog({
             {labels.submit}
           </Button>
         </div>
-      </form>
+      </Form>
     </div>
   );
 }

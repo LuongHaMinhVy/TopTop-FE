@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { User, ChevronLeft, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Facebook from "@/components/shared/icons/FaceBookIcon";
 import Google from "@/components/shared/icons/GoogleIcon";
@@ -23,10 +22,9 @@ import type {
 } from "@/types/auth";
 import { AccountReactivationDialog } from "@/components/auth/AccountReactivationDialog";
 
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { Modal } from "@repo/ui/modal";
+import { Button, Input, Modal, Select, Form } from "@repo/ui";
 import type { UserInfo } from "@/types/user";
+import OptionBtn from "./OptionButton";
 
 const OAUTH_ONBOARD_DRAFT_KEY = "toptop.oauth2OnboardDraft";
 const OAUTH_ONBOARD_STEPS: AuthMethod[] = [
@@ -342,6 +340,19 @@ export default function AuthModal({
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
+  const monthOptions = [
+    { value: "", label: t("Month") },
+    ...months.map((m) => ({ value: String(m), label: String(m) })),
+  ];
+  const dayOptions = [
+    { value: "", label: t("Day") },
+    ...days.map((d) => ({ value: String(d), label: String(d) })),
+  ];
+  const yearOptions = [
+    { value: "", label: t("Year") },
+    ...years.map((y) => ({ value: String(y), label: String(y) })),
+  ];
+
   useEffect(() => {
     if (!tempAuthData || !isOAuthOnboardStep(method)) return;
     saveOAuthOnboardDraft({
@@ -415,23 +426,26 @@ export default function AuthModal({
                       {t("dobLabel")}
                     </label>
                     <div className="flex gap-2">
-                      <CustomDropdown
+                      <Select
                         value={dob.month}
-                        options={months}
-                        placeholder={t("Month")}
+                        options={monthOptions}
                         onChange={(val) => updateDob({ month: val })}
+                        ariaLabel="Tháng sinh"
+                        className="flex-1 min-w-0"
                       />
-                      <CustomDropdown
+                      <Select
                         value={dob.day}
-                        options={days}
-                        placeholder={t("Day")}
+                        options={dayOptions}
                         onChange={(val) => updateDob({ day: val })}
+                        ariaLabel="Ngày sinh"
+                        className="flex-1 min-w-0"
                       />
-                      <CustomDropdown
+                      <Select
                         value={dob.year}
-                        options={years}
-                        placeholder={t("Year")}
+                        options={yearOptions}
                         onChange={(val) => updateDob({ year: val })}
+                        ariaLabel="Năm sinh"
+                        className="flex-1 min-w-0"
                       />
                     </div>
                   </div>
@@ -651,7 +665,7 @@ export default function AuthModal({
                 {(errorMsg || successMsg) &&
                   alertBanner(errorMsg || successMsg, !!errorMsg)}
 
-                <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+                <Form className="flex flex-col gap-6" onSubmit={handleSubmit}>
                   {type === "signup" && (
                     <>
                       <div className="flex flex-col gap-1.5 w-full">
@@ -659,23 +673,26 @@ export default function AuthModal({
                           {t("dob")}
                         </label>
                         <div className="flex gap-2">
-                          <CustomDropdown
+                          <Select
                             value={dob.month}
-                            options={months}
-                            placeholder={t("Month")}
+                            options={monthOptions}
                             onChange={(val) => updateDob({ month: val })}
+                            ariaLabel="Tháng sinh"
+                            className="flex-1 min-w-0"
                           />
-                          <CustomDropdown
+                          <Select
                             value={dob.day}
-                            options={days}
-                            placeholder={t("Day")}
+                            options={dayOptions}
                             onChange={(val) => updateDob({ day: val })}
+                            ariaLabel="Ngày sinh"
+                            className="flex-1 min-w-0"
                           />
-                          <CustomDropdown
+                          <Select
                             value={dob.year}
-                            options={years}
-                            placeholder={t("Year")}
+                            options={yearOptions}
                             onChange={(val) => updateDob({ year: val })}
+                            ariaLabel="Năm sinh"
+                            className="flex-1 min-w-0"
                           />
                         </div>
                       </div>
@@ -730,7 +747,7 @@ export default function AuthModal({
                   >
                     {type === "login" ? t("login") : t("signup")}
                   </Button>
-                </form>
+                </Form>
               </div>
             )}
           </div>
@@ -773,152 +790,4 @@ export default function AuthModal({
   );
 }
 
-// ─── CustomDropdown ──────────────────────────────────────────────────────────
-
-function CustomDropdown({
-  value,
-  options,
-  placeholder,
-  onChange,
-}: {
-  value: string;
-  options: (number | string)[];
-  placeholder: string;
-  onChange: (val: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [dropdownStyle, setDropdownStyle] =
-    useState<React.CSSProperties | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Stable callback — no lint warning about missing deps
-  const updateDropdownPosition = useCallback(() => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const gap = 8;
-    const maxHeight = Math.min(
-      240,
-      window.innerHeight - rect.bottom - gap - 12,
-    );
-    setDropdownStyle({
-      left: rect.left,
-      top: rect.bottom + gap,
-      width: rect.width,
-      maxHeight: Math.max(160, maxHeight),
-    });
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(target) &&
-        dropdownRef.current &&
-        !dropdownRef.current.contains(target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    updateDropdownPosition();
-    window.addEventListener("resize", updateDropdownPosition);
-    window.addEventListener("scroll", updateDropdownPosition, true);
-    return () => {
-      window.removeEventListener("resize", updateDropdownPosition);
-      window.removeEventListener("scroll", updateDropdownPosition, true);
-    };
-  }, [isOpen, updateDropdownPosition]);
-
-  // Portal target — only access document on the client (safe because portal
-  // only renders when isOpen is true, which only happens after hydration).
-  const portalTarget = typeof document !== "undefined" ? document.body : null;
-
-  return (
-    <div className="relative flex-1" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full px-4 py-4 bg-surface border border-elevated rounded-2xl outline-none focus:ring-2 focus:ring-brand focus:border-brand text-text-primary flex items-center justify-between transition-all duration-200"
-      >
-        <span
-          className={`text-[15px] font-medium ${
-            !value ? "text-text-muted" : "text-text-primary"
-          }`}
-        >
-          {value || placeholder}
-        </span>
-        <ChevronDown
-          size={18}
-          className={`text-text-muted transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {isOpen &&
-        dropdownStyle &&
-        portalTarget &&
-        createPortal(
-          <div
-            ref={dropdownRef}
-            style={dropdownStyle}
-            role="listbox"
-            data-select-menu
-            className="select-options-solid fixed z-[10000] overflow-y-auto bg-background border border-elevated rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-2 custom-scrollbar animate-in zoom-in fade-in duration-200"
-          >
-            {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(String(opt));
-                  setIsOpen(false);
-                }}
-                className={`w-full px-6 py-3 text-left hover:bg-hover transition-colors text-[15px] font-medium ${
-                  String(opt) === value
-                    ? "text-brand bg-brand/5"
-                    : "text-text-primary"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>,
-          portalTarget,
-        )}
-    </div>
-  );
-}
-
-// ─── OptionBtn ───────────────────────────────────────────────────────────────
-
-function OptionBtn({
-  icon,
-  text,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  text: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center w-full px-6 py-4 border border-elevated rounded-2xl hover:bg-hover bg-background transition-all duration-200 group active:scale-[0.98]"
-    >
-      <div className="text-text-primary group-hover:scale-110 transition-transform">
-        {icon}
-      </div>
-      <span className="flex-1 text-center font-bold text-sm text-text-primary">
-        {text}
-      </span>
-    </button>
-  );
-}
+  

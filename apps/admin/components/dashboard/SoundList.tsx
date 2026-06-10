@@ -2,9 +2,9 @@
 
 import { Music2, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui";
 import type { SoundItem } from "@/types/admin";
 import { EmptyState, LoadingRows } from "./dashboard-common";
+import { Button, Badge } from "@repo/ui";
 
 export function SoundList({
   items,
@@ -96,24 +96,24 @@ export function SoundList({
 
           <div className="flex flex-col gap-1 shrink-0 border-l border-elevated pl-2 ml-1">
             {onEdit && (
-              <button
+              <Button
                 type="button"
                 onClick={() => onEdit(sound)}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-brand transition"
                 title={t("sounds.edit")}
               >
                 <Pencil className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
             {onDelete && (
-              <button
+              <Button
                 type="button"
                 onClick={() => onDelete(sound)}
                 className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-red-500 transition"
                 title={t("sounds.delete")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
           </div>
         </div>

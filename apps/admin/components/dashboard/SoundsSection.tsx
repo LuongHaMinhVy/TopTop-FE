@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Music2, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Input } from "@/components/ui";
+import { Input, Button } from "@repo/ui";
 import type { SoundItem } from "@/types/admin";
 import type { Meta } from "@/utils/common";
 import { EmptyState, IconActionButton, Panel } from "./dashboard-common";
@@ -46,14 +46,14 @@ export function SoundsSection({
             className="h-10 rounded-lg px-4 py-2"
           />
           {onAddClick && (
-            <button
+            <Button
               type="button"
               onClick={onAddClick}
-              className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-bold text-white hover:bg-brand-hover transition-colors"
+              className="flex h-10 shrink-0 items-center justify-center gap-2 !rounded-xl px-4 text-sm font-bold"
             >
               <Plus className="h-4 w-4" />
               <span className="whitespace-nowrap">{t("sounds.addNew")}</span>
-            </button>
+            </Button>
           )}
         </div>
       }

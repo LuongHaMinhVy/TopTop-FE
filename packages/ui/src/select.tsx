@@ -8,14 +8,14 @@ export type SelectOption = {
   label: string;
 };
 
-type SelectProps = {
+interface SelectProps {
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
   ariaLabel: string;
   className?: string;
   disabled?: boolean;
-};
+}
 
 export function Select({
   value,
@@ -51,7 +51,7 @@ export function Select({
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className={`relative min-w-44 ${className}`}>
+    <div ref={containerRef} className={`relative ${className.includes("min-w-") || className.includes("w-") ? "" : "min-w-44"} ${className}`}>
       <button
         type="button"
         aria-haspopup="listbox"

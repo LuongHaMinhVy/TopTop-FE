@@ -7,6 +7,7 @@ import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useMyShopQuery, useShopOrdersQuery, useUpdateOrderStatusMutation } from "@/hooks/shop-hooks";
 import { formatShopPrice, ShopEmptyState, ShopPageFrame, StatusBadge } from "@/components/shop/ShopUi";
 import type { Order } from "@/types/shop";
+import { Button } from "@repo/ui";
 
 const NEXT_STATUS: Partial<Record<Order["status"], Order["status"]>> = {
   SELLER_CONFIRMING: "PACKING",
@@ -76,14 +77,14 @@ export default function BusinessOrdersPage() {
                       <StatusBadge value={order.paymentStatus} label={tStatus(`payment.${order.paymentStatus}`)} />
                       <p className="font-black text-brand">{formatShopPrice(order.totalAmount, order.currency)}</p>
                       {nextStatus ? (
-                        <button
+                        <Button
                           type="button"
                           disabled={updateOrder.isPending}
                           onClick={() => updateOrder.mutate({ orderId: order.id, status: nextStatus })}
                           className="rounded-full bg-text-primary px-4 py-2 text-sm font-black text-background disabled:opacity-60"
                         >
                           {t("moveTo", { status: tStatus(`order.${nextStatus}`) })}
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
                   </div>

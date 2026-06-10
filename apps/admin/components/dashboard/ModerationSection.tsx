@@ -2,7 +2,7 @@
 
 import { FileWarning } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Select } from "@/components/ui";
+import { Select } from "@repo/ui";
 import type { ModerationQueueItem } from "@/types/admin";
 import { EmptyState, Panel } from "./dashboard-common";
 import { moderationStatusOptions } from "./dashboard-config";

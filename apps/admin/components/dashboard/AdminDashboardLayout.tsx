@@ -7,13 +7,13 @@ import {
 import { Loader2, LogOut, Moon, Sun } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Avatar } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { useTheme } from "@/components/providers/NextThemeProvider";
 import { dashboardNavItems, type SectionKey } from "./dashboard-config";
 import { TopTopMark } from "./dashboard-common";
 import { authLogout } from "@/services/auth-api-service";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
+import { Avatar, Button } from "@repo/ui";
 
 export function AdminDashboardLayout({
   children,
@@ -58,7 +58,7 @@ export function AdminDashboardLayout({
           ))}
         </nav>
 
-        <button
+        <Button
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
           className="mt-auto flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold text-text-muted transition hover:bg-hover hover:text-text-primary"
@@ -69,7 +69,7 @@ export function AdminDashboardLayout({
             <LogOut className="h-4 w-4" />
           )}
           {t("logout")}
-        </button>
+        </Button>
       </aside>
 
       <main className="min-w-0">
@@ -196,7 +196,7 @@ function ThemeToggle() {
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
-    <button
+    <Button
       type="button"
       onClick={() => setTheme(nextTheme)}
       aria-label={t(resolvedTheme === "dark" ? "theme.switchToLight" : "theme.switchToDark")}
@@ -214,6 +214,6 @@ function ThemeToggle() {
         aria-hidden="true"
         suppressHydrationWarning
       />
-    </button>
+    </Button>
   );
 }
