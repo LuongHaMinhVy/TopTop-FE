@@ -161,7 +161,8 @@
     "increaseQuantity": "Increase quantity",
     "addToCart": "Add to cart",
     "buyNow": "Buy now",
-    "addError": "Could not add this product to cart."
+    "addError": "Could not add this product to cart.",
+    "selectVariantPrompt": "Please select a product variant."
   },
   "CartPage": {
     "title": "Cart",

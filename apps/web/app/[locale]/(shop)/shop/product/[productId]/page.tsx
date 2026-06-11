@@ -19,6 +19,7 @@ export default function ShopProductPage() {
   const addToCart = useAddToCartMutation();
   const [variantId, setVariantId] = useState<number | undefined>(undefined);
   const [quantity, setQuantity] = useState(1);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const product = productQuery.data?.data;
   const media = product?.media ?? [];
   const cover = media.find((item) => item.mediaType === "IMAGE")?.url ?? null;
@@ -28,7 +29,13 @@ export default function ShopProductPage() {
   const canBuy = Boolean(product && stock >= quantity && product.status === "ACTIVE" && product.moderationStatus === "APPROVED");
 
   const add = (checkout: boolean) => {
-    if (!product || !canBuy) return;
+    if (!product) return;
+    if (product.variants.length > 0 && variantId === undefined) {
+      setErrorMsg(t("selectVariantPrompt"));
+      return;
+    }
+    setErrorMsg(null);
+    if (!canBuy) return;
     addToCart.mutate(
       { productId: product.id, variantId, quantity },
       {
@@ -146,6 +153,7 @@ export default function ShopProductPage() {
                     onClick={() => {
                       setVariantId(variant.id);
                       setQuantity(1);
+                      setErrorMsg(null);
                     }}
                     className={`rounded-full border px-4 py-1.5 text-xs font-bold transition-all ${
                       variantId === variant.id
@@ -201,6 +209,7 @@ export default function ShopProductPage() {
               {t("buyNow")}
             </button>
           </div>
+          {errorMsg ? <p className="mt-3 text-xs font-bold text-brand">{errorMsg}</p> : null}
           {addToCart.isError ? <p className="mt-3 text-xs font-bold text-brand">{t("addError")}</p> : null}
           {product.description ? (
             <p className="mt-6 whitespace-pre-line text-sm leading-relaxed text-text-secondary sm:text-base border-t border-elevated/40 pt-6">

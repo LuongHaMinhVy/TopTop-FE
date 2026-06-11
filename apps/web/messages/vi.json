@@ -161,7 +161,8 @@
     "increaseQuantity": "Tăng số lượng",
     "addToCart": "Thêm vào giỏ",
     "buyNow": "Mua ngay",
-    "addError": "Không thể thêm sản phẩm vào giỏ."
+    "addError": "Không thể thêm sản phẩm vào giỏ.",
+    "selectVariantPrompt": "Vui lòng chọn phân loại sản phẩm."
   },
   "CartPage": {
     "title": "Giỏ hàng",
