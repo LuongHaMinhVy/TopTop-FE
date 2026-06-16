@@ -286,6 +286,7 @@ interface VideoCardProps {
   detailSource?: string;
   onCommentsClick?: () => void;
   reserveCommentPanelSpace?: boolean;
+  stageOffsetX?: string;
 }
 
 // ─────────────────────────────────────────────
@@ -305,6 +306,7 @@ export default function VideoCard({
   detailSource: detailSourceProp,
   onCommentsClick: onCommentsClickProp,
   reserveCommentPanelSpace = false,
+  stageOffsetX = "0px",
   ref,
 }: VideoCardProps & { ref?: React.Ref<HTMLDivElement> }) {
   // ── Derived props ──
@@ -1153,6 +1155,7 @@ export default function VideoCard({
         ref={stageRef}
         className="relative flex h-full w-full items-center justify-center"
         style={{
+          transform: stageOffsetX && stageOffsetX !== "0px" ? `translateX(${stageOffsetX})` : undefined,
           transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)"
         }}
       >
