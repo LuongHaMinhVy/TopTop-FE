@@ -64,12 +64,16 @@ export type VideoModerationFrame = {
 
 export type ModerationAuditLog = {
   id: number;
-  videoId: number;
-  adminId?: number;
-  adminEmail?: string;
+  targetType: string;
+  targetId: number;
+  actorUserId?: number | null;
+  actorType: string;
+  previousStatus?: string | null;
+  newStatus?: string | null;
   action: string;
-  reasonCode?: string;
-  reasonMessage?: string;
+  reasonCode?: string | null;
+  reasonMessage?: string | null;
+  metadataJson?: string | null;
   createdAt: string;
 };
 

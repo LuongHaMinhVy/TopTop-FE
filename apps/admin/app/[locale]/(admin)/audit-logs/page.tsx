@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getModerationAuditLogs } from "@/services/moderation-api-service";
+import type { ModerationAuditLog } from "@/types/admin";
 import { useTranslations } from "next-intl";
 import { Button, Input, Select, Badge } from "@repo/ui";
 import {
@@ -23,7 +24,7 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState<string>("ALL");
   const [actorTypeFilter, setActorTypeFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [selectedLog, setSelectedLog] = useState<ModerationAuditLog | null>(null);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["admin", "audit-logs", page, pageSize],
@@ -34,7 +35,7 @@ export default function AuditLogsPage() {
   const pageInfo = data?.data;
 
   // Client-side filtering on top of paginated results for fast navigation
-  const filteredLogs = auditLogs.filter((log: any) => {
+  const filteredLogs = auditLogs.filter((log: ModerationAuditLog) => {
     if (searchQuery.trim()) {
       const targetIdStr = String(log.targetId || "");
       if (!targetIdStr.includes(searchQuery.trim())) {
@@ -235,7 +236,7 @@ export default function AuditLogsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-elevated bg-background">
-                  {filteredLogs.map((log: any) => (
+                  {filteredLogs.map((log: ModerationAuditLog) => (
                     <tr key={log.id} className="hover:bg-surface/50">
                       <td className="whitespace-nowrap px-6 py-4 font-mono text-xs">
                         {log.id}

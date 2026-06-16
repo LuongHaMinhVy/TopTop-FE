@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Input, Button } from "@repo/ui";
 import type { SoundItem } from "@/types/admin";
 import type { Meta } from "@/utils/common";
-import { EmptyState, IconActionButton, Panel } from "./dashboard-common";
+import { EmptyState, Panel } from "./dashboard-common";
 import { SoundList } from "./SoundList";
 
 export function SoundsSection({

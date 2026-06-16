@@ -4,7 +4,7 @@ import { Music2, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { SoundItem } from "@/types/admin";
 import { EmptyState, LoadingRows } from "./dashboard-common";
-import { Button, Badge } from "@repo/ui";
+import { Badge } from "@repo/ui";
 
 export function SoundList({
   items,
