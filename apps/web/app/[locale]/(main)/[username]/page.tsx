@@ -27,11 +27,11 @@ import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import { useUserProfile, useFollowMutation, useUnfollowMutation, useBlockUserMutation, useUnblockUserMutation } from "@/hooks/user-hooks";
 import { useCreateConversation } from "@/hooks/chat-hooks";
-import { useUserVideos, useLikedVideos, useUserLikedVideos, useUserRepostedVideos } from "@/hooks/video-hooks";
+import { useInfiniteUserVideos, useInfiniteLikedVideos, useInfiniteUserLikedVideos, useInfiniteUserRepostedVideos } from "@/hooks/video-hooks";
 import {
   useCollections,
   useCreateCollectionMutation,
-  useFavoriteVideos,
+  useInfiniteFavoriteVideos,
   useUserCollections,
 } from "@/hooks/collection-hooks";
 import { CollectionCard, CollectionFormModal, FavoriteSoundTile, FavoriteVideoTile } from "@/components/collection/CollectionUi";
@@ -40,7 +40,7 @@ import { collectionPath } from "@/utils/collection-url";
 import { videoPath } from "@/utils/video-url";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "@/i18n/routing";
 
 export default function ProfilePage() {
@@ -86,18 +86,59 @@ export default function ProfilePage() {
   const createCollectionMutation = useCreateCollectionMutation();
   const createConversationMutation = useCreateConversation();
 
-  const { data: userVideosRes, isLoading: isLoadingVideos } = useUserVideos(profile?.id, visibleActiveTab === "video" && canViewPosts);
-  const { data: repostedVideosRes, isLoading: isLoadingReposts } = useUserRepostedVideos(username, visibleActiveTab === "reposts" && canViewReposts);
-  const { data: favoriteVideosRes, isLoading: isLoadingFavorites } = useFavoriteVideos(
+  const {
+    data: userVideosRes,
+    isLoading: isLoadingVideos,
+    fetchNextPage: fetchNextUserVideos,
+    hasNextPage: hasNextUserVideos,
+    isFetchingNextPage: isFetchingNextUserVideos,
+  } = useInfiniteUserVideos(
+    profile?.id,
+    visibleActiveTab === "video" && canViewPosts,
+  );
+
+  const {
+    data: repostedVideosRes,
+    isLoading: isLoadingReposts,
+    fetchNextPage: fetchNextReposts,
+    hasNextPage: hasNextReposts,
+    isFetchingNextPage: isFetchingNextReposts,
+  } = useInfiniteUserRepostedVideos(
+    username,
+    visibleActiveTab === "reposts" && canViewReposts,
+  );
+
+  const {
+    data: favoriteVideosRes,
+    isLoading: isLoadingFavorites,
+    fetchNextPage: fetchNextFavorites,
+    hasNextPage: hasNextFavorites,
+    isFetchingNextPage: isFetchingNextFavorites,
+  } = useInfiniteFavoriteVideos(
     isOwnProfileForQueries && visibleActiveTab === "favorites" && favoriteSection === "posts",
   );
-  const { data: ownLikedVideosRes, isLoading: isLoadingOwnLiked } = useLikedVideos(
+
+  const {
+    data: ownLikedVideosRes,
+    isLoading: isLoadingOwnLiked,
+    fetchNextPage: fetchNextOwnLiked,
+    hasNextPage: hasNextOwnLiked,
+    isFetchingNextPage: isFetchingNextOwnLiked,
+  } = useInfiniteLikedVideos(
     isOwnProfileForQueries && visibleActiveTab === "liked" && canViewLikedVideos,
   );
-  const { data: userLikedVideosRes, isLoading: isLoadingUserLiked } = useUserLikedVideos(
+
+  const {
+    data: userLikedVideosRes,
+    isLoading: isLoadingUserLiked,
+    fetchNextPage: fetchNextUserLiked,
+    hasNextPage: hasNextUserLiked,
+    isFetchingNextPage: isFetchingNextUserLiked,
+  } = useInfiniteUserLikedVideos(
     username,
     !isOwnProfileForQueries && visibleActiveTab === "liked" && canViewLikedVideos,
   );
+
   // For own profile: use authenticated endpoint (includes private collections)
   // For other profiles: use public endpoint (public collections only)
   const { data: ownCollectionsRes, isLoading: isLoadingOwnCollections } = useCollections(
@@ -114,12 +155,12 @@ export default function ProfilePage() {
     50,
   );
 
-  const userVideos = useMemo(() => userVideosRes?.data ?? [], [userVideosRes?.data]);
-  const repostedVideos = useMemo(() => repostedVideosRes?.data ?? [], [repostedVideosRes?.data]);
-  const favoriteVideos = useMemo(() => favoriteVideosRes?.data ?? [], [favoriteVideosRes?.data]);
+  const userVideos = useMemo(() => userVideosRes?.pages.flatMap((page) => page.data ?? []) ?? [], [userVideosRes?.pages]);
+  const repostedVideos = useMemo(() => repostedVideosRes?.pages.flatMap((page) => page.data ?? []) ?? [], [repostedVideosRes?.pages]);
+  const favoriteVideos = useMemo(() => favoriteVideosRes?.pages.flatMap((page) => page.data ?? []) ?? [], [favoriteVideosRes?.pages]);
   const likedVideos = useMemo(
-    () => (isOwnProfileForQueries ? ownLikedVideosRes?.data : userLikedVideosRes?.data) ?? [],
-    [isOwnProfileForQueries, ownLikedVideosRes?.data, userLikedVideosRes?.data],
+    () => (isOwnProfileForQueries ? ownLikedVideosRes : userLikedVideosRes)?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [isOwnProfileForQueries, ownLikedVideosRes, userLikedVideosRes],
   );
   const collections = useMemo(
     () => (isOwnProfileForQueries ? ownCollectionsRes?.data : userCollectionsRes?.data) ?? [],
@@ -129,20 +170,99 @@ export default function ProfilePage() {
   const displayedVideos = useMemo(() => {
     if (visibleActiveTab === "video") return userVideos;
     if (visibleActiveTab === "reposts") return repostedVideos;
-    if (visibleActiveTab === "favorites") return favoriteVideos;
+    if (visibleActiveTab === "favorites" && favoriteSection === "posts") return favoriteVideos;
     if (visibleActiveTab === "liked") return likedVideos;
     return [];
-  }, [favoriteVideos, likedVideos, repostedVideos, userVideos, visibleActiveTab]);
+  }, [favoriteVideos, likedVideos, repostedVideos, userVideos, visibleActiveTab, favoriteSection]);
+
   const isDisplayedLoading =
     visibleActiveTab === "video"
       ? isLoadingVideos
       : visibleActiveTab === "reposts"
       ? isLoadingReposts
-      : visibleActiveTab === "favorites"
+      : visibleActiveTab === "favorites" && favoriteSection === "posts"
       ? isLoadingFavorites
       : visibleActiveTab === "liked"
       ? isOwnProfileForQueries ? isLoadingOwnLiked : isLoadingUserLiked
       : false;
+
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = useMemo(() => {
+    if (visibleActiveTab === "video") {
+      return {
+        fetchNextPage: fetchNextUserVideos,
+        hasNextPage: hasNextUserVideos,
+        isFetchingNextPage: isFetchingNextUserVideos,
+      };
+    }
+    if (visibleActiveTab === "reposts") {
+      return {
+        fetchNextPage: fetchNextReposts,
+        hasNextPage: hasNextReposts,
+        isFetchingNextPage: isFetchingNextReposts,
+      };
+    }
+    if (visibleActiveTab === "favorites" && favoriteSection === "posts") {
+      return {
+        fetchNextPage: fetchNextFavorites,
+        hasNextPage: hasNextFavorites,
+        isFetchingNextPage: isFetchingNextFavorites,
+      };
+    }
+    if (visibleActiveTab === "liked") {
+      return isOwnProfileForQueries
+        ? {
+            fetchNextPage: fetchNextOwnLiked,
+            hasNextPage: hasNextOwnLiked,
+            isFetchingNextPage: isFetchingNextOwnLiked,
+          }
+        : {
+            fetchNextPage: fetchNextUserLiked,
+            hasNextPage: hasNextUserLiked,
+            isFetchingNextPage: isFetchingNextUserLiked,
+          };
+    }
+    return {
+      fetchNextPage: () => {},
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    };
+  }, [
+    visibleActiveTab,
+    favoriteSection,
+    isOwnProfileForQueries,
+    fetchNextUserVideos,
+    hasNextUserVideos,
+    isFetchingNextUserVideos,
+    fetchNextReposts,
+    hasNextReposts,
+    isFetchingNextReposts,
+    fetchNextFavorites,
+    hasNextFavorites,
+    isFetchingNextFavorites,
+    fetchNextOwnLiked,
+    hasNextOwnLiked,
+    isFetchingNextOwnLiked,
+    fetchNextUserLiked,
+    hasNextUserLiked,
+    isFetchingNextUserLiked,
+  ]);
+
+  const observer = useRef<IntersectionObserver>(null);
+  const lastVideoRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (isDisplayedLoading || isFetchingNextPage) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [isDisplayedLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
+  );
   const firstPreviewVideoId = useMemo(
     () => displayedVideos.find((video) => !video.unavailable && !video.deleted && video.fileUrl)?.id ?? null,
     [displayedVideos],
@@ -536,7 +656,7 @@ export default function ProfilePage() {
                   favoriteSection === "posts" ? "bg-elevated text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
-                Bài đăng {favoriteVideosRes?.meta?.totalElements ?? favoriteVideos.length}
+                Bài đăng {favoriteVideosRes?.pages[0]?.meta?.totalElements ?? favoriteVideos.length}
               </button>
               <button
                 type="button"
@@ -582,15 +702,23 @@ export default function ProfilePage() {
               {isLoadingFavorites ? (
                 [1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />)
               ) : favoriteVideos.length > 0 ? (
-                favoriteVideos.map((video) => (
-                  <FavoriteVideoTile
-                    key={video.id}
-                    video={video}
-                    href={videoPath(video.username, video.id, { from: "favorites" })}
-                    previewActive={activePreviewVideoId === video.id}
-                    onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
-                  />
-                ))
+                <>
+                  {favoriteVideos.map((video, index) => (
+                    <FavoriteVideoTile
+                      key={video.id}
+                      video={video}
+                      href={videoPath(video.username, video.id, { from: "favorites" })}
+                      previewActive={activePreviewVideoId === video.id}
+                      onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
+                      ref={favoriteVideos.length === index + 1 ? lastVideoRef : undefined}
+                    />
+                  ))}
+                  {isFetchingNextPage && (
+                    [1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={`fetching-fav-next-${i}`} className="aspect-[3/4] animate-pulse rounded-lg bg-elevated" />
+                    ))
+                  )}
+                </>
               ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
                   <Lock className="mb-4 size-16 opacity-30" />
@@ -653,18 +781,26 @@ export default function ProfilePage() {
               <div key={i} className="relative aspect-[3/4] overflow-hidden rounded-sm bg-elevated animate-pulse lg:rounded-lg" />
             ))
           ) : displayedVideos.length > 0 ? (
-            displayedVideos.map((video) => (
-              <FavoriteVideoTile
-                key={video.id}
-                video={video}
-                href={videoPath(video.username, video.id, {
-                  from: visibleActiveTab === "liked" ? "liked" : visibleActiveTab === "reposts" ? "reposts" : "profile",
-                  profileOwner: visibleActiveTab === "reposts" ? profile.username : undefined,
-                })}
-                previewActive={activePreviewVideoId === video.id}
-                onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
-              />
-            ))
+            <>
+              {displayedVideos.map((video, index) => (
+                <FavoriteVideoTile
+                  key={video.id}
+                  video={video}
+                  href={videoPath(video.username, video.id, {
+                    from: visibleActiveTab === "liked" ? "liked" : visibleActiveTab === "reposts" ? "reposts" : "profile",
+                    profileOwner: visibleActiveTab === "reposts" ? profile.username : undefined,
+                  })}
+                  previewActive={activePreviewVideoId === video.id}
+                  onPreviewEnter={() => setHoveredPreviewVideoId(video.id)}
+                  ref={displayedVideos.length === index + 1 ? lastVideoRef : undefined}
+                />
+              ))}
+              {isFetchingNextPage && (
+                [1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={`fetching-main-next-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-sm bg-elevated animate-pulse lg:rounded-lg" />
+                ))
+              )}
+            </>
           ) : (
             <div className="col-span-full flex flex-col items-center justify-center py-32 text-text-secondary">
               <Lock className="mb-4 size-16 opacity-20" />

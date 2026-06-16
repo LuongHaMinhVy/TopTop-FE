@@ -685,6 +685,8 @@ export default function UploadVideo() {
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [visibilityDropdownOpen]);
 
+
+
   // Extract the first frame as the default cover if none is chosen
   useEffect(() => {
     if (!preview) return;
@@ -1838,6 +1840,8 @@ export default function UploadVideo() {
                   )}
                 </div>
               </div>
+
+
 
               {/* Toggles */}
               <div className="space-y-4 mb-8">

@@ -60,25 +60,33 @@ export function FavoriteSoundTile({ sound }: { sound: Sound }) {
   );
 }
 
-export function FavoriteVideoTile({
-  video,
-  href,
-  selectable = false,
-  selected = false,
-  onSelect,
-  previewActive = false,
-  onPreviewEnter,
-  onPreviewLeave,
-}: {
-  video: Video;
-  href?: string;
-  selectable?: boolean;
-  selected?: boolean;
-  onSelect?: () => void;
-  previewActive?: boolean;
-  onPreviewEnter?: () => void;
-  onPreviewLeave?: () => void;
-}) {
+import { forwardRef } from "react";
+
+export const FavoriteVideoTile = forwardRef<
+  HTMLDivElement,
+  {
+    video: Video;
+    href?: string;
+    selectable?: boolean;
+    selected?: boolean;
+    onSelect?: () => void;
+    previewActive?: boolean;
+    onPreviewEnter?: () => void;
+    onPreviewLeave?: () => void;
+  }
+>(function FavoriteVideoTile(
+  {
+    video,
+    href,
+    selectable = false,
+    selected = false,
+    onSelect,
+    previewActive = false,
+    onPreviewEnter,
+    onPreviewLeave,
+  },
+  ref
+) {
   const isUnavailable = Boolean(video.unavailable || video.deleted);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -95,6 +103,7 @@ export function FavoriteVideoTile({
 
   const content = (
     <div
+      ref={ref}
       className={`group relative aspect-[3/4] overflow-hidden rounded-lg bg-elevated ${
         isUnavailable ? "cursor-default" : ""
       }`}
@@ -158,7 +167,7 @@ export function FavoriteVideoTile({
 
   if (selectable || !href) return content;
   return <Link href={href}>{content}</Link>;
-}
+});
 
 export function CollectionCard({
   collection,

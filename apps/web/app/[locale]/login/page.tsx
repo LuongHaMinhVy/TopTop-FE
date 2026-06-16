@@ -17,6 +17,7 @@ import { AccountReactivationDialog } from "@/components/auth/AccountReactivation
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
 import { Button, Input, Form } from "@repo/ui";
+import { useTranslations } from "next-intl";
 
 type AuthMethod = "options" | "phone_email";
 
@@ -24,11 +25,13 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
+  const t = useTranslations("auth");
   const [authMethod, setAuthMethod] = useState<AuthMethod>("options");
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
   const [reactivationAuthData, setReactivationAuthData] = useState<AuthResponse | null>(null);
 
@@ -51,7 +54,7 @@ export default function LoginPage() {
           return;
         }
 
-        setSuccessMsg("Đăng nhập thành công");
+        setSuccessMsg(t("successLogin"));
         if (authEvent.data) {
           dispatch(setCredentials(authEvent.data));
           if (user) {
@@ -65,21 +68,21 @@ export default function LoginPage() {
           window.location.href = "/";
         }, 1000);
       } else if (authEvent.type === "AUTH_ERROR") {
-        setErrorMsg(authEvent.error || "Xác thực thất bại");
+        setErrorMsg(authEvent.error || t("errorAuth"));
       }
 
       channel.close();
     };
 
     return () => channel.close();
-  }, [dispatch, router, queryClient]);
+  }, [dispatch, router, queryClient, t]);
 
   const loginMutation = useLoginMutation((response) => {
     if (response.data?.reactivationRequired) {
       setReactivationAuthData(response.data);
       return;
     }
-    setSuccessMsg("Đăng nhập thành công");
+    setSuccessMsg(t("successLogin"));
     setTimeout(() => {
       window.location.href = "/";
     }, 1000);
@@ -87,11 +90,41 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
     setErrorMsg("");
     setSuccessMsg("");
-    loginMutation.mutate({ email, password }, {
+
+    const newErrors: { email?: string; password?: string } = {};
+
+    const input = email.trim();
+    if (!input) {
+      newErrors.email = t("errEmailOrUsernameRequired");
+    } else if (input.includes("@")) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+        newErrors.email = t("errEmailPattern");
+      }
+    } else {
+      if (input.length < 2 || input.length > 24) {
+        newErrors.email = t("errUsernameLength");
+      } else if (!/^[a-zA-Z0-9._]+$/.test(input)) {
+        newErrors.email = t("errUsernamePattern");
+      }
+    }
+
+    if (!password) {
+      newErrors.password = t("errPasswordRequired");
+    } else if (password.length < 8 || password.length > 20) {
+      newErrors.password = t("errPasswordLength");
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    loginMutation.mutate({ email: input, password }, {
       onError: (err: Error) => {
-        setErrorMsg(err.message || "Xác thực thất bại");
+        setErrorMsg(err.message || t("errorAuth"));
       }
     });
   };
@@ -99,7 +132,7 @@ export default function LoginPage() {
   const renderOptions = () => (
     <div className="flex flex-col gap-4">
       <h2 className="text-[36px] font-bold text-center mb-6 text-text-primary">
-        Đăng nhập vào TopTop
+        {t("loginTo")}
       </h2>
 
       <div className="flex flex-col gap-4">
@@ -108,12 +141,13 @@ export default function LoginPage() {
             setAuthMethod("phone_email");
             setErrorMsg("");
             setSuccessMsg("");
+            setErrors({});
           }}
           variant="outline"
           className="w-full justify-start rounded-lg p-3 text-[16px]"
           leftIcon={<User className="w-5 h-5 ml-2" />}
         >
-          <span className="flex-1 text-center font-semibold">Sử dụng email</span>
+          <span className="flex-1 text-center font-semibold">{t("useEmail")}</span>
         </Button>
 
         <SocialLoginButtons />
@@ -125,18 +159,18 @@ export default function LoginPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center mb-6">
         <Button
-          onClick={() => setAuthMethod("options")}
+          onClick={() => {
+            setAuthMethod("options");
+            setErrors({});
+            setErrorMsg("");
+          }}
           variant="ghost"
           className="p-2 -ml-2 rounded-full text-text-primary"
         >
           <ChevronLeft className="w-6 h-6" />
         </Button>
-        <h2 className="text-[28px] font-bold mx-auto text-text-primary">Đăng nhập</h2>
+        <h2 className="text-[28px] font-bold mx-auto text-text-primary">{t("login")}</h2>
         <div className="w-10"></div>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <span className="font-semibold text-[16px] text-text-primary">Email / Tên người dùng</span>
       </div>
 
       {errorMsg && (
@@ -154,20 +188,32 @@ export default function LoginPage() {
       <Form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4">
           <Input
-            type="email"
-            placeholder="Email hoặc tên người dùng"
-            required
+            label={`${t("email")}`}
+            type="text"
+            placeholder={`${t("email")}`}
             className="input-field"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) {
+                setErrors((prev) => ({ ...prev, email: undefined }));
+              }
+            }}
           />
           <Input
+            label={t("password")}
             type="password"
-            placeholder="Mật khẩu"
-            required
+            placeholder={t("password")}
             className="input-field"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errors.password) {
+                setErrors((prev) => ({ ...prev, password: undefined }));
+              }
+            }}
           />
         </div>
 
@@ -175,25 +221,25 @@ export default function LoginPage() {
           href="#"
           className="text-[14px] font-semibold text-text-secondary hover:underline hover:text-text-primary mt-2"
         >
-          Quên mật khẩu?
+          {t("forgotPassword")}
         </Link>
 
         <Button
           type="submit"
           className="w-full mt-4"
           isLoading={loginMutation.isPending}
-          disabled={!email || !password}
+          disabled={loginMutation.isPending}
         >
-          Đăng nhập
+          {t("login")}
         </Button>
       </Form>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[rgba(0,0,0,0.7)] px-4">
-      <DocumentTitle title="Log in | TopTop" />
-      <div className="w-full max-w-[480px] bg-transparent rounded-[12px] p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
+    <div className="min-h-screen flex items-center justify-center bg-surface-secondary px-4">
+      <DocumentTitle title={`${t("login")} | TopTop`} />
+      <div className="w-full max-w-[480px] bg-background border border-elevated rounded-[12px] p-[24px] shadow-lg relative flex flex-col">
 
         <div className="flex-1 mt-6">
           {authMethod === "options" ? renderOptions() : renderForm()}
@@ -201,16 +247,13 @@ export default function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-elevated text-center">
           <p className="text-[12px] text-text-muted mb-6 leading-relaxed">
-            Bằng cách tiếp tục, bạn đồng ý với{" "}
-            <Link href="#" className="text-text-primary hover:underline">Điều khoản Dịch vụ</Link>
-            {" "}và xác nhận rằng bạn đã đọc{" "}
-            <Link href="#" className="text-text-primary hover:underline">Chính sách Quyền riêng tư</Link> của chúng tôi.
+            {t("termsPrompt")}
           </p>
 
           <div className="flex items-center justify-center gap-2">
-            <span className="text-[15px] text-text-primary">Bạn chưa có tài khoản?</span>
+            <span className="text-[15px] text-text-primary">{t("noAccount")}</span>
             <Link href="/signup" className="text-brand font-bold text-[15px] hover:underline">
-              Đăng ký
+              {t("signup")}
             </Link>
           </div>
         </div>
@@ -227,14 +270,14 @@ export default function LoginPage() {
           authData={reactivationAuthData}
           onActivated={() => {
             setReactivationAuthData(null);
-            setSuccessMsg("Kích hoạt lại tài khoản thành công");
+            setSuccessMsg(t("reactivation.activated"));
             setTimeout(() => {
               window.location.href = "/";
             }, 700);
           }}
           onCancelled={() => {
             setReactivationAuthData(null);
-            setErrorMsg("Bạn cần kích hoạt lại tài khoản để tiếp tục đăng nhập.");
+            setErrorMsg(t("reactivation.cancelled"));
           }}
         />
       )}

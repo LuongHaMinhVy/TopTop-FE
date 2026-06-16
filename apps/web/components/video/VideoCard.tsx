@@ -114,7 +114,7 @@ const InteractionSidebar = ({
   const router = useRouter();
 
   return (
-    <div className={`flex flex-col items-center gap-3 ${overlay ? "" : "pb-10"}`}>
+    <div className={`flex flex-col items-center gap-2.5 sm:gap-3 ${overlay ? "" : "pb-10"}`}>
       {/* Avatar */}
       <div className="relative mb-1 group/avatar">
         <div 
@@ -155,13 +155,13 @@ const InteractionSidebar = ({
       <IconButton
         active={isLiked}
         activeColor="text-brand"
-        icon={<Heart className={`w-7 h-7 ${isLiked ? "fill-brand" : ""}`} />}
+        icon={<Heart className={`w-6 h-6 sm:w-7 sm:h-7 ${isLiked ? "fill-brand" : ""}`} />}
         label={likes}
         onClick={onLike}
         isOverlay={overlay}
       />
       <IconButton
-        icon={<MessageCircle className="w-7 h-7" />}
+        icon={<MessageCircle className="w-6 h-6 sm:w-7 sm:h-7" />}
         label={comments}
         onClick={onCommentsClick}
         isOverlay={overlay}
@@ -169,13 +169,13 @@ const InteractionSidebar = ({
       <IconButton
         active={isSaved}
         activeColor="text-yellow-400"
-        icon={<Bookmark className={`w-7 h-7 ${isSaved ? "fill-yellow-400" : ""}`} />}
+        icon={<Bookmark className={`w-6 h-6 sm:w-7 sm:h-7 ${isSaved ? "fill-yellow-400" : ""}`} />}
         label={saves}
         onClick={onSave}
         isOverlay={overlay}
       />
       <IconButton
-        icon={<Share2 className="w-7 h-7" />}
+        icon={<Share2 className="w-6 h-6 sm:w-7 sm:h-7" />}
         label={shares}
         onClick={onShare}
         isOverlay={overlay}
@@ -286,7 +286,6 @@ interface VideoCardProps {
   detailSource?: string;
   onCommentsClick?: () => void;
   reserveCommentPanelSpace?: boolean;
-  stageOffsetX?: string;
 }
 
 // ─────────────────────────────────────────────
@@ -306,7 +305,6 @@ export default function VideoCard({
   detailSource: detailSourceProp,
   onCommentsClick: onCommentsClickProp,
   reserveCommentPanelSpace = false,
-  stageOffsetX,
   ref,
 }: VideoCardProps & { ref?: React.Ref<HTMLDivElement> }) {
   // ── Derived props ──
@@ -418,6 +416,16 @@ export default function VideoCard({
     () => (parseAspectRatio(aspectRatio || "9/16") > 1 ? "left" : "right"),
   );
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // ── Refs ──
   const internalRef       = useRef<HTMLDivElement>(null);
   const stageRef          = useRef<HTMLDivElement>(null);
@@ -428,7 +436,6 @@ export default function VideoCard({
   const isIntersectingRef = useRef(false);
   const isPlayingRef      = useRef(isPlaying);
   const wasPlayingBeforeHiddenRef = useRef(false);
-  const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper to merge internal and external refs
   const setRefs = useCallback((node: HTMLDivElement | null) => {
@@ -561,8 +568,6 @@ export default function VideoCard({
 
   const videoAspectRatio = detectedAspectRatio ?? parseAspectRatio(aspectRatio || "9/16");
   const isCommentSidebarOpen = reserveCommentPanelSpace || activeCommentVideoId !== null;
-  const isExternalFeedCommentOpen =
-    !reserveCommentPanelSpace && detailSource === "feed" && activeCommentVideoId !== null;
   const isLandscape = videoAspectRatio > 1;
   const updateCollectionPanelSide = useCallback(() => {
     if (isLandscape) {
@@ -583,15 +588,7 @@ export default function VideoCard({
 
     setCollectionPanelSide(rightPanelEdge > window.innerWidth - 16 ? "left" : "right");
   }, [isLandscape]);
-  const resolvedStageOffsetX =
-    stageOffsetX ??
-    (isExternalFeedCommentOpen
-      ? isLandscape
-        ? "clamp(-48px, -2.5vw, -24px)"
-        : "clamp(-72px, -4vw, -40px)"
-      : isLandscape
-        ? "clamp(-96px, -5vw, -56px)"
-        : "clamp(-96px, -5vw, -56px)");
+  
   const feedVideoSideControlsWidth =
     reserveCommentPanelSpace && detailSource === "feed"
       ? FEED_VIDEO_RESERVED_COMMENT_SIDE_CONTROLS_WIDTH
@@ -602,21 +599,27 @@ export default function VideoCard({
   const feedVideoLandscapeMaxWidth = isCommentSidebarOpen
     ? `min(${FEED_VIDEO_LANDSCAPE_MAX_WIDTH}, ${feedVideoAvailableWidth})`
     : FEED_VIDEO_LANDSCAPE_MAX_WIDTH;
-  const feedVideoFrameWidth = isLandscape
-    ? `min(${feedVideoLandscapeMaxWidth}, calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}))`
-    : `min(calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}), ${FEED_VIDEO_VIEWPORT_WIDTH})`;
-  const feedVideoFrameHeight = isLandscape
-    ? `calc(${feedVideoFrameWidth} / ${videoAspectRatio})`
-    : `min(${FEED_VIDEO_MAX_HEIGHT}, calc(${FEED_VIDEO_VIEWPORT_WIDTH} / ${videoAspectRatio}))`;
+  const feedVideoPortraitMaxWidth = isCommentSidebarOpen
+    ? `min(${FEED_VIDEO_VIEWPORT_WIDTH}, ${feedVideoAvailableWidth})`
+    : FEED_VIDEO_VIEWPORT_WIDTH;
+  const feedVideoFrameWidth = isMobile
+    ? "100%"
+    : (isLandscape
+      ? `min(${feedVideoLandscapeMaxWidth}, calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}))`
+      : `min(calc(${FEED_VIDEO_MAX_HEIGHT} * ${videoAspectRatio}), ${feedVideoPortraitMaxWidth})`);
+  const inverseAspectRatio = 1 / videoAspectRatio;
+  const feedVideoFrameHeight = isMobile
+    ? "100%"
+    : `calc(${feedVideoFrameWidth} * ${inverseAspectRatio})`;
   const videoFrameStyle = {
     "--feed-video-ratio": String(videoAspectRatio),
-    aspectRatio: String(videoAspectRatio),
+    aspectRatio: isMobile ? undefined : String(videoAspectRatio),
     width: feedVideoFrameWidth,
-    height: feedVideoFrameHeight,
-    maxWidth: isLandscape ? feedVideoLandscapeMaxWidth : feedVideoFrameWidth,
-    maxHeight: FEED_VIDEO_MAX_HEIGHT,
-    transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1), height 280ms cubic-bezier(0.22, 1, 0.36, 1), max-width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
-    willChange: "width, height, max-width",
+    height: isMobile ? "100%" : "auto",
+    maxWidth: isMobile ? "100%" : (isLandscape ? feedVideoLandscapeMaxWidth : feedVideoFrameWidth),
+    maxHeight: isMobile ? "100%" : FEED_VIDEO_MAX_HEIGHT,
+    transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1), max-width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+    willChange: "width, max-width",
   } as React.CSSProperties;
 
   const actionRailLeft = `calc(50% + (${feedVideoFrameWidth} / 2) + 24px)`;
@@ -672,31 +675,43 @@ export default function VideoCard({
     });
   }, [videoId, caption, locale]);
 
-  useEffect(() => {
-    if (!video?.id || !isNearViewport || !isPlaying) {
-      if (viewTimerRef.current) {
-        clearTimeout(viewTimerRef.current);
-        viewTimerRef.current = null;
-      }
-      return;
+  const playStartTimeRef = useRef<number | null>(null);
+  const accumulatedWatchTimeRef = useRef<number>(0);
+
+  const updateWatchTime = useCallback(() => {
+    if (playStartTimeRef.current !== null) {
+      const elapsed = Date.now() - playStartTimeRef.current;
+      accumulatedWatchTimeRef.current += elapsed;
+      playStartTimeRef.current = Date.now();
     }
+  }, []);
 
-    const storageKey = `viewed_video_${video.id}`;
-    if (sessionStorage.getItem(storageKey)) return;
-
-    viewTimerRef.current = setTimeout(() => {
-      sessionStorage.setItem(storageKey, "1");
-      recordVideoView(video.id);
-      viewTimerRef.current = null;
-    }, 2000);
-
-    return () => {
-      if (viewTimerRef.current) {
-        clearTimeout(viewTimerRef.current);
-        viewTimerRef.current = null;
+  const flushViewRecord = useCallback(() => {
+    if (!video?.id) return;
+    updateWatchTime();
+    
+    const watchTime = accumulatedWatchTimeRef.current;
+    if (watchTime >= 1000) {
+      const storageKey = `viewed_video_${video.id}`;
+      if (!sessionStorage.getItem(storageKey)) {
+        sessionStorage.setItem(storageKey, "1");
+        recordVideoView({ videoId: video.id, watchDurationMs: Math.round(watchTime) });
       }
+    }
+  }, [video, recordVideoView, updateWatchTime]);
+
+  useEffect(() => {
+    const isActuallyPlaying = isNearViewport && isPlaying;
+    if (isActuallyPlaying) {
+      playStartTimeRef.current = Date.now();
+    } else {
+      flushViewRecord();
+      playStartTimeRef.current = null;
+    }
+    return () => {
+      flushViewRecord();
     };
-  }, [isNearViewport, isPlaying, recordVideoView, video?.id]);
+  }, [isNearViewport, isPlaying, flushViewRecord]);
 
   useEffect(() => {
     if (!isCollectionPanelOpen) return;
@@ -767,6 +782,7 @@ export default function VideoCard({
       if (document.hidden) {
         wasPlayingBeforeHiddenRef.current = !videoEl.paused;
         videoEl.pause();
+        flushViewRecord();
       } else if (isIntersectingRef.current && wasPlayingBeforeHiddenRef.current) {
         videoRef.current?.play().catch(() => {});
       }
@@ -795,8 +811,14 @@ export default function VideoCard({
           }
 
           if (videoRef.current && !document.hidden) {
-            videoRef.current.play().catch(() => {});
-            setIsPlaying(true);
+            videoRef.current.play()
+              .then(() => {
+                setIsPlaying(true);
+              })
+              .catch((err) => {
+                console.warn("Autoplay blocked by browser policy:", err);
+                setIsPlaying(false);
+              });
           } else {
             setIsPlaying(true);
           }
@@ -824,6 +846,7 @@ export default function VideoCard({
     resetPlaybackProgress,
     video,
     videoId,
+    flushViewRecord,
   ]);
 
   useEffect(() => {
@@ -1123,16 +1146,14 @@ export default function VideoCard({
     <div
       ref={setRefs}
       data-feed-video-id={videoId}
-      className="flex h-full w-full items-center justify-center px-4 py-4"
+      className="flex h-full w-full items-center justify-center p-0 sm:px-4 sm:py-4"
       style={{ scrollSnapAlign: "center", scrollSnapStop: "always" }}
     >
       <div
         ref={stageRef}
         className="relative flex h-full w-full items-center justify-center"
         style={{
-          transform: `translateX(${resolvedStageOffsetX})`,
-          transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
-          willChange: resolvedStageOffsetX === "0px" ? undefined : "transform",
+          transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)"
         }}
       >
 
@@ -1141,14 +1162,14 @@ export default function VideoCard({
           ref={videoFrameRef}
           className={`
             relative group flex-shrink-0 bg-black
-            overflow-hidden rounded-[20px] sm:rounded-[24px]
+            overflow-hidden rounded-none sm:rounded-[24px]
           `}
           style={videoFrameStyle}
         >
           {videoUrl ? (
             <>
               <div
-                className="relative w-full h-full overflow-hidden rounded-[1rem] sm:rounded-[1rem] cursor-pointer"
+                className="relative w-full h-full overflow-hidden rounded-none sm:rounded-[1rem] cursor-pointer"
                 onClick={togglePlay}
                 onContextMenu={openMenu}
                 onMouseEnter={() => setSuppressOptionsHover(false)}
@@ -1157,7 +1178,7 @@ export default function VideoCard({
                   <video
                     ref={videoRef}
                     src={videoUrl}
-                    className="block h-full w-full object-cover"
+                    className={`block h-full w-full ${isMobile ? "object-contain bg-black" : "object-cover"}`}
                     loop={!autoScroll}
                     onEnded={handleEnded}
                     muted={isMuted}
@@ -1177,10 +1198,10 @@ export default function VideoCard({
                   <div className="w-full h-full relative">
                     {video?.thumbnailUrl ? (
                       <Image 
-                        src={video.thumbnailUrl} 
+                       src={video.thumbnailUrl} 
                         alt={caption} 
                         fill 
-                        className="object-cover"
+                        className={isMobile ? "object-contain bg-black" : "object-cover"}
                       />
                     ) : (
                       <div className="w-full h-full bg-[#121212]" />

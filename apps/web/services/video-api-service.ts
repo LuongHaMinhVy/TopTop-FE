@@ -94,9 +94,11 @@ export const translateVideoDescription = async (
   }
 };
 
-export const recordVideoView = async (videoId: number): Promise<ApiResponse<VideoStatsResponse>> => {
+export const recordVideoView = async (videoId: number, watchDurationMs?: number): Promise<ApiResponse<VideoStatsResponse>> => {
   try {
-    const response = await api.post<ApiResponse<VideoStatsResponse>>(`/videos/${videoId}/view`);
+    const response = await api.post<ApiResponse<VideoStatsResponse>>(`/videos/${videoId}/view`, null, {
+      params: watchDurationMs !== undefined ? { watchDurationMs } : undefined
+    });
     return response.data;
   } catch (error) {
     handleErrorResponse(error as AxiosError);
@@ -146,10 +148,28 @@ export const getVideoByUsernameAndId = async (username: string, videoId: number)
   }
 };
 
+export interface VideoCategory {
+  id: number;
+  code: string;
+  name: string;
+  isActive: boolean;
+}
+
+export const getVideoCategories = async (): Promise<ApiResponse<VideoCategory[]>> => {
+  try {
+    const response = await api.get<ApiResponse<VideoCategory[]>>("/videos/categories");
+    return response.data;
+  } catch (error) {
+    handleErrorResponse(error as AxiosError);
+    throw error;
+  }
+};
+
 export interface UpdateVideoPayload {
   title: string;
   description?: string;
   category?: string;
+  videoCategoryId?: number;
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   allowComments?: boolean;
   allowEdit?: boolean;
@@ -239,6 +259,7 @@ export interface CompleteVideoUploadPayload {
   title: string;
   description?: string;
   category?: string;
+  videoCategoryId?: number;
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
   allowComments?: boolean;
   allowEdit?: boolean;

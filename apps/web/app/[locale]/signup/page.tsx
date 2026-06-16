@@ -16,18 +16,20 @@ import AuthModal from "@/components/auth/AuthModal";
 import { DocumentTitle } from "@/components/shared/DocumentTitle";
 import type { AuthMessageData, AuthResponse } from "@/types/auth";
 import { Button, Input, Select, Form } from "@repo/ui";
+import { useTranslations } from "next-intl";
 
 type AuthMethod = "options" | "phone_email";
 
 export default function SignupPage() {
-
   const router = useRouter();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
+  const t = useTranslations("auth");
   const [authMethod, setAuthMethod] = useState<AuthMethod>("options");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [errors, setErrors] = useState<{ username?: string; email?: string; password?: string; dob?: string }>({});
   const [tempAuthData, setTempAuthData] = useState<AuthResponse | null>(null);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function SignupPage() {
           return;
         }
 
-        setSuccessMsg("Đăng ký thành công");
+        setSuccessMsg(t("successRegister"));
         if (authEvent.data) {
           dispatch(setCredentials(authEvent.data));
           if (user) {
@@ -60,14 +62,14 @@ export default function SignupPage() {
           router.refresh();
         }, 1000);
       } else if (authEvent.type === "AUTH_ERROR") {
-        setErrorMsg(authEvent.error || "Xác thực thất bại");
+        setErrorMsg(authEvent.error || t("errorAuth"));
       }
 
       channel.close();
     };
 
     return () => channel.close();
-  }, [dispatch, router, queryClient]);
+  }, [dispatch, router, queryClient, t]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,85 +99,98 @@ export default function SignupPage() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   const validateForm = () => {
-    if (username.length < 2 || username.length > 24) {
-      return "Tên người dùng phải từ 2 đến 24 ký tự.";
-    }
-    if (!/^[a-zA-Z0-9._]+$/.test(username)) {
-      return "Tên người dùng chỉ có thể chứa chữ cái, số, dấu chấm và dấu gạch dưới.";
+    const newErrors: typeof errors = {};
+
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+      newErrors.username = t("errUsernameLength");
+    } else {
+      if (cleanUsername.length < 2 || cleanUsername.length > 24) {
+        newErrors.username = t("errUsernameLength");
+      }
+      if (!/^[a-zA-Z0-9._]+$/.test(cleanUsername)) {
+        newErrors.username = t("errUsernamePattern");
+      }
     }
     
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return "Định dạng email không hợp lệ.";
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      newErrors.email = t("errEmailPattern");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      newErrors.email = t("errEmailPattern");
     }
 
-    if (password.length < 8 || password.length > 20) {
-      return "Mật khẩu phải từ 8 đến 20 ký tự.";
-    }
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,20}$/.test(password)) {
-      return "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&#).";
+    if (!password) {
+      newErrors.password = t("errPasswordRequired");
+    } else {
+      if (password.length < 8 || password.length > 20) {
+        newErrors.password = t("errPasswordLength");
+      }
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,20}$/.test(password)) {
+        newErrors.password = t("errPasswordPattern");
+      }
     }
 
     if (!dob.month || !dob.day || !dob.year) {
-      return "Vui lòng chọn ngày sinh.";
+      newErrors.dob = t("errSelectDob");
+    } else {
+      const yearNum = Number(dob.year);
+      const monthNum = Number(dob.month);
+      const dayNum = Number(dob.day);
+
+      const today = new Date();
+      const birthDate = new Date(yearNum, monthNum - 1, dayNum);
+
+      // Leap year / day count check
+      if (
+        birthDate.getFullYear() !== yearNum ||
+        birthDate.getMonth() !== monthNum - 1 ||
+        birthDate.getDate() !== dayNum
+      ) {
+        newErrors.dob = t("errInvalidDob");
+      } else {
+        // Min 13 years old check
+        let age = today.getFullYear() - yearNum;
+        const monthDiff = today.getMonth() - (monthNum - 1);
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
+          age--;
+        }
+
+        if (age < 13) {
+          newErrors.dob = t("errAgeRestriction");
+        } else if (birthDate > today) {
+          newErrors.dob = t("errFutureDob");
+        }
+      }
     }
 
-    const yearNum = Number(dob.year);
-    const monthNum = Number(dob.month);
-    const dayNum = Number(dob.day);
-
-    const today = new Date();
-    const birthDate = new Date(yearNum, monthNum - 1, dayNum);
-
-    // Leap year / day count check
-    if (
-      birthDate.getFullYear() !== yearNum ||
-      birthDate.getMonth() !== monthNum - 1 ||
-      birthDate.getDate() !== dayNum
-    ) {
-      return "Ngày sinh không hợp lệ.";
-    }
-
-    // Min 13 years old check
-    let age = today.getFullYear() - yearNum;
-    const monthDiff = today.getMonth() - (monthNum - 1);
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
-      age--;
-    }
-
-    if (age < 13) {
-      return "Bạn phải từ 13 tuổi trở lên để đăng ký.";
-    }
-
-    if (birthDate > today) {
-      return "Ngày sinh không thể ở tương lai.";
-    }
-
-    return null;
+    return newErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setErrorMsg("");
+    setSuccessMsg("");
 
-    const validationError = validateForm();
-    if (validationError) {
-      setErrorMsg(validationError);
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
 
     setIsLoading(true);
-    setErrorMsg("");
-    setSuccessMsg("");
 
     try {
-      const response = await authRegister({ username, email, password, dateOfBirth });
+      const response = await authRegister({ username: username.trim(), email: email.trim(), password, dateOfBirth });
 
-      setSuccessMsg(response.message || "Đăng ký thành công");
+      setSuccessMsg(response.message || t("successRegister"));
       
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Xác thực thất bại";
+      const message = err instanceof Error ? err.message : t("errorAuth");
       setErrorMsg(message);
     } finally {
       setIsLoading(false);
@@ -185,7 +200,7 @@ export default function SignupPage() {
   const renderOptions = () => (
     <div className="flex flex-col gap-4">
       <h2 className="text-[36px] font-bold text-center mb-6 text-text-primary">
-        Đăng ký TopTop
+        {t("signupTo")}
       </h2>
 
       <div className="flex flex-col gap-4">
@@ -194,12 +209,13 @@ export default function SignupPage() {
             setAuthMethod("phone_email");
             setErrorMsg("");
             setSuccessMsg("");
+            setErrors({});
           }}
           variant="outline"
           className="w-full justify-start rounded-lg p-3 text-[16px]"
           leftIcon={<User className="w-5 h-5 ml-2" />}
         >
-          <span className="flex-1 text-center font-semibold">Sử dụng email / tên người dùng</span>
+          <span className="flex-1 text-center font-semibold">{t("useEmail")}</span>
         </Button>
 
         <SocialLoginButtons />
@@ -211,14 +227,18 @@ export default function SignupPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center mb-6">
         <Button 
-          onClick={() => setAuthMethod("options")}
+          onClick={() => {
+            setAuthMethod("options");
+            setErrors({});
+            setErrorMsg("");
+          }}
           variant="ghost"
           className="p-2 -ml-2 rounded-full text-text-primary"
         >
           <ChevronLeft className="w-6 h-6" />
         </Button>
         <h2 className="text-[28px] font-bold mx-auto text-text-primary">
-          Đăng ký
+          {t("signup")}
         </h2>
         <div className="w-10"></div>
       </div>
@@ -239,68 +259,106 @@ export default function SignupPage() {
         <div className="flex flex-col gap-4">
           
           <Input
+            label={t("username")}
             type="text"
-            placeholder="Tên người dùng"
-            required
+            placeholder={t("username")}
             className="input-field"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            error={errors.username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              if (errors.username) {
+                setErrors((prev) => ({ ...prev, username: undefined }));
+              }
+            }}
           />
 
           <Input
+            label={t("email")}
             type="email"
-            placeholder="Email"
-            required
+            placeholder={t("email")}
             className="input-field"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) {
+                setErrors((prev) => ({ ...prev, email: undefined }));
+              }
+            }}
           />
 
           <Input
+            label={t("password")}
             type="password"
-            placeholder="Mật khẩu"
-            required
+            placeholder={t("password")}
             className="input-field"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errors.password) {
+                setErrors((prev) => ({ ...prev, password: undefined }));
+              }
+            }}
           />
 
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-[13px] font-bold text-text-muted uppercase tracking-wider ml-1 mb-1">
-              Ngày sinh
+              {t("dob")}
             </label>
             <div className="flex gap-2">
               <Select
                 value={dob.month}
                 options={[
-                  { value: "", label: "Tháng" },
-                  ...months.map((m) => ({ value: String(m), label: `Tháng ${m}` })),
+                  { value: "", label: t("Month") },
+                  ...months.map((m) => ({ value: String(m), label: `${t("Month")} ${m}` })),
                 ]}
-                onChange={(val) => updateDob({ month: val })}
-                ariaLabel="Tháng sinh"
+                onChange={(val) => {
+                  updateDob({ month: val });
+                  if (errors.dob) {
+                    setErrors((prev) => ({ ...prev, dob: undefined }));
+                  }
+                }}
+                ariaLabel={t("Month")}
                 className="flex-1 min-w-0"
               />
               <Select
                 value={dob.day}
                 options={[
-                  { value: "", label: "Ngày" },
+                  { value: "", label: t("Day") },
                   ...days.map((d) => ({ value: String(d), label: String(d) })),
                 ]}
-                onChange={(val) => updateDob({ day: val })}
-                ariaLabel="Ngày sinh"
+                onChange={(val) => {
+                  updateDob({ day: val });
+                  if (errors.dob) {
+                    setErrors((prev) => ({ ...prev, dob: undefined }));
+                  }
+                }}
+                ariaLabel={t("Day")}
                 className="flex-1 min-w-0"
               />
               <Select
                 value={dob.year}
                 options={[
-                  { value: "", label: "Năm" },
+                  { value: "", label: t("Year") },
                   ...years.map((y) => ({ value: String(y), label: String(y) })),
                 ]}
-                onChange={(val) => updateDob({ year: val })}
-                ariaLabel="Năm sinh"
+                onChange={(val) => {
+                  updateDob({ year: val });
+                  if (errors.dob) {
+                    setErrors((prev) => ({ ...prev, dob: undefined }));
+                  }
+                }}
+                ariaLabel={t("Year")}
                 className="flex-1 min-w-0"
               />
             </div>
+            {errors.dob && (
+              <p className="text-xs font-medium text-red-500 ml-1 mt-0.5 animate-in slide-in-from-top-1">
+                {errors.dob}
+              </p>
+            )}
           </div>
         </div>
 
@@ -308,18 +366,18 @@ export default function SignupPage() {
           type="submit"
           className="w-full mt-4"
           isLoading={isLoading}
-          disabled={!email || !password || !username || !dateOfBirth}
+          disabled={isLoading}
         >
-          Đăng ký
+          {t("signup")}
         </Button>
       </Form>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[rgba(0,0,0,0.7)] px-4">
-      <DocumentTitle title="Sign up | TopTop" />
-      <div className="w-full max-w-[480px] bg-transparent rounded-[12px] p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative flex flex-col">
+    <div className="min-h-screen flex items-center justify-center bg-surface-secondary px-4">
+      <DocumentTitle title={`${t("signup")} | TopTop`} />
+      <div className="w-full max-w-[480px] bg-background border border-elevated rounded-[12px] p-[24px] shadow-lg relative flex flex-col">
       
 
         <div className="flex-1 mt-6">
@@ -328,21 +386,18 @@ export default function SignupPage() {
 
         <div className="mt-8 pt-6 border-t border-elevated text-center">
           <p className="text-[12px] text-text-muted mb-6 leading-relaxed">
-            Bằng cách tiếp tục, bạn đồng ý với{" "}
-            <Link href="#" className="text-text-primary hover:underline">Điều khoản Dịch vụ</Link>
-            {" "}và xác nhận rằng bạn đã đọc{" "}
-            <Link href="#" className="text-text-primary hover:underline">Chính sách Quyền riêng tư</Link> của chúng tôi.
+            {t("termsPrompt")}
           </p>
           
           <div className="flex items-center justify-center gap-2">
             <span className="text-[15px] text-text-primary">
-              Bạn đã có tài khoản?
+              {t("hasAccount")}
             </span>
             <Link 
               href="/login"
               className="text-brand font-bold text-[15px] hover:underline"
             >
-              Đăng nhập
+              {t("login")}
             </Link>
           </div>
         </div>

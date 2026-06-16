@@ -64,7 +64,7 @@ export function IconActionButton({
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   label: string;
   icon: ElementType;
-  variant?: "secondary" | "ghost" | "danger" | "primary" | "outline";
+  variant?: "secondary" | "ghost" | "danger" | "primary" | "outline" | "success";
   isLoading?: boolean;
 }) {
   const variants = {
@@ -73,6 +73,7 @@ export function IconActionButton({
     outline: "border border-elevated text-text-primary hover:bg-hover",
     ghost: "text-text-secondary hover:bg-hover hover:text-text-primary",
     danger: "bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600",
+    success: "bg-green-500 text-white shadow-lg shadow-green-500/20 hover:bg-green-600",
   };
 
   return (

@@ -8,6 +8,9 @@ export interface Video {
   fileUrl: string;
   duration?: number;
   category?: string;
+  videoCategoryId?: number;
+  videoCategoryCode?: string;
+  videoCategoryName?: string;
   viewCount: number;
   likeCount: number;
   commentCount: number;

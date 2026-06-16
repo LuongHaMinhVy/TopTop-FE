@@ -126,9 +126,9 @@ function ExploreVideoCard({
         }
       >
         {/* Thumbnail */}
-        {(video.thumbnailUrl || video.fileUrl) && (
+        {video.thumbnailUrl && (
           <Image
-            src={video.thumbnailUrl || video.fileUrl}
+            src={video.thumbnailUrl}
             alt={video.title ?? ""}
             fill
             className={`object-cover transition-opacity duration-500 ${isPlaying ? "opacity-0" : "opacity-100"}`}
@@ -136,16 +136,19 @@ function ExploreVideoCard({
           />
         )}
 
-        {/* Video — never unmounted once started */}
-        {started && (
+        {/* Video — mount immediately if no thumbnail, otherwise mount when started (hovered/first) */}
+        {(started || !video.thumbnailUrl) && video.fileUrl && (
           <video
             ref={videoRef}
             src={video.fileUrl}
             poster={video.thumbnailUrl ?? undefined}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${isPlaying ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+              isPlaying || !video.thumbnailUrl ? "opacity-100" : "opacity-0"
+            }`}
             loop
             playsInline
             muted={isMuted}
+            preload="metadata"
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />

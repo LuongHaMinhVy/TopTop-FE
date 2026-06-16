@@ -26,7 +26,7 @@ export const IconButton = ({
       <button 
         onClick={onClick}
         className={`
-          w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg group active:scale-90
+          w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg group active:scale-90
           ${isOverlay 
             ? "bg-black/20 backdrop-blur-md hover:bg-black/40" 
             : "bg-surface hover:bg-hover"} 

@@ -1,51 +1,41 @@
-# Implementation Notes — Replace any with specific types
+# Implementation Notes — Authentication Standardization & Validation
 
 ## 1. Summary
 
-Replaced `any` with specific types to improve type safety, code readability, and developer experience in the chat and live modules.
+Standardized and localized authentication registration and login validation across the application's standalone pages (`login/page.tsx`, `signup/page.tsx`) and modal (`AuthModal.tsx`). Implemented field-specific error states that render a red border and display validation error messages directly underneath each input instead of generic alert banners or native browser `required` tooltips.
 
-## 2. Specs used
+## 2. Specs Used
 
-- User request: "sửa hết các chỗ any dùng type cụ thể" (fix all places where any is used to use a specific type)
+- User request: "phần validate của login signup modal với page làm chuẩn lại cho tôi" (standardize login/signup/modal validation).
+- User request: "bỏ cái required của input đi thay bằng validate kiểu vòng input đỏ lên với thông báo hiện dưới input" (remove required validation and use field-specific red outlines with error text under the input).
+- Goals:
+  1. Centralize and sync username, email, password, and Date of Birth validation constraints between `login/page.tsx`, `signup/page.tsx`, and `AuthModal.tsx`.
+  2. Map validation errors to specific fields (`errors` object state) and pass them as the `error` prop to custom `<Input>` components.
+  3. Remove standard `required` attributes to allow submit actions to trigger validation.
+  4. Ensure localized translation keys are consistently used for all validation errors.
 
-## 3. Project conventions detected
+## 3. Project Conventions Detected
 
-- Architecture: Monorepo workspace with Next.js frontend and Spring Boot backend.
-- UI pattern: React hooks integrated with React Query (`useQuery`, `useMutation`, `useInfiniteQuery`) and Redux for global auth state.
-- API pattern: typed service layers calling axios instance wrapper.
+- **Input Component**: The `@repo/ui` `<Input>` component supports an `error` prop which adds `border-red-500` and displays the error message underneath.
+- **Internationalization**: Uses `next-intl` (`useTranslations`) hook for translating form labels, placeholders, and error messages.
 
-## 4. Files changed
+## 4. Files Changed
 
-- `front/apps/web/types/live.ts` — Defined `LiveSocketEvent` interface.
-- `front/apps/web/hooks/chat-hooks.ts` — Typed `newData.type` as `MessageType`, typed `old` and `oldData` in `setQueryData` callback as `InfiniteData<ApiResponse<MessageResponseDTO[]>, number>`.
-- `front/apps/web/hooks/live-hooks.ts` — Typed `onEvent` as `(event: LiveSocketEvent) => void`, typed `oldData` in `setQueryData` as `InfiniteData<ApiResponse<LiveChatMessageResponse[]>, number>`, and typed `["live", livestreamId]` cache updates as `ApiResponse<LivestreamResponse>`.
-- `front/apps/web/services/live-api-service.ts` — Removed `any` from `catch` block and properly cast axios error using `AxiosError`.
+- `front/apps/web/app/[locale]/login/page.tsx`
+  - Replaced the submission block to perform manual frontend validation.
+  - Standardized error strings to use `t("errUsernameLength")`, `t("errUsernamePattern")`, `t("errEmailPattern")`, etc.
+  - Used field-specific `errors` state to bind error messages directly to input error props.
+- `front/apps/web/app/[locale]/signup/page.tsx`
+  - Fully refactored validation logic (`validateForm`) to output an errors object mapping to `username`, `email`, `password`, and `dob`.
+  - Removed HTML5 `required` attribute.
+  - Standardized Date of Birth validation (minimum 13 years old, leap year handling, and future dates).
+- `front/apps/web/components/auth/AuthModal.tsx`
+  - Synced both regular login/signup inputs and OAuth onboarding fields to use field-specific `errors` state.
+  - Standardized inputs to dynamically switch label/placeholder and type dynamically (type="text" for username/email login vs type="email" for email signup).
+- `front/apps/web/messages/vi.json` & `en.json`
+  - Maintained localized messages for validation error keys.
 
-## 5. Decisions not explicitly in the spec
+## 5. Testing and Verification
 
-- Defined `LiveSocketEvent` to properly type incoming WebSocket messages in the live stream.
-
-## 6. Changes required by existing code
-
-- Added type arguments to react-query's `queryClient.setQueryData` calls to ensure type inference works correctly in callback parameters.
-
-## 7. Trade-offs
-
-- None.
-
-## 8. Deviations from spec
-
-- None.
-
-## 9. Data / API / schema notes
-
-- None.
-
-## 10. Testing and verification
-
-- `pnpm --filter=web check-types` — Passed.
-- `pnpm --filter=web lint` — Passed.
-
-## 11. Known limitations and follow-up
-
-- None.
+- The forms compile perfectly.
+- Dynamic input changes clear the corresponding field's error outline immediately.

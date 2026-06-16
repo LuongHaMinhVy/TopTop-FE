@@ -54,7 +54,6 @@ export function VideoPlayerContainer({
   const [detectedAspectRatio, setDetectedAspectRatio] = useState<number | null>(null);
   const lastProgressRef = useRef(0);
   const wasPlayingBeforeHiddenRef = useRef(false);
-  const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isProfileDetailControls = controlsVariant === "profile-detail";
   const profileDetailAspectRatio = detectedAspectRatio ?? 9 / 16;
   const { mutate: recordVideoView } = useRecordVideoViewMutation();
@@ -83,32 +82,43 @@ export function VideoPlayerContainer({
     return () => cancelAnimationFrame(frameId);
   }, [isActive, video.id]);
 
-  useEffect(() => {
-    const shouldTrack = isPlaying && (isActive ?? true);
-    if (!shouldTrack) {
-      if (viewTimerRef.current) {
-        clearTimeout(viewTimerRef.current);
-        viewTimerRef.current = null;
-      }
-      return;
+  const playStartTimeRef = useRef<number | null>(null);
+  const accumulatedWatchTimeRef = useRef<number>(0);
+
+  const updateWatchTime = useCallback(() => {
+    if (playStartTimeRef.current !== null) {
+      const elapsed = Date.now() - playStartTimeRef.current;
+      accumulatedWatchTimeRef.current += elapsed;
+      playStartTimeRef.current = Date.now();
     }
+  }, []);
 
-    const storageKey = `viewed_video_${video.id}`;
-    if (sessionStorage.getItem(storageKey)) return;
-
-    viewTimerRef.current = setTimeout(() => {
-      sessionStorage.setItem(storageKey, "1");
-      recordVideoView(video.id);
-      viewTimerRef.current = null;
-    }, 2000);
-
-    return () => {
-      if (viewTimerRef.current) {
-        clearTimeout(viewTimerRef.current);
-        viewTimerRef.current = null;
+  const flushViewRecord = useCallback(() => {
+    if (!video?.id) return;
+    updateWatchTime();
+    
+    const watchTime = accumulatedWatchTimeRef.current;
+    if (watchTime >= 1000) {
+      const storageKey = `viewed_video_${video.id}`;
+      if (!sessionStorage.getItem(storageKey)) {
+        sessionStorage.setItem(storageKey, "1");
+        recordVideoView({ videoId: video.id, watchDurationMs: Math.round(watchTime) });
       }
+    }
+  }, [video, recordVideoView, updateWatchTime]);
+
+  useEffect(() => {
+    const isActuallyPlaying = isPlaying && (isActive ?? true);
+    if (isActuallyPlaying) {
+      playStartTimeRef.current = Date.now();
+    } else {
+      flushViewRecord();
+      playStartTimeRef.current = null;
+    }
+    return () => {
+      flushViewRecord();
     };
-  }, [isActive, isPlaying, recordVideoView, video.id]);
+  }, [isActive, isPlaying, flushViewRecord]);
 
   useEffect(() => {
     const player = videoRef.current;
@@ -120,6 +130,7 @@ export function VideoPlayerContainer({
       if (document.hidden) {
         wasPlayingBeforeHiddenRef.current = !player.paused;
         player.pause();
+        flushViewRecord();
         return;
       }
 
@@ -138,7 +149,7 @@ export function VideoPlayerContainer({
       player.removeEventListener("leavepictureinpicture", handleLeavePip);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isActive, video.id]);
+  }, [isActive, video.id, flushViewRecord]);
 
   const handleToggleMute = () => {
     const player = videoRef.current;

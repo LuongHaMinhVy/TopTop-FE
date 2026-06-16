@@ -130,6 +130,7 @@ export default function AuthModal({
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [errors, setErrors] = useState<{ username?: string; email?: string; password?: string; dob?: string; confirmPassword?: string }>({});
 
   const onboardMutation = useOAuth2OnboardMutation(() => {
     clearOAuthOnboardDraft();
@@ -207,6 +208,7 @@ export default function AuthModal({
     setDob({ month: "", day: "", year: "" });
     setErrorMsg("");
     setSuccessMsg("");
+    setErrors({});
     setTempAuthData(null);
     clearOAuthOnboardDraft();
   };
@@ -245,58 +247,121 @@ export default function AuthModal({
   };
 
   const validateSignup = () => {
+    const newErrors: typeof errors = {};
     const { username, email, password } = formData;
-    if (username.length < 2 || username.length > 24)
-      return t("username") + " phải từ 2-24 ký tự.";
-    if (!/^[a-zA-Z0-9._]+$/.test(username))
-      return t("username") + " chứa ký tự không hợp lệ.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      return "Định dạng " + t("email") + " không hợp lệ.";
-    if (password.length < 8) return t("password") + " phải có ít nhất 8 ký tự.";
+
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+      newErrors.username = t("errUsernameLength");
+    } else {
+      if (cleanUsername.length < 2 || cleanUsername.length > 24) {
+        newErrors.username = t("errUsernameLength");
+      }
+      if (!/^[a-zA-Z0-9._]+$/.test(cleanUsername)) {
+        newErrors.username = t("errUsernamePattern");
+      }
+    }
+    
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      newErrors.email = t("errEmailPattern");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      newErrors.email = t("errEmailPattern");
+    }
+
+    if (!password) {
+      newErrors.password = t("errPasswordRequired");
+    } else {
+      if (password.length < 8 || password.length > 20) {
+        newErrors.password = t("errPasswordLength");
+      }
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,20}$/.test(password)) {
+        newErrors.password = t("errPasswordPattern");
+      }
+    }
 
     if (!dob.month || !dob.day || !dob.year) {
-      return "Vui lòng chọn ngày sinh.";
+      newErrors.dob = t("errSelectDob");
+    } else {
+      const yearNum = Number(dob.year);
+      const monthNum = Number(dob.month);
+      const dayNum = Number(dob.day);
+
+      const today = new Date();
+      const birthDate = new Date(yearNum, monthNum - 1, dayNum);
+
+      // Leap year / day count check
+      if (
+        birthDate.getFullYear() !== yearNum ||
+        birthDate.getMonth() !== monthNum - 1 ||
+        birthDate.getDate() !== dayNum
+      ) {
+        newErrors.dob = t("errInvalidDob");
+      } else {
+        // Min 13 years old check
+        let age = today.getFullYear() - yearNum;
+        const monthDiff = today.getMonth() - (monthNum - 1);
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
+          age--;
+        }
+
+        if (age < 13) {
+          newErrors.dob = t("errAgeRestriction");
+        } else if (birthDate > today) {
+          newErrors.dob = t("errFutureDob");
+        }
+      }
     }
 
-    const yearNum = Number(dob.year);
-    const monthNum = Number(dob.month);
-    const dayNum = Number(dob.day);
-    const today = new Date();
-    const birthDate = new Date(yearNum, monthNum - 1, dayNum);
-
-    if (
-      birthDate.getFullYear() !== yearNum ||
-      birthDate.getMonth() !== monthNum - 1 ||
-      birthDate.getDate() !== dayNum
-    ) {
-      return "Ngày sinh không hợp lệ.";
-    }
-
-    let age = today.getFullYear() - yearNum;
-    const monthDiff = today.getMonth() - (monthNum - 1);
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dayNum)) {
-      age--;
-    }
-    if (age < 13) return "Bạn phải từ 13 tuổi trở lên để đăng ký.";
-    if (birthDate > today) return "Ngày sinh không thể ở tương lai.";
-
-    return null;
+    return newErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setErrorMsg("");
     setSuccessMsg("");
 
     if (type === "signup") {
-      const err = validateSignup();
-      if (err) return setErrorMsg(err);
+      const newErrors = validateSignup();
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
       registerMutation.mutate(formData, {
         onError: (err: Error) => setErrorMsg(err.message ?? t("errorAuth")),
       });
     } else {
+      const input = formData.email.trim();
+      const newErrors: typeof errors = {};
+
+      if (!input) {
+        newErrors.email = t("errEmailOrUsernameRequired");
+      } else if (input.includes("@")) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+          newErrors.email = t("errEmailPattern");
+        }
+      } else {
+        if (input.length < 2 || input.length > 24) {
+          newErrors.email = t("errUsernameLength");
+        } else if (!/^[a-zA-Z0-9._]+$/.test(input)) {
+          newErrors.email = t("errUsernamePattern");
+        }
+      }
+
+      if (!formData.password) {
+        newErrors.password = t("errPasswordRequired");
+      } else if (formData.password.length < 8 || formData.password.length > 20) {
+        newErrors.password = t("errPasswordLength");
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+
       loginMutation.mutate(
-        { email: formData.email, password: formData.password },
+        { email: input, password: formData.password },
         {
           onError: (err: Error) => setErrorMsg(err.message ?? t("errorAuth")),
         },
@@ -429,32 +494,47 @@ export default function AuthModal({
                       <Select
                         value={dob.month}
                         options={monthOptions}
-                        onChange={(val) => updateDob({ month: val })}
+                        onChange={(val) => {
+                          updateDob({ month: val });
+                          if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                        }}
                         ariaLabel="Tháng sinh"
                         className="flex-1 min-w-0"
                       />
                       <Select
                         value={dob.day}
                         options={dayOptions}
-                        onChange={(val) => updateDob({ day: val })}
+                        onChange={(val) => {
+                          updateDob({ day: val });
+                          if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                        }}
                         ariaLabel="Ngày sinh"
                         className="flex-1 min-w-0"
                       />
                       <Select
                         value={dob.year}
                         options={yearOptions}
-                        onChange={(val) => updateDob({ year: val })}
+                        onChange={(val) => {
+                          updateDob({ year: val });
+                          if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                        }}
                         ariaLabel="Năm sinh"
                         className="flex-1 min-w-0"
                       />
                     </div>
+                    {errors.dob && (
+                      <p className="text-xs font-medium text-red-500 ml-1 mt-0.5 animate-in slide-in-from-top-1">
+                        {errors.dob}
+                      </p>
+                    )}
                   </div>
 
                   <Button
                     onClick={() => {
+                      setErrors({});
                       setErrorMsg("");
                       if (!dob.month || !dob.day || !dob.year) {
-                        setErrorMsg(t("errSelectDob"));
+                        setErrors({ dob: t("errSelectDob") });
                         return;
                       }
                       const yearNum = Number(dob.year);
@@ -467,7 +547,7 @@ export default function AuthModal({
                         birthDate.getMonth() !== monthNum - 1 ||
                         birthDate.getDate() !== dayNum
                       ) {
-                        setErrorMsg(t("errInvalidDob"));
+                        setErrors({ dob: t("errInvalidDob") });
                         return;
                       }
                       let age = today.getFullYear() - yearNum;
@@ -479,11 +559,11 @@ export default function AuthModal({
                         age--;
                       }
                       if (age < 13) {
-                        setErrorMsg(t("errAgeRestriction"));
+                        setErrors({ dob: t("errAgeRestriction") });
                         return;
                       }
                       if (birthDate > today) {
-                        setErrorMsg(t("errFutureDob"));
+                        setErrors({ dob: t("errFutureDob") });
                         return;
                       }
                       setMethod("onboard_username");
@@ -512,9 +592,11 @@ export default function AuthModal({
                     type="password"
                     placeholder={t("password")}
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    error={errors.password}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
                     autoComplete="new-password"
                   />
                   <Input
@@ -522,37 +604,46 @@ export default function AuthModal({
                     type="password"
                     placeholder={t("confirmPassword")}
                     value={formData.confirmPassword}
-                    onChange={(e) =>
+                    error={errors.confirmPassword}
+                    onChange={(e) => {
                       setFormData({
                         ...formData,
                         confirmPassword: e.target.value,
-                      })
-                    }
+                      });
+                      if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                    }}
                     autoComplete="new-password"
                   />
                   <Button
                     onClick={() => {
+                      setErrors({});
                       setErrorMsg("");
                       setSuccessMsg("");
+
+                      const newErrors: typeof errors = {};
+
                       if (
                         formData.password.length < 8 ||
                         formData.password.length > 20
                       ) {
-                        setErrorMsg(t("errPasswordLength"));
-                        return;
-                      }
-                      if (
+                        newErrors.password = t("errPasswordLength");
+                      } else if (
                         !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,20}$/.test(
                           formData.password,
                         )
                       ) {
-                        setErrorMsg(t("errPasswordPattern"));
-                        return;
+                        newErrors.password = t("errPasswordPattern");
                       }
+
                       if (formData.password !== formData.confirmPassword) {
-                        setErrorMsg(t("errPasswordMismatch"));
+                        newErrors.confirmPassword = t("errPasswordMismatch");
+                      }
+
+                      if (Object.keys(newErrors).length > 0) {
+                        setErrors(newErrors);
                         return;
                       }
+
                       setMethod("onboard_dob");
                     }}
                     size="xl"
@@ -578,25 +669,32 @@ export default function AuthModal({
                     label={t("username")}
                     placeholder={t("username")}
                     value={formData.username}
-                    onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
-                    }
+                    error={errors.username}
+                    onChange={(e) => {
+                      setFormData({ ...formData, username: e.target.value });
+                      if (errors.username) setErrors((prev) => ({ ...prev, username: undefined }));
+                    }}
                   />
                   <Button
                     onClick={async () => {
+                      setErrors({});
                       setErrorMsg("");
                       setSuccessMsg("");
                       const username = formData.username.trim();
+
+                      const newErrors: typeof errors = {};
+
                       if (username.length < 2 || username.length > 24) {
-                        setErrorMsg(t("username") + " phải từ 2-24 ký tự.");
+                        newErrors.username = t("errUsernameLength");
+                      } else if (!/^[a-zA-Z0-9._]+$/.test(username)) {
+                        newErrors.username = t("errUsernamePattern");
+                      }
+
+                      if (Object.keys(newErrors).length > 0) {
+                        setErrors(newErrors);
                         return;
                       }
-                      if (!/^[a-zA-Z0-9._]+$/.test(username)) {
-                        setErrorMsg(
-                          t("username") + " chứa ký tự không hợp lệ.",
-                        );
-                        return;
-                      }
+
                       onboardMutation.mutate(
                         {
                           payload: {
@@ -676,56 +774,76 @@ export default function AuthModal({
                           <Select
                             value={dob.month}
                             options={monthOptions}
-                            onChange={(val) => updateDob({ month: val })}
+                            onChange={(val) => {
+                              updateDob({ month: val });
+                              if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                            }}
                             ariaLabel="Tháng sinh"
                             className="flex-1 min-w-0"
                           />
                           <Select
                             value={dob.day}
                             options={dayOptions}
-                            onChange={(val) => updateDob({ day: val })}
+                            onChange={(val) => {
+                              updateDob({ day: val });
+                              if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                            }}
                             ariaLabel="Ngày sinh"
                             className="flex-1 min-w-0"
                           />
                           <Select
                             value={dob.year}
                             options={yearOptions}
-                            onChange={(val) => updateDob({ year: val })}
+                            onChange={(val) => {
+                              updateDob({ year: val });
+                              if (errors.dob) setErrors((prev) => ({ ...prev, dob: undefined }));
+                            }}
                             ariaLabel="Năm sinh"
                             className="flex-1 min-w-0"
                           />
                         </div>
+                        {errors.dob && (
+                          <p className="text-xs font-medium text-red-500 ml-1 mt-0.5 animate-in slide-in-from-top-1">
+                            {errors.dob}
+                          </p>
+                        )}
                       </div>
                       <Input
                         label={t("username")}
                         placeholder={t("username")}
                         value={formData.username}
-                        onChange={(e) =>
+                        error={errors.username}
+                        onChange={(e) => {
                           setFormData({
                             ...formData,
                             username: e.target.value,
-                          })
-                        }
+                          });
+                          if (errors.username) setErrors((prev) => ({ ...prev, username: undefined }));
+                        }}
                       />
                     </>
                   )}
                   <Input
-                    label={t("email")}
-                    type="email"
-                    placeholder={t("email")}
+                    label={type === "login" ? `${t("email")}` : t("email")}
+                    type={type === "login" ? "text" : "email"}
+                    placeholder={type === "login" ? `${t("email")}` : t("email")}
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    error={errors.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
                   />
                   <Input
                     label={t("password")}
                     type="password"
                     placeholder={t("password")}
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    error={errors.password}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
                   />
 
                   {type === "login" && (

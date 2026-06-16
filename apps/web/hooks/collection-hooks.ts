@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import * as collectionService from "@/services/collection-api-service";
 import type { CreateCollectionRequest, UpdateCollectionRequest } from "@/types/collection";
 import { updateVideoInCache } from "./video-hooks";
@@ -80,6 +80,7 @@ export const useSaveVideoMutation = () => {
         updateVideoInCache(queryClient, videoId, { isSaved: true, saveCount: response.data.saveCount });
       }
       queryClient.invalidateQueries({ queryKey: ["favorite-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-favorite-videos"] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
     },
   });
@@ -94,6 +95,7 @@ export const useUnsaveVideoMutation = () => {
         updateVideoInCache(queryClient, videoId, { isSaved: false, saveCount: response.data.saveCount });
       }
       queryClient.invalidateQueries({ queryKey: ["favorite-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["infinite-favorite-videos"] });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
       queryClient.invalidateQueries({ queryKey: ["collection-videos"] });
     },
@@ -178,5 +180,24 @@ export const useBulkRemoveCollectionVideosMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["collection-videos"] });
       queryClient.invalidateQueries({ queryKey: ["public-collection-videos"] });
     },
+  });
+};
+
+export const useInfiniteFavoriteVideos = (enabled = true, pageSize = 18) => {
+  return useInfiniteQuery({
+    queryKey: ["infinite-favorite-videos", pageSize],
+    queryFn: ({ pageParam = 0 }) => collectionService.getFavoriteVideos(pageParam, pageSize),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const meta = lastPage.meta;
+      const loadedCount = lastPage.data?.length ?? 0;
+      const nextPage = (meta?.page ?? 0) + 1;
+      if (meta && nextPage < meta.totalPages) return nextPage;
+      if (loadedCount === pageSize) return nextPage;
+      return undefined;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };

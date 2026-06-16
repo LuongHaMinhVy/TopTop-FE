@@ -824,12 +824,12 @@ export default function MainLayout({
                       <p className="mb-4 text-[14px] font-medium leading-relaxed text-text-secondary">
                         {t("sidebar.loginPrompt")}
                       </p>
-                      <Button
+                      <button
                         onClick={() => dispatch(openAuthModal("login"))}
                         className="h-12 w-full text-lg"
                       >
                         {t("login")}
-                      </Button>
+                      </button>
                     </div>
 
                     <div className="mt-6 px-4 pb-6">
@@ -941,7 +941,7 @@ export default function MainLayout({
                   {notificationFilters.map((filter) => {
                     const active = notificationFilter === filter.key;
                     return (
-                      <button
+                      <Button
                         key={filter.key}
                         type="button"
                         onClick={() => setNotificationFilter(filter.key)}
@@ -952,7 +952,7 @@ export default function MainLayout({
                         }`}
                       >
                         {filter.label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

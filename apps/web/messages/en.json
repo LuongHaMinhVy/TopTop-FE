@@ -968,6 +968,11 @@
     "errNetwork": "Could not connect. Check your network and try again.",
     "confirmLeaveOnboarding": "You have not finished signing up. If you leave, you will need to continue registration next time.",
     "errGeneric": "An error occurred",
+    "errUsernameLength": "Username must be between 2 and 24 characters.",
+    "errUsernamePattern": "Username can only contain letters, numbers, dots, and underscores.",
+    "errEmailPattern": "Invalid email format.",
+    "errEmailOrUsernameRequired": "Please enter your email or username.",
+    "errPasswordRequired": "Please enter your password.",
     "reactivation": {
       "title": "Reactivate account?",
       "deactivatedDescription": "This account is deactivated. You need to reactivate it before you can continue signing in and using TopTop.",
