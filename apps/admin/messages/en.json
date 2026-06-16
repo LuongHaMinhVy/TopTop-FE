@@ -51,6 +51,10 @@
         "sounds": {
           "title": "Sounds",
           "description": "Search and manage sounds in the system."
+        },
+        "auditLogs": {
+          "title": "Audit Logs",
+          "description": "System-wide tracking of moderation and administrative actions."
         }
       },
       "nav": {
@@ -119,6 +123,7 @@
         "users": "Users",
         "reports": "Reports",
         "sounds": "Sounds",
+        "auditLogs": "Audit Logs",
         "moderationQueueTitle": "Queue to handle",
         "moderationQueueDesc": "Videos waiting for manual review, ordered by handling priority.",
         "newSoundsTitle": "New sounds",
@@ -190,6 +195,12 @@
         "pageSummary": "Page {page}/{total} · {count} items",
         "previous": "Previous",
         "next": "Next",
+        "bulkApproveShopsConfirm": "Approve {count} selected shops?",
+        "bulkRejectShopsConfirm": "Reject {count} selected shops?",
+        "bulkApproveProductsConfirm": "Approve {count} selected products?",
+        "bulkRejectProductsConfirm": "Reject {count} selected products?",
+        "bulkBanProductsConfirm": "Ban {count} selected products?",
+        "selectedCount": "{count} selected",
         "status": {
           "DRAFT": "Draft",
           "ACTIVE": "Active",

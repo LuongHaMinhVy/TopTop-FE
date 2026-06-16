@@ -71,8 +71,8 @@ export function SoundDeleteModal({
               type="button"
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate()}
-              variant="danger"
-              className="flex-1 h-10 items-center justify-center rounded-xl bg-red-500 text-sm font-bold text-white hover:bg-red-600 transition disabled:opacity-50 flex justify-center items-center gap-1.5"
+              variant="primary"
+              className="flex-1 h-10 items-center justify-center rounded-xl text-sm font-bold text-white transition disabled:opacity-50 flex justify-center items-center gap-1.5"
             >
               {deleteMutation.isPending ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

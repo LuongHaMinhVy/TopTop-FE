@@ -51,6 +51,10 @@
         "sounds": {
           "title": "Âm thanh",
           "description": "Tra cứu và quản lý âm thanh trong hệ thống."
+        },
+        "auditLogs": {
+          "title": "Nhật ký kiểm duyệt",
+          "description": "Theo dõi lịch sử kiểm duyệt và các hành động quản trị hệ thống."
         }
       },
       "nav": {
@@ -119,6 +123,7 @@
         "users": "Người dùng",
         "reports": "Báo cáo",
         "sounds": "Âm thanh",
+        "auditLogs": "Lịch sử thao tác",
         "moderationQueueTitle": "Hàng đợi cần xử lý",
         "moderationQueueDesc": "Các video cần kiểm duyệt thủ công, sắp xếp theo mức độ cần xử lý.",
         "newSoundsTitle": "Âm thanh mới",
@@ -190,6 +195,12 @@
         "pageSummary": "Trang {page}/{total} · {count} mục",
         "previous": "Trước",
         "next": "Sau",
+        "bulkApproveShopsConfirm": "Phê duyệt {count} cửa hàng đã chọn?",
+        "bulkRejectShopsConfirm": "Từ chối {count} cửa hàng đã chọn?",
+        "bulkApproveProductsConfirm": "Phê duyệt {count} sản phẩm đã chọn?",
+        "bulkRejectProductsConfirm": "Từ chối {count} sản phẩm đã chọn?",
+        "bulkBanProductsConfirm": "Cấm (Ban) {count} sản phẩm đã chọn?",
+        "selectedCount": "Đã chọn {count}",
         "status": {
           "DRAFT": "Nháp",
           "ACTIVE": "Hoạt động",

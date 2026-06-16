@@ -84,20 +84,22 @@ export function SoundsSection({
                 })}
               </span>
               <div className="flex gap-2">
-                <IconActionButton
-                  label={t("sounds.previous")}
-                  icon={ChevronLeft}
-                  variant="secondary"
+                <button
                   disabled={!pageInfo || pageInfo.page <= 0}
                   onClick={() => onPageChange(Math.max((pageInfo?.page ?? 0) - 1, 0))}
-                />
-                <IconActionButton
-                  label={t("sounds.next")}
-                  icon={ChevronRight}
-                  variant="secondary"
+                  aria-label={t("sounds.previous")}
+                  className="flex h-10 shrink-0 items-center justify-center gap-2 !rounded-xl px-4 text-sm font-bold"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
                   disabled={!pageInfo || pageInfo.page + 1 >= pageInfo.totalPages}
                   onClick={() => onPageChange((pageInfo?.page ?? 0) + 1)}
-                />
+                  aria-label={t("sounds.next")}
+                  className="flex h-10 shrink-0 items-center justify-center gap-2 !rounded-xl px-4 text-sm font-bold"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           ) : null}

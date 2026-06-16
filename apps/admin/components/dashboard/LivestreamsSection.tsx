@@ -142,7 +142,7 @@ export function LivestreamsSection({
                     <IconActionButton
                       label={t("livestreams.end")}
                       icon={Square}
-                      variant="danger"
+                      variant="secondary"
                       onClick={() => {
                         endMutation.reset();
                         setPendingEnd(livestream);
@@ -304,7 +304,7 @@ function EndLivestreamDialog({
           <IconActionButton
             label={t("livestreams.end")}
             icon={Square}
-            variant="danger"
+            variant="primary"
             isLoading={isPending}
             onClick={onConfirm}
           />

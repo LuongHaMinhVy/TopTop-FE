@@ -13,12 +13,16 @@ export function ModerationList({
   expanded = false,
   soft = false,
   onReview,
+  selectedIds = [],
+  onSelectChange,
 }: {
   items: ModerationQueueItem[];
   isLoading: boolean;
   expanded?: boolean;
   soft?: boolean;
   onReview?: (videoId: number) => void;
+  selectedIds?: number[];
+  onSelectChange?: (ids: number[]) => void;
 }) {
   const t = useTranslations("Admin.dashboard");
 
@@ -36,17 +40,54 @@ export function ModerationList({
     );
   }
 
+  const showCheckbox = !soft && onSelectChange;
+
   return (
     <div className={soft ? "space-y-3" : "overflow-hidden rounded-lg border border-elevated"}>
+      {showCheckbox && items.length > 0 && (
+        <div className="flex items-center gap-3 border-b border-elevated bg-surface px-4 py-3 text-xs font-bold text-text-muted">
+          <input
+            type="checkbox"
+            checked={items.every((item) => selectedIds.includes(item.videoId))}
+            onChange={(e) => {
+              if (e.target.checked) {
+                onSelectChange(items.map((item) => item.videoId));
+              } else {
+                onSelectChange([]);
+              }
+            }}
+            className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand focus:ring-2 cursor-pointer"
+          />
+          <span className="select-none font-black uppercase text-text-secondary">
+            {t("moderation.selectAll", { count: items.length })}
+          </span>
+        </div>
+      )}
       {items.map((item) => (
         <div
           key={item.videoId}
           className={
             soft
               ? "grid grid-cols-[72px_1fr] gap-4 rounded-xl border border-elevated bg-surface/70 p-3 md:grid-cols-[84px_1fr_104px]"
-              : "grid grid-cols-[72px_1fr] gap-4 border-b border-elevated bg-background p-4 last:border-b-0 md:grid-cols-[84px_1fr_180px]"
+              : `grid ${showCheckbox ? "grid-cols-[40px_72px_1fr]" : "grid-cols-[72px_1fr]"} items-center gap-4 border-b border-elevated bg-background p-4 last:border-b-0 md:${showCheckbox ? "grid-cols-[40px_84px_1fr_180px]" : "grid-cols-[84px_1fr_180px]"}`
           }
         >
+          {showCheckbox && (
+            <div className="flex justify-center items-center">
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(item.videoId)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    onSelectChange([...selectedIds, item.videoId]);
+                  } else {
+                    onSelectChange(selectedIds.filter((id) => id !== item.videoId));
+                  }
+                }}
+                className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand focus:ring-2 cursor-pointer"
+              />
+            </div>
+          )}
           <div className="relative h-24 overflow-hidden rounded-xl bg-black">
             {item.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

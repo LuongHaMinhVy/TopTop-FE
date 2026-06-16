@@ -144,7 +144,7 @@ function LoginThemeToggle({
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
-    <Button
+    <button
       type="button"
       onClick={() => setTheme(nextTheme)}
       aria-label={
@@ -156,6 +156,6 @@ function LoginThemeToggle({
     >
       <Sun className="h-5 w-5 hidden dark:block" aria-hidden="true" />
       <Moon className="h-5 w-5 block dark:hidden" aria-hidden="true" />
-    </Button>
+    </button>
   );
 }

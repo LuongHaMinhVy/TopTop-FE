@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   ShoppingBag,
   Users,
+  ClipboardList,
 } from "lucide-react";
 import type { ElementType } from "react";
 
@@ -16,7 +17,8 @@ export type SectionKey =
   | "livestreams"
   | "users"
   | "reports"
-  | "sounds";
+  | "sounds"
+  | "audit-logs";
 
 export type DashboardNavItem = {
   key: SectionKey;
@@ -83,6 +85,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     titleKey: "pages.sounds.title",
     descriptionKey: "pages.sounds.description",
     icon: Music2,
+  },
+  {
+    key: "audit-logs",
+    href: "/audit-logs",
+    labelKey: "ops.auditLogs",
+    titleKey: "pages.auditLogs.title",
+    descriptionKey: "pages.auditLogs.description",
+    icon: ClipboardList,
   },
 ];
 

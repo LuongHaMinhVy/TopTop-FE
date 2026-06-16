@@ -1,159 +1,85 @@
-# Turborepo starter
+# 🎨 Frontend Turborepo Monorepo (Next.js + pnpm)
 
-This Turborepo starter is maintained by the Turborepo core team.
+Thư mục này chứa toàn bộ giao diện người dùng (Frontend) của hệ thống TikTok Clone, được quản lý dưới dạng **Monorepo** sử dụng **Turborepo** và **pnpm Workspaces** để tối ưu hóa việc phân chia và chia sẻ tài nguyên giữa các ứng dụng.
 
-## Using this example
+---
 
-Run the following command:
+## 📂 Sơ Đồ Cấu Trúc Monorepo
 
-```sh
-npx create-turbo@latest
+```txt
+front/
+├── apps/
+│   ├── web/               # Ứng dụng Next.js cho Client/Người dùng (Port 3001)
+│   └── admin/             # Ứng dụng Next.js cho Quản trị viên (Port 3002)
+├── packages/
+│   ├── ui/                # Thư viện component React dùng chung (@repo/ui)
+│   ├── eslint-config/     # Cấu hình ESLint chuẩn hóa dùng chung
+│   └── typescript-config/ # Các file tsconfig.json dùng chung cho monorepo
+├── package.json           # File cấu hình gốc của Monorepo
+├── pnpm-workspace.yaml    # Khai báo không gian làm việc của pnpm
+└── turbo.json             # Cấu hình các tác vụ Turborepo (dev, build, lint...)
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## ⚡ Các Lệnh Điều Hành Chính
 
-### Apps and Packages
+Khi phát triển dự án, bạn hãy đứng ở **thư mục gốc `/front`** để chạy các lệnh quản trị monorepo thông qua `pnpm`:
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+### 1. Cài đặt toàn bộ dependencies:
+```bash
+pnpm install
 ```
 
-Without global `turbo`, use your package manager:
+### 2. Khởi chạy môi trường phát triển (Dev Mode):
+* **Chạy tất cả các ứng dụng (`web` và `admin`)**:
+  ```bash
+  pnpm dev
+  ```
+* **Chỉ chạy ứng dụng Web Client người dùng**:
+  ```bash
+  pnpm dev:web
+  ```
+* **Chỉ chạy ứng dụng Admin Panel**:
+  ```bash
+  pnpm dev:admin
+  ```
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+### 3. Biên dịch dự án (Production Build):
+```bash
+pnpm build
 ```
+Turborepo sẽ tự động tối ưu hóa bộ nhớ đệm (caching) để bỏ qua các gói không thay đổi và biên dịch nhanh nhất có thể.
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 4. Kiểm tra mã nguồn (Linting, Formatting & Type Checking):
+* **Chạy ESLint kiểm tra lỗi cú pháp**:
+  ```bash
+  pnpm lint
+  ```
+* **Tự động định dạng mã nguồn bằng Prettier**:
+  ```bash
+  pnpm format
+  ```
+* **Kiểm tra kiểu dữ liệu TypeScript**:
+  ```bash
+  pnpm check-types
+  ```
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+---
 
-```sh
-turbo build --filter=docs
-```
+## 🛠️ Chia Sẻ Tài Nguyên Giữa Các Gói
 
-Without global `turbo`:
+1. **Shared UI Components (`@repo/ui`)**:
+   Mọi component nút (`Button`), đầu vào (`Input`), thanh cuộn, thẻ hiển thị... được tạo trong thư mục `packages/ui` đều có thể được import trực tiếp vào `apps/web` và `apps/admin` bằng cú pháp:
+   ```tsx
+   import { Button, Input } from "@repo/ui";
+   ```
+2. **Cấu hình chia sẻ**:
+   Giúp dự án tuân thủ tiêu chuẩn code chung mà không cần viết lại tệp cấu hình ESLint và TypeScript tại từng app riêng biệt.
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
-```
+---
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+## ⚙️ Thiết Lập Môi Trường (Environments)
+Mỗi ứng dụng Next.js trong `apps/` có thể yêu cầu file cấu hình môi trường `.env` riêng biệt. Hãy đọc kỹ hướng dẫn cấu hình chi tiết tại:
+* [Hướng dẫn chạy ứng dụng Web Client (apps/web)](file:///d:/LmBt/tiktok/front/apps/web/README.md)
+* [Hướng dẫn chạy ứng dụng Admin (apps/admin)](file:///d:/LmBt/tiktok/front/apps/admin/README.md)

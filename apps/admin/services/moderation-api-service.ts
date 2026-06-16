@@ -5,6 +5,7 @@ import type {
   VideoModerationDetail,
   ReviewVideoModerationRequest,
   VideoModerationSummary,
+  ModerationAuditLog,
 } from "@/types/admin";
 
 export const getVideoModerationQueue = async (params?: {
@@ -34,5 +35,15 @@ export const reviewVideoModeration = async (
   return post<VideoModerationSummary>(
     `/admin/moderation/videos/${videoId}/review`,
     request,
+  );
+};
+
+export const getModerationAuditLogs = async (params?: { page?: number; size?: number }) => {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params?.page ?? 0));
+  searchParams.set("size", String(params?.size ?? 10));
+
+  return get<PageResponse<ModerationAuditLog>>(
+    `/admin/moderation/videos/audit-logs?${searchParams.toString()}`,
   );
 };

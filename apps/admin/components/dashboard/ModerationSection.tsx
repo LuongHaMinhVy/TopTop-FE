@@ -15,6 +15,8 @@ export function ModerationSection({
   isLoading,
   isError,
   onReview,
+  selectedIds = [],
+  onSelectChange,
 }: {
   items: ModerationQueueItem[];
   status: string;
@@ -22,6 +24,8 @@ export function ModerationSection({
   isLoading: boolean;
   isError: boolean;
   onReview: (id: number) => void;
+  selectedIds?: number[];
+  onSelectChange?: (ids: number[]) => void;
 }) {
   const t = useTranslations("Admin.dashboard");
   const statusSelectOptions = moderationStatusOptions.map((option) => ({
@@ -54,6 +58,8 @@ export function ModerationSection({
           isLoading={isLoading}
           expanded
           onReview={onReview}
+          selectedIds={selectedIds}
+          onSelectChange={onSelectChange}
         />
       )}
     </Panel>

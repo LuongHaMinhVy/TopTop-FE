@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Unlock,
   Sparkles,
+  Loader2,
+  XCircle,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Input, Select } from "@repo/ui";
@@ -243,12 +245,14 @@ function Metric({ icon: Icon, label, value }: { icon: ElementType; label: string
 
 function ShopPanel() {
   const t = useTranslations("Admin.dashboard.commerce");
+  const tDashboard = useTranslations("Admin.dashboard");
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [moderationStatus, setModerationStatus] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const shopsQuery = useQuery({
     queryKey: ["admin", "commerce", "shops", page, status, moderationStatus],
@@ -278,6 +282,23 @@ function ShopPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
   });
 
+  // Bulk operation mutation
+  const bulkMutation = useMutation({
+    mutationFn: async ({ ids, action }: { ids: number[]; action: "approve" | "reject" | "suspend" }) => {
+      await Promise.all(
+        ids.map((id) => {
+          if (action === "approve") return approveAdminShop(id);
+          if (action === "reject") return rejectAdminShop(id);
+          return suspendAdminShop(id);
+        })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] });
+      setSelectedIds([]);
+    },
+  });
+
   const rawItems = shopsQuery.data?.data ?? [];
   const filteredItems = rawItems.filter((shop) => {
     const q = search.toLowerCase();
@@ -302,6 +323,33 @@ function ShopPanel() {
     { value: "NEED_REVIEW", label: t("moderationStatus.NEED_REVIEW") },
   ];
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredItems.map((s) => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((x) => x !== id));
+    }
+  };
+
+  const handleBulkAction = (action: "approve" | "reject" | "suspend") => {
+    let confirmMsg = "";
+    if (action === "approve") confirmMsg = t("bulkApproveShopsConfirm", { count: selectedIds.length });
+    else if (action === "reject") confirmMsg = t("bulkRejectShopsConfirm", { count: selectedIds.length });
+    else confirmMsg = `Suspend ${selectedIds.length} selected shops?`;
+
+    if (confirm(confirmMsg)) {
+      bulkMutation.mutate({ ids: selectedIds, action });
+    }
+  };
+
   return (
     <Panel
       title={t("shopModeration")}
@@ -323,9 +371,10 @@ function ShopPanel() {
             onChange={(val) => {
               setStatus(val);
               setPage(0);
+              setSelectedIds([]);
             }}
             ariaLabel={t("statusLabel")}
-            className="md:w-44"
+            className="md:w-44 "
           />
           <Select
             value={moderationStatus}
@@ -333,6 +382,7 @@ function ShopPanel() {
             onChange={(val) => {
               setModerationStatus(val);
               setPage(0);
+              setSelectedIds([]);
             }}
             ariaLabel={t("moderationLabel")}
             className="md:w-44"
@@ -349,7 +399,15 @@ function ShopPanel() {
       ) : (
         <>
           <div className="overflow-hidden rounded-xl border border-elevated">
-            <div className="grid grid-cols-[minmax(240px,1.5fr)_160px_160px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted">
+            <div className="grid grid-cols-[40px_minmax(240px,1.5fr)_160px_160px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted items-center">
+              <div className="flex justify-center">
+                <input
+                  type="checkbox"
+                  checked={filteredItems.length > 0 && filteredItems.every((s) => selectedIds.includes(s.id))}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand cursor-pointer"
+                />
+              </div>
               <span>{t("shops")}</span>
               <span>{t("statusLabel")}</span>
               <span>Owner ID</span>
@@ -358,8 +416,16 @@ function ShopPanel() {
             {filteredItems.map((shop) => (
               <div
                 key={shop.id}
-                className="toptop-table-row grid grid-cols-[minmax(240px,1.5fr)_160px_160px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
+                className="toptop-table-row grid grid-cols-[40px_minmax(240px,1.5fr)_160px_160px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
               >
+                <div className="flex justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(shop.id)}
+                    onChange={(e) => handleSelectOne(shop.id, e.target.checked)}
+                    className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand cursor-pointer"
+                  />
+                </div>
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-elevated text-text-muted font-bold">
                     {shop.avatarUrl ? (
@@ -388,7 +454,7 @@ function ShopPanel() {
                       <IconActionButton
                         label={t("reject")}
                         icon={X}
-                        variant="danger"
+                        variant="secondary"
                         onClick={() => reject.mutate(shop.id)}
                       />
                     </>
@@ -404,7 +470,7 @@ function ShopPanel() {
                     <IconActionButton
                       label={t("suspend")}
                       icon={ShieldAlert}
-                      variant="danger"
+                      variant="secondary"
                       onClick={() => suspend.mutate(shop.id)}
                     />
                   ) : null}
@@ -419,6 +485,51 @@ function ShopPanel() {
             totalElements={pageInfo?.totalElements ?? filteredItems.length}
             onPageChange={setPage}
           />
+
+          {/* Floating Batch Actions Bar for Shops */}
+          {selectedIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full border border-elevated bg-background/95 px-6 py-3.5 shadow-2xl backdrop-blur-md transition-all md:w-auto w-[92%] max-w-lg">
+              <span className="text-xs font-black text-text-primary whitespace-nowrap">
+                {t("selectedCount", { count: selectedIds.length })}
+              </span>
+              <div className="h-4 w-px bg-elevated" />
+              <div className="flex flex-1 items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="h-9 rounded-full px-3 text-xs font-bold text-text-muted hover:bg-hover transition active:scale-95"
+                >
+                  {tDashboard("moderation.clearSelection")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction("approve")}
+                  disabled={bulkMutation.isPending}
+                  className="h-9 rounded-full bg-green-600 px-4 text-xs font-black text-white hover:bg-green-700 flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  {t("approve")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction("reject")}
+                  disabled={bulkMutation.isPending}
+                  className="h-9 rounded-full border border-elevated px-4 text-xs font-black text-text-primary hover:bg-hover flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5" />
+                  )}
+                  {t("reject")}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </Panel>
@@ -427,12 +538,14 @@ function ShopPanel() {
 
 function ProductPanel() {
   const t = useTranslations("Admin.dashboard.commerce");
+  const tDashboard = useTranslations("Admin.dashboard");
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [moderationStatus, setModerationStatus] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const productsQuery = useQuery({
     queryKey: ["admin", "commerce", "products", page, status, moderationStatus],
@@ -458,6 +571,23 @@ function ProductPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] }),
   });
 
+  // Bulk operation mutation
+  const bulkMutation = useMutation({
+    mutationFn: async ({ ids, action }: { ids: number[]; action: "approve" | "reject" | "ban" }) => {
+      await Promise.all(
+        ids.map((id) => {
+          if (action === "approve") return approveAdminProduct(id);
+          if (action === "reject") return rejectAdminProduct(id);
+          return banAdminProduct(id);
+        })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "commerce"] });
+      setSelectedIds([]);
+    },
+  });
+
   const rawItems = productsQuery.data?.data ?? [];
   const filteredItems = rawItems.filter((product) => {
     const q = search.toLowerCase();
@@ -481,6 +611,33 @@ function ProductPanel() {
     { value: "NEED_REVIEW", label: t("moderationStatus.NEED_REVIEW") },
   ];
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredItems.map((p) => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((x) => x !== id));
+    }
+  };
+
+  const handleBulkAction = (action: "approve" | "reject" | "ban") => {
+    let confirmMsg = "";
+    if (action === "approve") confirmMsg = t("bulkApproveProductsConfirm", { count: selectedIds.length });
+    else if (action === "reject") confirmMsg = t("bulkRejectProductsConfirm", { count: selectedIds.length });
+    else confirmMsg = t("bulkBanProductsConfirm", { count: selectedIds.length });
+
+    if (confirm(confirmMsg)) {
+      bulkMutation.mutate({ ids: selectedIds, action });
+    }
+  };
+
   return (
     <Panel
       title={t("productModeration")}
@@ -502,6 +659,7 @@ function ProductPanel() {
             onChange={(val) => {
               setStatus(val);
               setPage(0);
+              setSelectedIds([]);
             }}
             ariaLabel={t("statusLabel")}
             className="md:w-44"
@@ -512,6 +670,7 @@ function ProductPanel() {
             onChange={(val) => {
               setModerationStatus(val);
               setPage(0);
+              setSelectedIds([]);
             }}
             ariaLabel={t("moderationLabel")}
             className="md:w-44"
@@ -528,7 +687,15 @@ function ProductPanel() {
       ) : (
         <>
           <div className="overflow-hidden rounded-xl border border-elevated">
-            <div className="grid grid-cols-[minmax(240px,1.5fr)_150px_130px_130px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted">
+            <div className="grid grid-cols-[40px_minmax(240px,1.5fr)_150px_130px_130px_160px] gap-4 border-b border-elevated bg-surface px-4 py-3 text-xs font-black uppercase text-text-muted items-center">
+              <div className="flex justify-center">
+                <input
+                  type="checkbox"
+                  checked={filteredItems.length > 0 && filteredItems.every((p) => selectedIds.includes(p.id))}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand cursor-pointer"
+                />
+              </div>
               <span>{t("products")}</span>
               <span>Price & Info</span>
               <span>{t("statusLabel")}</span>
@@ -538,8 +705,16 @@ function ProductPanel() {
             {filteredItems.map((product) => (
               <div
                 key={product.id}
-                className="toptop-table-row grid grid-cols-[minmax(240px,1.5fr)_150px_130px_130px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
+                className="toptop-table-row grid grid-cols-[40px_minmax(240px,1.5fr)_150px_130px_130px_160px] items-center gap-4 border-b border-elevated px-4 py-4 last:border-b-0"
               >
+                <div className="flex justify-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(product.id)}
+                    onChange={(e) => handleSelectOne(product.id, e.target.checked)}
+                    className="h-4 w-4 rounded border-elevated bg-surface text-brand focus:ring-brand cursor-pointer"
+                  />
+                </div>
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-elevated text-text-muted">
                     {product.media && product.media.length > 0 ? (
@@ -574,14 +749,14 @@ function ProductPanel() {
                         <IconActionButton
                           label={t("reject")}
                           icon={X}
-                          variant="danger"
+                          variant="secondary"
                           onClick={() => reject.mutate(product.id)}
                         />
                       )}
                       <IconActionButton
                         label={t("ban")}
                         icon={ShieldAlert}
-                        variant="danger"
+                        variant="secondary"
                         onClick={() => ban.mutate(product.id)}
                       />
                     </>
@@ -597,6 +772,64 @@ function ProductPanel() {
             totalElements={pageInfo?.totalElements ?? filteredItems.length}
             onPageChange={setPage}
           />
+
+          {/* Floating Batch Actions Bar for Products */}
+          {selectedIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full border border-elevated bg-background/95 px-6 py-3.5 shadow-2xl backdrop-blur-md transition-all md:w-auto w-[92%] max-w-lg">
+              <span className="text-xs font-black text-text-primary whitespace-nowrap">
+                {t("selectedCount", { count: selectedIds.length })}
+              </span>
+              <div className="h-4 w-px bg-elevated" />
+              <div className="flex flex-1 items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="h-9 rounded-full px-3 text-xs font-bold text-text-muted hover:bg-hover transition active:scale-95"
+                >
+                  {tDashboard("moderation.clearSelection")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction("approve")}
+                  disabled={bulkMutation.isPending}
+                  className="h-9 rounded-full bg-green-600 px-4 text-xs font-black text-white hover:bg-green-700 flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  {t("approve")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction("reject")}
+                  disabled={bulkMutation.isPending}
+                  className="h-9 rounded-full border border-elevated px-4 text-xs font-black text-text-primary hover:bg-hover flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5" />
+                  )}
+                  {t("reject")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction("ban")}
+                  disabled={bulkMutation.isPending}
+                  className="h-9 rounded-full border border-elevated px-4 text-xs font-black text-text-primary hover:bg-hover flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                  )}
+                  {t("ban")}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </Panel>

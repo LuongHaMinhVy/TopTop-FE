@@ -188,26 +188,26 @@ export function UsersSection({
                 </div>
                 <p className="text-xs font-semibold text-text-muted">{formatDate(user.createdAt)}</p>
                 <div className="flex justify-end gap-2">
-                  <IconActionButton
-                    label={t("users.view")}
-                    icon={Eye}
-                    variant="ghost"
+                  <button
                     onClick={() => setSelectedUser(user)}
-                  />
+                    className="rounded-lg bg-primary-light border border-elevated px-3 py-1.5 text-xs font-bold text-text-primary hover:bg-primary-light/80"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
                   {user.status === "ACTIVE" ? (
-                    <IconActionButton
-                      label={t("users.ban")}
-                      icon={Ban}
-                      variant="danger"
+                    <button
+                      className="rounded-lg bg-primary-light border border-elevated px-3 py-1.5 text-xs font-bold text-text-primary hover:bg-primary-light/80"
                       onClick={() => setPendingAction({ user, status: "BANNED" })}
-                    />
+                    >
+                      <Ban className="h-4 w-4" />
+                    </button>
                   ) : (
-                    <IconActionButton
-                      label={t("users.activate")}
-                      icon={RotateCcw}
-                      variant="secondary"
+                    <button
+                      className="rounded-lg bg-primary-light border border-elevated px-3 py-1.5 text-xs font-bold text-text-primary hover:bg-primary-light/80"
                       onClick={() => setPendingAction({ user, status: "ACTIVE" })}
-                    />
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -388,7 +388,7 @@ function UserDetailDrawer({
               <IconActionButton
                 label={t("users.ban")}
                 icon={Ban}
-                variant="danger"
+                variant="secondary"
                 className="h-11 w-full rounded-lg"
                 onClick={() => onAction("BANNED")}
               />
@@ -468,7 +468,7 @@ function UserActionDialog({
           <IconActionButton
             label={t(isRestore ? "users.activate" : isBan ? "users.ban" : "users.suspend")}
             icon={isRestore ? RotateCcw : isBan ? Ban : Lock}
-            variant={isRestore ? "primary" : "danger"}
+            variant={isRestore ? "primary" : "secondary"}
             isLoading={isPending}
             disabled={!isRestore && !reason.trim()}
             onClick={onConfirm}

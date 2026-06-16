@@ -358,7 +358,7 @@ function ReportReviewDialog({
           <IconActionButton
             label={t("reportsSection.saveReview")}
             icon={decision === "REJECTED" ? XCircle : CheckCircle2}
-            variant={decision === "REJECTED" ? "danger" : "primary"}
+            variant="primary"
             isLoading={isPending}
             disabled={!canSubmit}
             onClick={() =>

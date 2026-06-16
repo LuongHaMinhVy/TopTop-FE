@@ -96,24 +96,24 @@ export function SoundList({
 
           <div className="flex flex-col gap-1 shrink-0 border-l border-elevated pl-2 ml-1">
             {onEdit && (
-              <Button
+              <button
                 type="button"
                 onClick={() => onEdit(sound)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-brand transition"
+                className="flex h-7 w-7 items-center border border-elevated justify-center rounded-lg text-text-muted hover:bg-hover hover:text-brand transition"
                 title={t("sounds.edit")}
               >
                 <Pencil className="h-3.5 w-3.5" />
-              </Button>
+              </button>
             )}
             {onDelete && (
-              <Button
+              <button
                 type="button"
                 onClick={() => onDelete(sound)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-red-500 transition"
+                className="flex h-7 w-7 items-center border border-elevated justify-center rounded-lg text-text-muted hover:bg-hover hover:text-red-600 transition"
                 title={t("sounds.delete")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              </button>
             )}
           </div>
         </div>

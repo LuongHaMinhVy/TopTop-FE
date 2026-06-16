@@ -196,13 +196,13 @@ function ThemeToggle() {
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
-    <Button
+    <button
       type="button"
       onClick={() => setTheme(nextTheme)}
       aria-label={t(resolvedTheme === "dark" ? "theme.switchToLight" : "theme.switchToDark")}
       title={t(resolvedTheme === "dark" ? "theme.light" : "theme.dark")}
       suppressHydrationWarning
-      className="flex h-10 w-10 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-text-primary"
+      className="flex h-10 cursor-pointer border border-elevated w-10 items-center justify-center rounded-lg text-text-muted hover:bg-hover hover:text-text-primary"
     >
       <Sun
         className="h-5 w-5 dark:block hidden"
@@ -214,6 +214,6 @@ function ThemeToggle() {
         aria-hidden="true"
         suppressHydrationWarning
       />
-    </Button>
+    </button>
   );
 }
